@@ -1,0 +1,18 @@
+# --- CẤU HÌNH CHO ANDROID ---
+android/build/
+android/.gradle/
+android/app/build/
+android/local.properties
+android/.idea/
+android/*.iml
+
+# --- CẤU HÌNH CHO SPRING BOOT (JAVA) ---
+backend/target/
+backend/.mvn/
+backend/.idea/
+backend/*.iml
+backend/*.class
+
+# --- CẤU HÌNH CHUNG (HỆ ĐIỀU HÀNH) ---
+.DS_Store
+Thumbs.db
