@@ -1,4 +1,4 @@
-package com.example.demo.entity;
+package com.instabond.entity;
 
 import lombok.*;
 import org.springframework.data.annotation.Id;

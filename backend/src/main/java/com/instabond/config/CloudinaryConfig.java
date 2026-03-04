@@ -1,4 +1,4 @@
-package com.example.demo.config;
+package com.instabond.config;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
