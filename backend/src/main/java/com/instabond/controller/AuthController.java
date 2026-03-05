@@ -3,6 +3,11 @@ package com.instabond.controller;
 import com.instabond.dto.AuthRequest;
 import com.instabond.dto.AuthResponse;
 import com.instabond.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,10 +15,20 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Tag(name = "Authentication", description = "Register, login and refresh token")
 public class AuthController {
 
     private final AuthService authService;
 
+    @Operation(
+            summary = "Register a new account",
+            description = "Create a new user with username, email and password. Avatar URL is optional."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Registration successful — returns accessToken & refreshToken"),
+            @ApiResponse(responseCode = "400", description = "Validation failed or email/username already exists")
+    })
+    @SecurityRequirements   // public route — no token needed
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody AuthRequest request) {
         try {
@@ -36,13 +51,31 @@ public class AuthController {
         }
     }
 
+    @Operation(
+            summary = "Login",
+            description = "Authenticate with email and password. Returns accessToken (1 day) and refreshToken (7 days)."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Login successful — returns accessToken & refreshToken"),
+            @ApiResponse(responseCode = "401", description = "Invalid email or password")
+    })
+    @SecurityRequirements   // public route — no token needed
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody AuthRequest request) {
-        // If wrong pass => Spring Security return 403/401
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }
 
+    @Operation(
+            summary = "Refresh access token",
+            description = "Exchange a valid refreshToken for a new accessToken. Pass the refreshToken as `Authorization: Bearer <refreshToken>`."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Returns new accessToken, old refreshToken is kept"),
+            @ApiResponse(responseCode = "400", description = "Missing Authorization header"),
+            @ApiResponse(responseCode = "401", description = "Refresh token is invalid or expired")
+    })
+    @SecurityRequirements   // uses refresh token, not access token
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(@RequestHeader("Authorization") String authHeader) {
         try {
