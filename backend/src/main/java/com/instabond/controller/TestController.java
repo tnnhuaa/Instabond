@@ -11,7 +11,7 @@ public class TestController {
     @GetMapping("/api/test")
     public Map<String, String> pingPong() {
         Map<String, String> response = new HashMap<>();
-        response.put("message", "Kết nối thành công! Lời chào từ Spring Boot.");
+        response.put("message", "Connect successfully, welcome to Instabond API!");
         return response;
     }
 }
