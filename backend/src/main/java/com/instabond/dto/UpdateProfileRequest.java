@@ -1,4 +1,4 @@
-package com.instabond.dto.request;
+package com.instabond.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
