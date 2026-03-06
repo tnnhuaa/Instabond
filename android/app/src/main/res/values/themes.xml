@@ -1,9 +1,38 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.Instabond_FE" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    InstaBond — App Theme (dark, matching Figma bg #0A0A0F)
+-->
+<resources>
+
+    <!-- Base application theme -->
+    <style name="Theme.InstaBond" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Background color matches design canvas: #0A0A0F -->
+        <item name="android:windowBackground">@color/bg_primary</item>
+        <item name="android:statusBarColor">@color/status_bar</item>
+        <item name="android:navigationBarColor">@color/bg_primary</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <!-- Material color roles -->
+        <item name="colorPrimary">@color/text_primary</item>
+        <item name="colorOnPrimary">@color/bg_primary</item>
+        <item name="colorSurface">@color/bg_primary</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="android:colorBackground">@color/bg_primary</item>
     </style>
 
-    <style name="Theme.Instabond_FE" parent="Base.Theme.Instabond_FE" />
+    <!-- Toolbar style — transparent/dark background -->
+    <style name="InstaBond.Toolbar" parent="Widget.MaterialComponents.Toolbar">
+        <item name="android:background">@color/bg_primary</item>
+        <item name="titleTextColor">@color/text_primary</item>
+        <item name="subtitleTextColor">@color/text_secondary</item>
+    </style>
+
+    <!-- Bottom navigation style -->
+    <style name="InstaBond.BottomNav" parent="Widget.MaterialComponents.BottomNavigationView">
+        <item name="android:background">@color/bg_primary</item>
+        <item name="itemIconTint">@color/bottom_nav_tint</item>
+        <item name="itemTextColor">@color/bottom_nav_tint</item>
+        <item name="labelVisibilityMode">labeled</item>
+    </style>
+
 </resources>

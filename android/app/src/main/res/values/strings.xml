@@ -1,3 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    InstaBond — String resources
+-->
 <resources>
-    <string name="app_name">Instabond_FE</string>
+    <string name="app_name">InstaBond</string>
+
+    <!-- Toolbar -->
+    <string name="cd_menu">Menu</string>
+    <string name="cd_qr_code">QR Code</string>
+    <string name="cd_messages">Messages</string>
+
+    <!-- Post card -->
+    <string name="cd_user_avatar">User avatar</string>
+    <string name="cd_post_image">Post image</string>
+    <string name="cd_music">Playing music</string>
+    <string name="cd_like">Like</string>
+    <string name="cd_comment">Comment</string>
+    <string name="cd_bookmark">Bookmark</string>
+    <string name="cd_more_options">More options</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_create">Create</string>
+    <string name="nav_notifications">Notifications</string>
+    <string name="nav_profile">Profile</string>
 </resources>

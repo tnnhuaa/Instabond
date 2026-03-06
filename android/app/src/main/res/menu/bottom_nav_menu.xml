@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    InstaBond Bottom Navigation Menu
+    Matches the 5-tab bar visible in the design screenshot:
+    Home | Search | Create (+) | Notifications | Profile
+-->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Home tab -->
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/ic_home"
+        android:title="Home" />
+
+    <!-- Search tab -->
+    <item
+        android:id="@+id/nav_search"
+        android:icon="@drawable/ic_search"
+        android:title="Search" />
+
+    <!--
+        Create / New Post — centre FAB-style tab.
+        The circular blue background (+) is handled via a custom
+        ic_create drawable; the BottomNavigationView item acts as
+        the touch target.
+    -->
+    <item
+        android:id="@+id/nav_create"
+        android:icon="@drawable/ic_add_circle"
+        android:title="Create" />
+
+    <!-- Notifications tab -->
+    <item
+        android:id="@+id/nav_notifications"
+        android:icon="@drawable/ic_bell"
+        android:title="Notifications" />
+
+    <!-- Profile tab -->
+    <item
+        android:id="@+id/nav_profile"
+        android:icon="@drawable/ic_person"
+        android:title="Profile" />
+
+</menu>
