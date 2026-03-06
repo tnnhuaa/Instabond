@@ -59,7 +59,7 @@ public class User {
     @AllArgsConstructor
     public static class Setting {
         private String allow_tagging;
-        private boolean is_private;
+        private Boolean is_private;
         private String theme;
     }
 }
