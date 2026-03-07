@@ -17,10 +17,25 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".view.SignInActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.SignUpActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.NewsfeedActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.ProfileActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

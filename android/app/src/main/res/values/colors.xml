@@ -39,4 +39,30 @@
     <!-- ── System Bar / Status Bar ───────────────────────── -->
     <color name="status_bar">#0A0A0F</color>
 
+    <!-- ── Sign-In Screen ───────────────────────────────── -->
+    <!-- Tab container / input field background -->
+    <color name="signin_surface">#141419</color>
+    <!-- Input / button border: rgba(215,237,251,0.1) ≈ #1AD7EDFB -->
+    <color name="signin_border">#1AD7EDFB</color>
+    <!-- Placeholder / hint text -->
+    <color name="signin_hint">#6A7282</color>
+    <!-- "Remember password" label / subtitle -->
+    <color name="signin_muted">#99A1AF</color>
+    <!-- Tab inactive text -->
+    <color name="signin_tab_inactive">#6A7282</color>
+    <!-- Horizontal divider line -->
+    <color name="signin_divider">#364153</color>
+    <!-- Terms text (dark grey) -->
+    <color name="signin_terms">#4A5565</color>
+    <!-- "Đăng ký ngay" link color: light blue from gradient start -->
+    <color name="signin_link">#D1EDF9</color>
+    <!-- Brand gradient start (light blue) -->
+    <color name="signin_grad_start">#D1EDF9</color>
+    <!-- Brand gradient end (gold) -->
+    <color name="signin_grad_end">#D5AD41</color>
+    <!-- Checkbox border color -->
+    <color name="signin_checkbox_border">#4A5565</color>
+    <!-- Gradient via mid-blue -->
+    <color name="signin_grad_mid">#7EC8E3</color>
+
 </resources>

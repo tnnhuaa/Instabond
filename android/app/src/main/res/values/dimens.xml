@@ -52,4 +52,48 @@
     <!-- ── Toolbar ────────────────────────────────────────── -->
     <dimen name="toolbar_height">56dp</dimen>
 
+    <!-- ── Sign-In Screen ────────────────────────────────── -->
+    <!-- App logo icon size (≈ 90dp) -->
+    <dimen name="signin_logo_size">90dp</dimen>
+    <!-- App name brand text size -->
+    <dimen name="signin_brand_text">32sp</dimen>
+    <!-- Tagline text size -->
+    <dimen name="signin_tagline_text">14sp</dimen>
+    <!-- Tab container height (≈ 48dp) -->
+    <dimen name="signin_tab_height">48dp</dimen>
+    <!-- Tab corner radius -->
+    <dimen name="signin_tab_radius">16dp</dimen>
+    <!-- Input field height (≈ 54dp) -->
+    <dimen name="signin_input_height">54dp</dimen>
+    <!-- Input field corner radius -->
+    <dimen name="signin_input_radius">16dp</dimen>
+    <!-- Input left icon size (≈ 20dp) -->
+    <dimen name="signin_icon_size">20dp</dimen>
+    <!-- Input horizontal padding -->
+    <dimen name="signin_input_padding_h">48dp</dimen>
+    <!-- Primary button height (≈ 52dp) -->
+    <dimen name="signin_btn_height">52dp</dimen>
+    <!-- Primary button corner radius -->
+    <dimen name="signin_btn_radius">16dp</dimen>
+    <!-- Screen horizontal margin (≈ 28dp) -->
+    <dimen name="signin_screen_margin">28dp</dimen>
+    <!-- Gap between form elements (≈ 16dp) -->
+    <dimen name="signin_form_gap">16dp</dimen>
+    <!-- Checkbox size (≈ 20dp) -->
+    <dimen name="signin_checkbox_size">20dp</dimen>
+
+    <!-- ── Profile Screen ─────────────────────────────── -->
+    <!-- Outer avatar ring size -->
+    <dimen name="profile_avatar_ring_size">128dp</dimen>
+    <!-- Inner avatar image size (ring − 2 × 16dp padding) -->
+    <dimen name="profile_avatar_size">96dp</dimen>
+    <!-- Screen horizontal padding -->
+    <dimen name="profile_screen_padding">24dp</dimen>
+    <!-- Tab bar height -->
+    <dimen name="profile_tab_height">50dp</dimen>
+    <!-- Photo grid cell size (≈ screen ÷ 3) -->
+    <dimen name="profile_grid_cell">130dp</dimen>
+    <!-- Create FAB size -->
+    <dimen name="profile_fab_size">56dp</dimen>
+
 </resources>

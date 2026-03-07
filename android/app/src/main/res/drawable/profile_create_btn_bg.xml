@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Background for the floating Create (+) button in the bottom nav.
+    Figma node 6:365 — gradient from #D7EDFB (light blue) → #278DCF (mid blue) → #FF6B6B (coral).
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+
+    <gradient
+        android:angle="270"
+        android:startColor="#D7EDFB"
+        android:centerColor="#278DCF"
+        android:endColor="#FF6B6B"
+        android:type="linear" />
+
+</shape>

@@ -1,0 +1,591 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    InstaBond – Profile Screen
+    Design node: 6:270 | Figma file: ZNm4rCJCuY8paZvdTkA5d1
+
+    Screen layout (dark background #0A0A0F):
+      1. Sticky header  — "Hồ sơ" title + Settings icon
+      2. Scrollable body:
+           a. Avatar (128dp ring) + Username + Bio
+           b. Stats row: Posts | Friends | Likes
+           c. Tab bar: "Lưới ảnh" (active, blue underline) | "Có mặt tôi"
+           d. 3-column photo grid (6 placeholder cells)
+      3. Fixed bottom nav — Home | Search | [Create FAB] | Notifications | Profile
+-->
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_primary"
+    tools:context=".ProfileActivity">
+
+    <!-- ───────── STICKY HEADER (node 6:326) ───────── -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/app_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#F2141419"
+        app:elevation="0dp">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
+
+            <!-- "Hồ sơ" title (node 6:329) -->
+            <TextView
+                android:id="@+id/tv_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start|center_vertical"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/title_profile"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp" />
+
+            <!-- Settings icon (node 6:331) -->
+            <ImageButton
+                android:id="@+id/btn_settings"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="end|center_vertical"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cd_settings"
+                android:padding="6dp"
+                android:src="@drawable/ic_settings" />
+
+        </androidx.appcompat.widget.Toolbar>
+
+        <!-- 1dp bottom border (rgba 38,38,38,0.2) -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/divider" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- ───────── SCROLLABLE BODY ───────── -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:overScrollMode="never"
+        android:paddingBottom="@dimen/bottom_nav_height"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="24dp">
+
+            <!-- ── PROFILE SECTION (node 6:274 / 6:275) ── -->
+            <LinearLayout
+                android:id="@+id/ll_profile_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:paddingStart="@dimen/profile_screen_padding"
+                android:paddingEnd="@dimen/profile_screen_padding">
+
+                <!-- Avatar ring + photo (node 6:280) -->
+                <FrameLayout
+                    android:layout_width="@dimen/profile_avatar_ring_size"
+                    android:layout_height="@dimen/profile_avatar_ring_size"
+                    android:layout_gravity="center_horizontal">
+
+                    <!-- Dashed ring indicator (node 6:281) -->
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:contentDescription=""
+                        android:src="@drawable/profile_avatar_ring" />
+
+                    <!-- Avatar image — circular clipped (node 6:284) -->
+                    <ImageView
+                        android:id="@+id/iv_avatar"
+                        android:layout_width="@dimen/profile_avatar_size"
+                        android:layout_height="@dimen/profile_avatar_size"
+                        android:layout_gravity="center"
+                        android:background="@drawable/avatar_circle_bg"
+                        android:contentDescription="@string/cd_profile_photo"
+                        android:scaleType="centerCrop" />
+
+                </FrameLayout>
+
+                <!-- Username (node 6:277) -->
+                <TextView
+                    android:id="@+id/tv_username"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="Minh Anh"
+                    android:textColor="@color/text_primary"
+                    android:textSize="20sp"
+                    tools:ignore="HardcodedText" />
+
+                <!-- Bio (node 6:279) -->
+                <TextView
+                    android:id="@+id/tv_bio"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:fontFamily="sans-serif"
+                    android:text="Yêu nhiếp ảnh &amp; du lịch ✨"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    tools:ignore="HardcodedText" />
+
+            </LinearLayout>
+
+            <!-- ── STATS ROW (node 6:285) ── -->
+            <!--
+                Three equal-width columns: Posts | Friends | Likes
+                Each has a bold count on top and muted label below.
+            -->
+            <LinearLayout
+                android:id="@+id/ll_stats"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/profile_screen_padding"
+                android:paddingEnd="@dimen/profile_screen_padding"
+                android:weightSum="3">
+
+                <!-- Posts (node 6:286) -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_posts_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif"
+                        android:text="128"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        tools:ignore="HardcodedText" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:fontFamily="sans-serif"
+                        android:text="@string/label_posts"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+                <!-- Friends (node 6:291) -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_friends_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif"
+                        android:text="1.2K"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        tools:ignore="HardcodedText" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:fontFamily="sans-serif"
+                        android:text="@string/label_friends"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+                <!-- Likes (node 6:296) -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_likes_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif"
+                        android:text="2.5K"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        tools:ignore="HardcodedText" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:fontFamily="sans-serif"
+                        android:text="@string/label_likes"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- ── TAB BAR (node 6:301 / 6:302) ── -->
+            <!--
+                Two equal tabs. Active tab ("Lưới ảnh") has a blue 2dp bottom
+                border via profile_tab_active_bg. Inactive tab has a transparent
+                background.
+                A 1dp top separator line matches rgba(38,38,38,0.2).
+            -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="24dp"
+                android:background="@color/divider" />
+
+            <LinearLayout
+                android:id="@+id/ll_tabs"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/profile_tab_height"
+                android:orientation="horizontal"
+                android:weightSum="2">
+
+                <!-- "Lưới ảnh" — active tab (node 6:303) -->
+                <LinearLayout
+                    android:id="@+id/tab_grid"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/profile_tab_active_bg"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:contentDescription=""
+                        android:src="@drawable/ic_grid" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="@string/tab_grid"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+
+                </LinearLayout>
+
+                <!-- "Có mặt tôi" — inactive tab (node 6:312) -->
+                <LinearLayout
+                    android:id="@+id/tab_tagged"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:contentDescription=""
+                        android:src="@drawable/ic_user_check" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="@string/tab_tagged"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="16sp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- ── PHOTO GRID (node 6:319 — 3×2 grid of images) ── -->
+            <!--
+                GridLayout with 3 equal-width columns. Each cell is a square
+                ImageView with scaleType="centerCrop". Cells have 4dp gaps
+                matching Figma's ~4dp offsets between images.
+                Runtime code should populate via RecyclerView/GridLayoutManager
+                for real content. Static version uses placeholder backgrounds.
+            -->
+            <GridLayout
+                android:id="@+id/grid_photos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="3"
+                android:rowCount="2"
+                android:padding="4dp"
+                android:useDefaultMargins="false">
+
+                <!-- Row 1 — 3 cells -->
+                <ImageView
+                    android:id="@+id/iv_photo_1"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/profile_grid_cell"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="2dp"
+                    android:background="@color/bg_avatar_placeholder"
+                    android:contentDescription="@string/cd_post_image"
+                    android:scaleType="centerCrop" />
+
+                <ImageView
+                    android:id="@+id/iv_photo_2"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/profile_grid_cell"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="2dp"
+                    android:background="@color/bg_avatar_placeholder"
+                    android:contentDescription="@string/cd_post_image"
+                    android:scaleType="centerCrop" />
+
+                <ImageView
+                    android:id="@+id/iv_photo_3"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/profile_grid_cell"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="2dp"
+                    android:background="@color/bg_avatar_placeholder"
+                    android:contentDescription="@string/cd_post_image"
+                    android:scaleType="centerCrop" />
+
+                <!-- Row 2 — 3 cells -->
+                <ImageView
+                    android:id="@+id/iv_photo_4"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/profile_grid_cell"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="2dp"
+                    android:background="@color/bg_avatar_placeholder"
+                    android:contentDescription="@string/cd_post_image"
+                    android:scaleType="centerCrop" />
+
+                <ImageView
+                    android:id="@+id/iv_photo_5"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/profile_grid_cell"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="2dp"
+                    android:background="@color/bg_avatar_placeholder"
+                    android:contentDescription="@string/cd_post_image"
+                    android:scaleType="centerCrop" />
+
+                <ImageView
+                    android:id="@+id/iv_photo_6"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/profile_grid_cell"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="2dp"
+                    android:background="@color/bg_avatar_placeholder"
+                    android:contentDescription="@string/cd_post_image"
+                    android:scaleType="centerCrop" />
+
+            </GridLayout>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- ───────── BOTTOM NAVIGATION (node 6:334) ───────── -->
+    <!--
+        FrameLayout anchored to the bottom. Contains:
+          • The dark nav bar surface with 1dp top border
+          • Four icon-label buttons: Home | Search | (gap) | Notifications | Profile
+          • Floating Create button centred above the nav bar, elevated above it
+        The Create FAB extends 28dp above the nav bar top edge (half its 56dp height).
+    -->
+    <FrameLayout
+        android:id="@+id/bottom_nav_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom">
+
+        <!-- 1dp top border -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_gravity="top"
+            android:background="@color/divider" />
+
+        <!-- Nav bar surface (node 6:334 bg #141419) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/bottom_nav_height"
+            android:layout_marginTop="1dp"
+            android:background="@color/signin_surface"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:weightSum="5">
+
+                <!-- Home button (node 6:336) -->
+                <LinearLayout
+                    android:id="@+id/nav_home"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center_horizontal"
+                        android:contentDescription=""
+                        android:src="@drawable/ic_home" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="@string/nav_home"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp" />
+
+                </LinearLayout>
+
+                <!-- Search button (node 6:343) -->
+                <LinearLayout
+                    android:id="@+id/nav_search"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center_horizontal"
+                        android:contentDescription=""
+                        android:src="@drawable/ic_search" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="@string/nav_search"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp" />
+
+                </LinearLayout>
+
+                <!-- Centre spacer — FAB occupies this slot visually -->
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <!-- Notifications button (node 6:350) -->
+                <LinearLayout
+                    android:id="@+id/nav_notifications"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center_horizontal"
+                        android:contentDescription=""
+                        android:src="@drawable/ic_bell" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="@string/nav_notifications"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp" />
+
+                </LinearLayout>
+
+                <!-- Profile button — ACTIVE (node 6:357) -->
+                <LinearLayout
+                    android:id="@+id/nav_profile"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center_horizontal"
+                        android:contentDescription=""
+                        android:src="@drawable/ic_person" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="@string/nav_profile"
+                        android:textColor="@color/text_primary"
+                        android:textSize="10sp" />
+
+                </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Floating Create button centred above the bar (node 6:364 / 6:365) -->
+        <!--
+            bottom_margin = nav_height (68dp) − fab_size/2 (28dp) = 40dp
+            The button sits centred horizontally and its centre aligns with the
+            nav bar's top edge.
+        -->
+
+    </FrameLayout>
+
+    <ImageButton
+        android:id="@+id/btn_create"
+        android:layout_width="@dimen/profile_fab_size"
+        android:layout_height="@dimen/profile_fab_size"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="-28dp"
+        android:background="@drawable/profile_create_btn_bg"
+        android:contentDescription="@string/nav_create"
+        android:elevation="6dp"
+        android:padding="14dp"
+        android:src="@drawable/ic_add_circle"
+        app:layout_anchor="@+id/bottom_nav_container"
+        app:layout_anchorGravity="center" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
