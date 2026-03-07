@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Checkbox background: unchecked state — transparent fill with grey border.
+    Figma node 6:165 — border #4A5565, radius 8dp.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Checked: gradient fill, teal border -->
+    <item android:state_checked="true">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="@color/signin_grad_start"
+                android:endColor="@color/signin_grad_end"
+                android:type="linear" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+
+    <!-- Unchecked: transparent fill, grey border -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#00000000" />
+            <stroke
+                android:width="1dp"
+                android:color="@color/signin_checkbox_border" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+
+</selector>

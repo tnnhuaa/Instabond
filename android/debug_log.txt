@@ -1,0 +1,12 @@
+2026-03-07T20:59:25.224+0700 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] 
+2026-03-07T20:59:25.224+0700 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] FAILURE: Build failed with an exception.
+2026-03-07T20:59:25.224+0700 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] 
+2026-03-07T20:59:25.225+0700 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] * What went wrong:
+2026-03-07T20:59:25.225+0700 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] 25
+2026-03-07T20:59:25.225+0700 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] 
+2026-03-07T20:59:25.225+0700 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] * Try:
+2026-03-07T20:59:25.225+0700 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] > Run with --stacktrace option to get the stack trace.
+2026-03-07T20:59:25.225+0700 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] > Run with --scan to get full insights.
+2026-03-07T20:59:25.225+0700 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] > Get more help at https://help.gradle.org.
+2026-03-07T20:59:25.225+0700 [ERROR] [org.gradle.internal.buildevents.BuildResultLogger] 
+2026-03-07T20:59:25.225+0700 [ERROR] [org.gradle.internal.buildevents.BuildResultLogger] BUILD FAILED in 1s

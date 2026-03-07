@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    InstaBond – Sign-Up Screen
+    Design node: 6:190 | Figma file: ZNm4rCJCuY8paZvdTkA5d1
+
+    Screen is a dark full-bleed layout (bg #0A0A0F) containing:
+      1. App logo + brand name + tagline
+      2. Đăng nhập / Đăng ký tab switcher (Đăng ký = active, right tab)
+      3. Avatar placeholder circle + "Tải ảnh lên" button + file-type hint
+      4. Username / Email / Password / Confirm Password inputs
+      5. Primary gradient "Đăng ký" button
+      6. "Đã có tài khoản? Đăng nhập" link
+-->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_primary"
+    android:fillViewport="true"
+    android:overScrollMode="never"
+    tools:context=".SignUpActivity">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="917dp"
+        android:paddingStart="@dimen/signin_screen_margin"
+        android:paddingEnd="@dimen/signin_screen_margin"
+        android:paddingTop="80dp"
+        android:paddingBottom="32dp">
+
+        <!-- ──────────── LOGO (node 6:194) ──────────── -->
+        <ImageView
+            android:id="@+id/iv_logo"
+            android:layout_width="@dimen/signin_logo_size"
+            android:layout_height="@dimen/signin_logo_size"
+            android:contentDescription="@string/cd_app_logo"
+            android:src="@drawable/ic_app_logo"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- ──────────── BRAND NAME (node 6:205) ──────────── -->
+        <!--
+            Gradient text (blue → gold) is not natively supported in XML TextView;
+            @color/signin_link (#D1EDF9) is used as a close visual approximation.
+        -->
+        <TextView
+            android:id="@+id/tv_brand"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="InstaBond"
+            android:textColor="@color/signin_link"
+            android:textSize="@dimen/signin_brand_text"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/iv_logo" />
+
+        <!-- ──────────── TAGLINE (node 6:207) ──────────── -->
+        <TextView
+            android:id="@+id/tv_tagline"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:fontFamily="sans-serif"
+            android:text="@string/tagline"
+            android:textColor="@color/signin_muted"
+            android:textSize="@dimen/signin_tagline_text"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tv_brand" />
+
+        <!-- ──────────── TAB CONTAINER (node 6:208) ──────────── -->
+        <!--
+            Dark pill container holding two equal-width tabs.
+            Right tab (Đăng ký) is active — has a translucent gradient background pill.
+            Uses two stacked LinearLayouts inside a FrameLayout:
+              1. Indicator layer  – transparent spacer (left) + active pill (right)
+              2. Label layer      – text for each tab on top
+        -->
+        <FrameLayout
+            android:id="@+id/container_tabs"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/signin_tab_height"
+            android:layout_marginTop="40dp"
+            android:background="@drawable/signin_tab_container_bg"
+            android:padding="4dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tv_tagline">
+
+            <!-- Active-tab indicator on the right half -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:weightSum="2">
+
+                <!-- Transparent spacer (left = inactive side) -->
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1" />
+
+                <!-- Active pill (right = Đăng ký side) -->
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/signin_tab_active_bg" />
+
+            </LinearLayout>
+
+            <!-- Tab labels (drawn on top of the indicator) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:weightSum="2">
+
+                <!-- Đăng nhập tab (inactive) -->
+                <TextView
+                    android:id="@+id/tv_tab_signin"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:text="@string/tab_signin"
+                    android:textColor="@color/signin_tab_inactive"
+                    android:textSize="14sp" />
+
+                <!-- Đăng ký tab (active) -->
+                <TextView
+                    android:id="@+id/tv_tab_signup"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:text="@string/tab_signup"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+
+        </FrameLayout>
+
+        <!-- ──────────── AVATAR + UPLOAD SECTION (node 6:214) ──────────── -->
+        <!--
+            Vertically stacked, centred: avatar ring > upload button > hint text.
+            Avatar ring uses the existing blue-gradient ring drawable (closest to
+            the rgba(209,237,249,0.3) border shown in Figma node 6:225/6:227).
+        -->
+        <LinearLayout
+            android:id="@+id/ll_avatar_section"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/container_tabs">
+
+            <!-- Avatar ring + placeholder circle -->
+            <FrameLayout
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_gravity="center_horizontal">
+
+                <!-- Outer gradient ring (node 6:227 — blue/gold gradient, opacity 30%) -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/avatar_ring_gradient_blue" />
+
+                <!-- Inner dark circle — avatar image placeholder (node 6:226) -->
+                <ImageView
+                    android:id="@+id/iv_avatar"
+                    android:layout_width="74dp"
+                    android:layout_height="74dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/avatar_circle_bg"
+                    android:contentDescription="@string/cd_user_avatar"
+                    android:scaleType="centerCrop" />
+
+            </FrameLayout>
+
+            <!-- "Tải ảnh lên" upload button (node 6:216) -->
+            <Button
+                android:id="@+id/btn_upload_photo"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/signup_upload_btn_bg"
+                android:drawableStart="@drawable/ic_upload"
+                android:drawablePadding="8dp"
+                android:fontFamily="sans-serif-medium"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:stateListAnimator="@null"
+                android:text="@string/btn_upload_photo"
+                android:textColor="@color/signin_link"
+                android:textSize="14sp" />
+
+            <!-- File-type hint (node 6:223) -->
+            <TextView
+                android:id="@+id/tv_upload_hint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="6dp"
+                android:fontFamily="sans-serif"
+                android:text="@string/label_upload_hint"
+                android:textColor="@color/signin_terms"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <!-- ──────────── USERNAME INPUT (node 6:234) ──────────── -->
+        <FrameLayout
+            android:id="@+id/container_username"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/signin_input_height"
+            android:layout_marginTop="16dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/ll_avatar_section">
+
+            <EditText
+                android:id="@+id/et_username"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/signin_input_bg"
+                android:fontFamily="sans-serif"
+                android:hint="@string/hint_username"
+                android:inputType="text"
+                android:paddingStart="48dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/signin_hint"
+                android:textSize="16sp" />
+
+            <ImageView
+                android:id="@+id/iv_icon_user"
+                android:layout_width="@dimen/signin_icon_size"
+                android:layout_height="@dimen/signin_icon_size"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginStart="16dp"
+                android:contentDescription=""
+                android:src="@drawable/ic_user" />
+
+        </FrameLayout>
+
+        <!-- ──────────── EMAIL INPUT (node 6:240) ──────────── -->
+        <FrameLayout
+            android:id="@+id/container_email"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/signin_input_height"
+            android:layout_marginTop="@dimen/signin_form_gap"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/container_username">
+
+            <EditText
+                android:id="@+id/et_email"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/signin_input_bg"
+                android:fontFamily="sans-serif"
+                android:hint="@string/hint_email"
+                android:inputType="textEmailAddress"
+                android:paddingStart="48dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/signin_hint"
+                android:textSize="16sp" />
+
+            <ImageView
+                android:id="@+id/iv_icon_mail"
+                android:layout_width="@dimen/signin_icon_size"
+                android:layout_height="@dimen/signin_icon_size"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginStart="16dp"
+                android:contentDescription=""
+                android:src="@drawable/ic_mail" />
+
+        </FrameLayout>
+
+        <!-- ──────────── PASSWORD INPUT (node 6:246) ──────────── -->
+        <FrameLayout
+            android:id="@+id/container_password"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/signin_input_height"
+            android:layout_marginTop="@dimen/signin_form_gap"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/container_email">
+
+            <EditText
+                android:id="@+id/et_password"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/signin_input_bg"
+                android:fontFamily="sans-serif"
+                android:hint="@string/hint_password"
+                android:inputType="textPassword"
+                android:paddingStart="48dp"
+                android:paddingEnd="48dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/signin_hint"
+                android:textSize="16sp" />
+
+            <ImageView
+                android:id="@+id/iv_icon_lock"
+                android:layout_width="@dimen/signin_icon_size"
+                android:layout_height="@dimen/signin_icon_size"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginStart="16dp"
+                android:contentDescription=""
+                android:src="@drawable/ic_lock" />
+
+            <ImageButton
+                android:id="@+id/btn_toggle_password"
+                android:layout_width="@dimen/signin_icon_size"
+                android:layout_height="@dimen/signin_icon_size"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="16dp"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/cd_toggle_password"
+                android:src="@drawable/ic_eye" />
+
+        </FrameLayout>
+
+        <!-- ──────────── CONFIRM PASSWORD INPUT (node 6:256) ──────────── -->
+        <FrameLayout
+            android:id="@+id/container_confirm_password"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/signin_input_height"
+            android:layout_marginTop="@dimen/signin_form_gap"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/container_password">
+
+            <EditText
+                android:id="@+id/et_confirm_password"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/signin_input_bg"
+                android:fontFamily="sans-serif"
+                android:hint="@string/hint_confirm_password"
+                android:inputType="textPassword"
+                android:paddingStart="48dp"
+                android:paddingEnd="48dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/signin_hint"
+                android:textSize="16sp" />
+
+            <ImageView
+                android:id="@+id/iv_icon_lock2"
+                android:layout_width="@dimen/signin_icon_size"
+                android:layout_height="@dimen/signin_icon_size"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginStart="16dp"
+                android:contentDescription=""
+                android:src="@drawable/ic_lock" />
+
+            <ImageButton
+                android:id="@+id/btn_toggle_confirm_password"
+                android:layout_width="@dimen/signin_icon_size"
+                android:layout_height="@dimen/signin_icon_size"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="16dp"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/cd_toggle_confirm_password"
+                android:src="@drawable/ic_eye" />
+
+        </FrameLayout>
+
+        <!-- ──────────── PRIMARY SIGN-UP BUTTON (node 6:228) ──────────── -->
+        <Button
+            android:id="@+id/btn_signup"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/signin_btn_height"
+            android:layout_marginTop="@dimen/signin_form_gap"
+            android:background="@drawable/signin_btn_primary_bg"
+            android:fontFamily="sans-serif-medium"
+            android:stateListAnimator="@null"
+            android:text="@string/btn_signup"
+            android:textColor="@android:color/black"
+            android:textSize="16sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/container_confirm_password" />
+
+        <!-- ──────────── "Đã có tài khoản? Đăng nhập" (node 6:230) ──────────── -->
+        <LinearLayout
+            android:id="@+id/row_login"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/btn_signup">
+
+            <!-- Static label (node 6:231) -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif"
+                android:text="@string/text_have_account"
+                android:textColor="@color/signin_terms"
+                android:textSize="12sp" />
+
+            <!-- Tappable "Đăng nhập" link (node 6:233) -->
+            <TextView
+                android:id="@+id/tv_login_now"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/tab_signin"
+                android:textColor="@color/signin_link"
+                android:textSize="16sp" />
+
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</ScrollView>

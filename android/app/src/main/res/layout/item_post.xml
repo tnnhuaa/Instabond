@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- InstaBond - Post Feed Item Card -->
+<!-- Design nodes: 2:623 / 2:653 / 2:683 — each post is 438x749dp -->
+<!-- Background: #0A0A0F | Text primary: #FAFAFA | Text secondary: #A1A1A1 -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/bg_primary"
+    android:orientation="vertical">
+
+    <!-- ─────────────────────────────────────────────────────── -->
+    <!-- POST HEADER  (node 2:624 / 2:654 / 2:684)             -->
+    <!-- Height ≈ 68dp  |  Padding: 12dp horizontal, 12dp top  -->
+    <!-- ─────────────────────────────────────────────────────── -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/cl_post_header"
+        android:layout_width="match_parent"
+        android:layout_height="68dp"
+        android:paddingHorizontal="14dp">
+
+        <!--
+            Avatar container.
+            The ring/gradient border is drawn via a GradientDrawable background
+            set programmatically per-user; the solid inner circle clips the image.
+            Node 2:627 / 2:657: size=44dp, padding=2dp, shape=circle
+        -->
+        <FrameLayout
+            android:id="@+id/fl_avatar_ring"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/avatar_ring_gradient"
+            android:padding="2dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <!-- Avatar image  (node 2:628 / 2:658 / 2:688): 40dp circle -->
+            <ImageView
+                android:id="@+id/iv_avatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/avatar_circle_bg"
+                android:contentDescription="User avatar"
+                android:scaleType="centerCrop"
+                tools:src="@tools:sample/avatars" />
+
+        </FrameLayout>
+
+        <!-- Username  (node 2:626 / 2:656 / 2:686) -->
+        <!-- Roboto Regular 16sp, color #FAFAFA, starts at x≈72dp from left -->
+        <TextView
+            android:id="@+id/tv_username"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:fontFamily="sans-serif"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:textStyle="normal"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btn_overflow"
+            app:layout_constraintStart_toEndOf="@id/fl_avatar_ring"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Minh Anh" />
+
+        <!-- Overflow / options button at end of header -->
+        <ImageButton
+            android:id="@+id/btn_overflow"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="More options"
+            android:padding="4dp"
+            android:src="@drawable/ic_more_horizontal"
+            android:tint="@color/text_primary"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- ─────────────────────────────────────────────────────── -->
+    <!-- POST IMAGE  (node 2:629 / 2:659)                       -->
+    <!-- Full width, aspect-ratio ≈ 1:1.25  (438x548dp)        -->
+    <!-- ─────────────────────────────────────────────────────── -->
+    <FrameLayout
+        android:id="@+id/fl_post_image"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0"
+        android:minHeight="200dp">
+
+        <!--
+            Use a fixed aspect-ratio trick: set height via paddingTop=125%
+            For simplicity we use a fixed height of 280dp which approximates the
+            438x548 ratio (548/438 ≈ 1.25) on a 360dp-wide device.
+            In production bind via Glide/Coil with AspectRatioImageView.
+        -->
+        <ImageView
+            android:id="@+id/iv_post_image"
+            android:layout_width="match_parent"
+            android:layout_height="280dp"
+            android:contentDescription="Post image"
+            android:scaleType="centerCrop"
+            tools:src="@tools:sample/backgrounds/scenic" />
+
+        <!--
+            Music / Audio indicator  (node 2:631 / 2:661)
+            Semi-transparent circle, 32dp, bottom-right corner of image
+            Background: rgba(0,0,0,0.6)  |  icon size: 16dp
+        -->
+        <FrameLayout
+            android:id="@+id/fl_music_badge"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="8dp"
+            android:background="@drawable/music_badge_bg"
+            android:visibility="visible">
+
+            <ImageView
+                android:id="@+id/iv_music_icon"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="center"
+                android:contentDescription="Music"
+                android:src="@drawable/ic_music"
+                android:tint="@color/text_primary" />
+
+        </FrameLayout>
+
+    </FrameLayout>
+
+    <!-- ─────────────────────────────────────────────────────── -->
+    <!-- ACTION ROW + BOOKMARK  (node 2:636 / 2:666 / 2:689)   -->
+    <!-- Padding: 14dp horizontal, 12dp top                     -->
+    <!-- ─────────────────────────────────────────────────────── -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/cl_actions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="14dp"
+        android:paddingTop="12dp">
+
+        <!-- Heart / Like button  (node 2:638 / 2:668 / 2:691) -->
+        <ImageButton
+            android:id="@+id/btn_like"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Like"
+            android:src="@drawable/ic_heart"
+            android:tint="@color/text_primary"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Comment / Message button  (node 2:641 / 2:671 / 2:694) -->
+        <!-- Offset ≈ 40dp from like icon (icon 24dp + gap 16dp) -->
+        <ImageButton
+            android:id="@+id/btn_comment"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="16dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Comment"
+            android:src="@drawable/ic_message_circle"
+            android:tint="@color/text_primary"
+            app:layout_constraintStart_toEndOf="@id/btn_like"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Bookmark button  (node 2:644 / 2:674 / 2:697) — pinned to end -->
+        <ImageButton
+            android:id="@+id/btn_bookmark"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Bookmark"
+            android:src="@drawable/ic_bookmark"
+            android:tint="@color/text_primary"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- ─────────────────────────────────────────────────────── -->
+    <!-- LIKES COUNT  (node 2:647 / 2:677)                      -->
+    <!-- Roboto Regular 16sp, color #FAFAFA                     -->
+    <!-- ─────────────────────────────────────────────────────── -->
+    <TextView
+        android:id="@+id/tv_likes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="14dp"
+        android:layout_marginTop="8dp"
+        android:fontFamily="sans-serif"
+        android:textColor="@color/text_primary"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        tools:text="234 lượt thích" />
+
+    <!-- ─────────────────────────────────────────────────────── -->
+    <!-- CAPTION  (node 2:649 / 2:679)                          -->
+    <!-- Username bold  +  caption text in #A1A1A1              -->
+    <!-- Roboto Regular 16sp                                    -->
+    <!-- ─────────────────────────────────────────────────────── -->
+    <TextView
+        android:id="@+id/tv_caption"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="14dp"
+        android:layout_marginTop="4dp"
+        android:fontFamily="sans-serif"
+        android:lineSpacingExtra="2dp"
+        android:maxLines="3"
+        android:textColor="@color/text_primary"
+        android:textSize="16sp"
+        tools:text="Minh Anh Sáng nay thật tuyệt ☕️✨" />
+
+    <!-- ─────────────────────────────────────────────────────── -->
+    <!-- VIEW COMMENTS BUTTON  (node 2:651 / 2:681)             -->
+    <!-- Roboto Medium 14sp, color #A1A1A1                      -->
+    <!-- ─────────────────────────────────────────────────────── -->
+    <Button
+        android:id="@+id/btn_view_comments"
+        style="?attr/borderlessButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="8dp"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="12dp"
+        android:fontFamily="sans-serif-medium"
+        android:letterSpacing="0"
+        android:minHeight="0dp"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="4dp"
+        android:textColor="@color/text_secondary"
+        android:textSize="14sp"
+        tools:text="Xem 12 bình luận" />
+
+</LinearLayout>

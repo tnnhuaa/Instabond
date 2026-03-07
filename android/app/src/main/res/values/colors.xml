@@ -1,5 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    InstaBond Color Tokens
+    Extracted from Figma design: ZNm4rCJCuY8paZvdTkA5d1 / node 2:619
+-->
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+
+    <!-- ── Backgrounds ───────────────────────────────────── -->
+    <!-- node 2:620 / 2:622 background -->
+    <color name="bg_primary">#0A0A0F</color>
+    <!-- Avatar inner bg fallback (node 2:628 bg)  -->
+    <color name="bg_avatar_placeholder">#141419</color>
+
+    <!-- ── Text ──────────────────────────────────────────── -->
+    <!-- Primary text color (node 2:626, 2:648, etc.)  -->
+    <color name="text_primary">#FAFAFA</color>
+    <!-- Secondary / muted text (node 2:652, secondary spans) -->
+    <color name="text_secondary">#A1A1A1</color>
+
+    <!-- ── Accent / Brand ────────────────────────────────── -->
+    <!-- Stories / avatar ring gradient start (Minh Anh) -->
+    <color name="gradient_ring_gold_start">#D5AD41</color>
+    <color name="gradient_ring_gold_mid">#FFDF20</color>
+    <color name="gradient_ring_gold_end">#D5AD41</color>
+    <!-- Stories / avatar ring gradient (Tuấn) -->
+    <color name="gradient_ring_blue_start">#D7EDFB</color>
+    <color name="gradient_ring_blue_mid">#51A2FF</color>
+    <color name="gradient_ring_blue_end">#D7EDFB</color>
+
+    <!-- ── Bottom Navigation ─────────────────────────────── -->
+    <color name="bottom_nav_active">#FAFAFA</color>
+    <color name="bottom_nav_inactive">#A1A1A1</color>
+
+    <!-- ── Dividers & Overlays ───────────────────────────── -->
+    <color name="divider">#1F1F2E</color>
+    <!-- Music badge background rgba(0,0,0,0.6) -->
+    <color name="overlay_60">#99000000</color>
+
+    <!-- ── System Bar / Status Bar ───────────────────────── -->
+    <color name="status_bar">#0A0A0F</color>
+
+    <!-- ── Sign-In Screen ───────────────────────────────── -->
+    <!-- Tab container / input field background -->
+    <color name="signin_surface">#141419</color>
+    <!-- Input / button border: rgba(215,237,251,0.1) ≈ #1AD7EDFB -->
+    <color name="signin_border">#1AD7EDFB</color>
+    <!-- Placeholder / hint text -->
+    <color name="signin_hint">#6A7282</color>
+    <!-- "Remember password" label / subtitle -->
+    <color name="signin_muted">#99A1AF</color>
+    <!-- Tab inactive text -->
+    <color name="signin_tab_inactive">#6A7282</color>
+    <!-- Horizontal divider line -->
+    <color name="signin_divider">#364153</color>
+    <!-- Terms text (dark grey) -->
+    <color name="signin_terms">#4A5565</color>
+    <!-- "Đăng ký ngay" link color: light blue from gradient start -->
+    <color name="signin_link">#D1EDF9</color>
+    <!-- Brand gradient start (light blue) -->
+    <color name="signin_grad_start">#D1EDF9</color>
+    <!-- Brand gradient end (gold) -->
+    <color name="signin_grad_end">#D5AD41</color>
+    <!-- Checkbox border color -->
+    <color name="signin_checkbox_border">#4A5565</color>
+    <!-- Gradient via mid-blue -->
+    <color name="signin_grad_mid">#7EC8E3</color>
+
 </resources>
