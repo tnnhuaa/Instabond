@@ -21,7 +21,7 @@ public class Message {
 
     private String sender_id;
 
-    private String type;
+    private String type; // "text", "image"
 
     private String content;
 
