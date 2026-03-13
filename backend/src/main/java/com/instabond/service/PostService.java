@@ -5,6 +5,7 @@ import com.instabond.dto.CreateCommentRequest;
 import com.instabond.dto.CreatePostRequest;
 import com.instabond.dto.PostResponse;
 import com.instabond.dto.UpdatePostRequest;
+import com.instabond.dto.UploadResponse;
 import com.instabond.entity.Interaction;
 import com.instabond.entity.Post;
 import com.instabond.entity.User;
@@ -81,18 +82,37 @@ public class PostService {
         User author = resolveUserFromPrincipal(callerEmail);
         String authorId = author.getId();
 
+        CreatePostRequest payload = request != null ? request : new CreatePostRequest();
+
         List<Post.Media> mediaList = new ArrayList<>();
-        if (files != null) {
-            for (MultipartFile file : files) {
-                if (!file.isEmpty()) {
-                    String url = fileService.uploadImage(file);
-                    mediaList.add(Post.Media.builder().url(url).build());
-                }
+        if (files != null && !files.isEmpty()) {
+            if (files.size() > 10) {
+                throw new RuntimeException("A post can contain at most 10 images");
             }
-        } else if (request.getMedia() != null) {
-            for (CreatePostRequest.MediaRequest m : request.getMedia()) {
+            for (MultipartFile file : files) {
+                if (file == null || file.isEmpty()) {
+                    continue;
+                }
+                UploadResponse uploaded = fileService.uploadImage(file);
                 mediaList.add(Post.Media.builder()
-                        .url(m.getUrl())
+                        .url(uploaded.getUrl())
+                        .width(uploaded.getWidth())
+                        .height(uploaded.getHeight())
+                        .build());
+            }
+            if (mediaList.isEmpty()) {
+                throw new RuntimeException("At least 1 valid image is required when `files` is provided");
+            }
+        } else if (payload.getMedia() != null && !payload.getMedia().isEmpty()) {
+            if (payload.getMedia().size() > 10) {
+                throw new RuntimeException("A post can contain at most 10 media items");
+            }
+            for (CreatePostRequest.MediaRequest m : payload.getMedia()) {
+                if (m.getUrl() == null || m.getUrl().isBlank()) {
+                    throw new RuntimeException("Each media item must have a non-empty url");
+                }
+                mediaList.add(Post.Media.builder()
+                        .url(m.getUrl().trim())
                         .width(m.getWidth())
                         .height(m.getHeight())
                         .build());
@@ -100,32 +120,32 @@ public class PostService {
         }
 
         Post.Location location = null;
-        if (request.getLocation() != null) {
+        if (payload.getLocation() != null) {
             location = Post.Location.builder()
-                    .name(request.getLocation().getName())
-                    .coordinates(request.getLocation().getCoordinates())
+                    .name(payload.getLocation().getName())
+                    .coordinates(payload.getLocation().getCoordinates())
                     .build();
         }
 
         Post.MusicSuggestion musicSuggestion = null;
-        if (request.getMusic_suggestion() != null) {
+        if (payload.getMusic_suggestion() != null) {
             musicSuggestion = Post.MusicSuggestion.builder()
-                    .song_name(request.getMusic_suggestion().getSong_name())
-                    .artist(request.getMusic_suggestion().getArtist())
-                    .preview_url(request.getMusic_suggestion().getPreview_url())
+                    .song_name(payload.getMusic_suggestion().getSong_name())
+                    .artist(payload.getMusic_suggestion().getArtist())
+                    .preview_url(payload.getMusic_suggestion().getPreview_url())
                     .build();
         }
 
         List<Post.TaggedUser> taggedUsers = new ArrayList<>();
-        if (request.getTagged_users() != null) {
-            for (CreatePostRequest.TaggedUserRequest t : request.getTagged_users()) {
+        if (payload.getTagged_users() != null) {
+            for (CreatePostRequest.TaggedUserRequest t : payload.getTagged_users()) {
                 taggedUsers.add(Post.TaggedUser.builder().user_id(t.getUser_id()).build());
             }
         }
 
         Post post = Post.builder()
                 .author_id(authorId)
-                .caption(request.getCaption())
+                .caption(payload.getCaption())
                 .location(location)
                 .media(mediaList)
                 .music_suggestion(musicSuggestion)
