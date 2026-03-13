@@ -25,6 +25,7 @@ public class Interaction {
     private String type;
 
     private String reaction_icon;
+    private String content;
 
     private Instant created_at;
 }

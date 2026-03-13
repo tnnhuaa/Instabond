@@ -1,5 +1,7 @@
 package com.instabond.controller;
 
+import com.instabond.dto.CommentResponse;
+import com.instabond.dto.CreateCommentRequest;
 import com.instabond.dto.CreatePostRequest;
 import com.instabond.dto.PostResponse;
 import com.instabond.dto.UpdatePostRequest;
@@ -67,8 +69,8 @@ public class PostController {
             @ApiResponse(responseCode = "401", description = "Missing or expired access token")
     })
     @GetMapping("/feed")
-    public ResponseEntity<List<PostResponse>> getFeed() {
-        return ResponseEntity.ok(postService.getFeed());
+    public ResponseEntity<List<PostResponse>> getFeed(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(postService.getFeed(getUserId(userDetails)));
     }
 
     // Get a single post by its ID
@@ -86,9 +88,10 @@ public class PostController {
     @GetMapping("/{postId}")
     public ResponseEntity<PostResponse> getPost(
             @Parameter(description = "Post ID", example = "64f1a2b3c4d5e6f7a8b9c0d1")
-            @PathVariable String postId) {
+            @PathVariable String postId,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(postService.getPostById(postId));
+        return ResponseEntity.ok(postService.getPostById(postId, getUserId(userDetails)));
     }
 
     // Get all posts authored by a specific user (by userId)
@@ -106,9 +109,10 @@ public class PostController {
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<PostResponse>> getPostsByUserId(
             @Parameter(description = "ID of the target user", example = "65b111111111111111111111")
-            @PathVariable String userId) {
+            @PathVariable String userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(postService.getPostsByUserId(userId));
+        return ResponseEntity.ok(postService.getPostsByUserId(userId, getUserId(userDetails)));
     }
 
     // Get all posts authored by a specific user (by username)
@@ -126,9 +130,10 @@ public class PostController {
     @GetMapping("/user/by-username/{username}")
     public ResponseEntity<List<PostResponse>> getPostsByUsername(
             @Parameter(description = "Username of the target user", example = "nam_nguyen")
-            @PathVariable String username) {
+            @PathVariable String username,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(postService.getPostsByUsername(username));
+        return ResponseEntity.ok(postService.getPostsByUsername(username, getUserId(userDetails)));
     }
 
     // Get all posts authored by a specific user (by email)
@@ -146,9 +151,10 @@ public class PostController {
     @GetMapping("/user/by-email/{email}")
     public ResponseEntity<List<PostResponse>> getPostsByEmail(
             @Parameter(description = "Email of the target user", example = "nam@example.com")
-            @PathVariable String email) {
+            @PathVariable String email,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(postService.getPostsByEmail(email));
+        return ResponseEntity.ok(postService.getPostsByEmail(email, getUserId(userDetails)));
     }
 
     // Update a post
@@ -202,6 +208,132 @@ public class PostController {
         return ResponseEntity.noContent().build();
     }
 
+    // Like a post
+
+    @Operation(
+            summary = "Like a post",
+            description = "Adds a like from the authenticated user to the post. If already liked, this call is idempotent."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Like processed successfully",
+                    content = @Content(schema = @Schema(implementation = PostResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "404", description = "Post not found")
+    })
+    @PostMapping("/{postId}/like")
+    public ResponseEntity<PostResponse> likePost(
+            @Parameter(description = "ID of the target post", example = "65b444444444444444444441")
+            @PathVariable String postId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(postService.likePost(postId, getUserId(userDetails)));
+    }
+
+    @Operation(
+            summary = "Unlike a post",
+            description = "Removes the authenticated user's like from the post. If not liked yet, this call is idempotent."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Unlike processed successfully",
+                    content = @Content(schema = @Schema(implementation = PostResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "404", description = "Post not found")
+    })
+    @DeleteMapping("/{postId}/like")
+    public ResponseEntity<PostResponse> unlikePost(
+            @Parameter(description = "ID of the target post", example = "65b444444444444444444441")
+            @PathVariable String postId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(postService.unlikePost(postId, getUserId(userDetails)));
+    }
+
+    // Share a post
+
+    @Operation(
+            summary = "Share a post",
+            description = "Creates a share interaction on a post and increases `stats.shares` by 1. Users can share multiple times."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Post shared successfully",
+                    content = @Content(schema = @Schema(implementation = PostResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "404", description = "Post not found")
+    })
+    @PostMapping("/{postId}/share")
+    public ResponseEntity<PostResponse> sharePost(
+            @Parameter(description = "ID of the post to share", example = "65b444444444444444444441")
+            @PathVariable String postId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(postService.sharePost(postId, getUserId(userDetails)));
+    }
+
+    // Add comment to a post
+
+    @Operation(
+            summary = "Add comment to a post",
+            description = "Creates a new comment interaction on a post and increases post comment stats."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Comment created successfully",
+                    content = @Content(schema = @Schema(implementation = CommentResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request body"),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "404", description = "Post not found")
+    })
+    @PostMapping("/{postId}/comments")
+    public ResponseEntity<CommentResponse> addComment(
+            @Parameter(description = "ID of the target post", example = "65b444444444444444444441")
+            @PathVariable String postId,
+            @RequestBody CreateCommentRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.status(201).body(postService.addComment(postId, getUserId(userDetails), request));
+    }
+
+    @Operation(
+            summary = "Get comments of a post",
+            description = "Returns comments of the given post ordered by newest first."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Comments returned successfully",
+                    content = @Content(schema = @Schema(implementation = CommentResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "404", description = "Post not found")
+    })
+    @GetMapping("/{postId}/comments")
+    public ResponseEntity<List<CommentResponse>> getComments(
+            @Parameter(description = "ID of the target post", example = "65b444444444444444444441")
+            @PathVariable String postId) {
+
+        return ResponseEntity.ok(postService.getComments(postId));
+    }
+
+    // Delete a comment
+
+    @Operation(
+            summary = "Delete a comment",
+            description = "Deletes a comment created by the authenticated user and decreases the post comment count."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Comment deleted successfully"),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden — caller is not the comment author"),
+            @ApiResponse(responseCode = "404", description = "Post or comment not found")
+    })
+    @DeleteMapping("/{postId}/comments/{commentId}")
+    public ResponseEntity<Void> deleteComment(
+            @Parameter(description = "ID of the target post", example = "65b444444444444444444441")
+            @PathVariable String postId,
+            @Parameter(description = "ID of the comment", example = "65b999999999999999999991")
+            @PathVariable String commentId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        postService.deleteComment(postId, commentId, getUserId(userDetails));
+        return ResponseEntity.noContent().build();
+    }
+
     // Returns the email (username) of the currently authenticated user
     private String getUserId(UserDetails userDetails) {
         return userDetails.getUsername();
@@ -220,4 +352,3 @@ public class PostController {
         return ResponseEntity.status(400).body(Map.of("error", msg != null ? msg : "Bad request"));
     }
 }
-
