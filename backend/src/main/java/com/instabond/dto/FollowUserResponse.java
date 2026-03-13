@@ -24,4 +24,7 @@ public class FollowUserResponse {
 
     @Schema(description = "Avatar URL", example = "https://res.cloudinary.com/instabond/image/upload/avatar.jpg")
     private String avatar_url;
+
+    @Schema(description = "Relationship status from caller to this user", example = "accepted", allowableValues = {"pending", "accepted", "rejected"})
+    private String relationship_status;
 }
