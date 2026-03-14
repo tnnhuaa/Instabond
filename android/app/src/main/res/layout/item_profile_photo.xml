@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/iv_profile_photo"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/profile_grid_cell"
+    android:layout_margin="2dp"
+    android:background="@color/bg_avatar_placeholder"
+    android:contentDescription="@string/cd_post_image"
+    android:scaleType="centerCrop" />
+

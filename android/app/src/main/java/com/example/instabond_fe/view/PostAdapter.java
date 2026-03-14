@@ -10,9 +10,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.Post;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder> {
@@ -20,7 +22,24 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     private final List<Post> posts;
 
     public PostAdapter(List<Post> posts) {
-        this.posts = posts;
+        this.posts = new ArrayList<>(posts);
+    }
+
+    public void setPosts(List<Post> newPosts) {
+        posts.clear();
+        if (newPosts != null) {
+            posts.addAll(newPosts);
+        }
+        notifyDataSetChanged();
+    }
+
+    public void appendPosts(List<Post> morePosts) {
+        if (morePosts == null || morePosts.isEmpty()) {
+            return;
+        }
+        int start = posts.size();
+        posts.addAll(morePosts);
+        notifyItemRangeInserted(start, morePosts.size());
     }
 
     @NonNull
@@ -37,14 +56,31 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         holder.tvUsername.setText(post.getUsername());
         holder.tvLikes.setText(post.getLikesCount() + " lượt thích");
         holder.tvCaption.setText(post.getUsername() + "  " + post.getCaption());
-        holder.btnViewComments.setText("Xem " + post.getCommentsCount() + " bình luận");
+        holder.btnViewComments.setText(
+                "Xem " + post.getCommentsCount() + " bình luận • "
+                        + post.getSharesCount() + " lượt chia sẻ"
+        );
         holder.flMusicBadge.setVisibility(post.isHasMusicBadge() ? View.VISIBLE : View.GONE);
-        if (post.getAvatarResId() != 0) {
-            holder.ivAvatar.setImageResource(post.getAvatarResId());
+
+        Glide.with(holder.itemView)
+                .load(post.getAvatarUrl())
+                .placeholder(R.drawable.avatar_circle_bg)
+                .error(R.drawable.avatar_circle_bg)
+                .into(holder.ivAvatar);
+
+        if (post.getImageUrl() == null || post.getImageUrl().trim().isEmpty()) {
+            holder.flPostImage.setVisibility(View.GONE);
+            Glide.with(holder.itemView).clear(holder.ivPostImage);
+            holder.ivPostImage.setImageDrawable(null);
+            return;
         }
-        if (post.getImageResId() != 0) {
-            holder.ivPostImage.setImageResource(post.getImageResId());
-        }
+
+        holder.flPostImage.setVisibility(View.VISIBLE);
+        Glide.with(holder.itemView)
+                .load(post.getImageUrl())
+                .placeholder(R.drawable.avatar_circle_bg)
+                .error(R.drawable.avatar_circle_bg)
+                .into(holder.ivPostImage);
     }
 
     @Override
@@ -59,6 +95,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         TextView tvLikes;
         TextView tvCaption;
         Button btnViewComments;
+        View flPostImage;
         View flMusicBadge;
 
         PostViewHolder(@NonNull View itemView) {
@@ -69,8 +106,8 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             tvLikes = itemView.findViewById(R.id.tv_likes);
             tvCaption = itemView.findViewById(R.id.tv_caption);
             btnViewComments = itemView.findViewById(R.id.btn_view_comments);
+            flPostImage = itemView.findViewById(R.id.fl_post_image);
             flMusicBadge = itemView.findViewById(R.id.fl_music_badge);
         }
     }
 }
-
