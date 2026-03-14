@@ -1,27 +1,36 @@
 package com.instabond.service;
 
+import com.instabond.dto.CommentResponse;
+import com.instabond.dto.CreateCommentRequest;
 import com.instabond.dto.CreatePostRequest;
 import com.instabond.dto.PostResponse;
 import com.instabond.dto.UpdatePostRequest;
+import com.instabond.dto.UploadResponse;
+import com.instabond.entity.Interaction;
 import com.instabond.entity.Post;
 import com.instabond.entity.User;
+import com.instabond.repository.InteractionRepository;
 import com.instabond.repository.PostRepository;
 import com.instabond.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PostService {
@@ -30,16 +39,23 @@ public class PostService {
     private final UserRepository userRepository;
     private final FileService fileService;
     private final MongoTemplate mongoTemplate;
+    private final InteractionRepository interactionRepository;
 
-    // Helper: resolve User by email
-    private User resolveUserByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+    private User resolveUserFromPrincipal(String principal) {
+        if (principal == null || principal.isBlank()) {
+            throw new RuntimeException("Invalid user principal");
+        }
+
+        return userRepository.findByEmail(principal)
+                .or(() -> userRepository.findByUsername(principal))
+                .or(() -> userRepository.findById(principal))
+                .orElseThrow(() -> new RuntimeException("User not found: " + principal));
     }
 
-    // Helper: resolve User by ID (returns null if not found)
     private User resolveAuthorById(String authorId) {
-        if (authorId == null) return null;
+        if (authorId == null) {
+            return null;
+        }
         return userRepository.findById(authorId).orElse(null);
     }
 
@@ -49,38 +65,54 @@ public class PostService {
         try {
             oid = new ObjectId(authorId);
         } catch (Exception e) {
-            log.warn("Invalid ObjectId for author_id: {}", authorId);
             return List.of();
         }
-        // Use both ObjectId and String to cover all mapping scenarios
+
         Query query = new Query(
                 new Criteria().orOperator(
                         Criteria.where("author_id").is(oid),
                         Criteria.where("author_id").is(authorId)
                 )
         ).with(Sort.by(Sort.Direction.DESC, "created_at"));
-        List<Post> posts = mongoTemplate.find(query, Post.class);
-        log.info("findPostsByAuthorId({}) => {} posts", authorId, posts.size());
-        return posts;
+        return mongoTemplate.find(query, Post.class);
     }
 
     // Create a new post
     public PostResponse createPost(String callerEmail, CreatePostRequest request, List<MultipartFile> files) {
-        User author = resolveUserByEmail(callerEmail);
+        User author = resolveUserFromPrincipal(callerEmail);
         String authorId = author.getId();
 
+        CreatePostRequest payload = request != null ? request : new CreatePostRequest();
+
         List<Post.Media> mediaList = new ArrayList<>();
-        if (files != null) {
-            for (MultipartFile file : files) {
-                if (!file.isEmpty()) {
-                    String url = fileService.uploadImage(file);
-                    mediaList.add(Post.Media.builder().url(url).build());
-                }
+        if (files != null && !files.isEmpty()) {
+            if (files.size() > 10) {
+                throw new RuntimeException("A post can contain at most 10 images");
             }
-        } else if (request.getMedia() != null) {
-            for (CreatePostRequest.MediaRequest m : request.getMedia()) {
+            for (MultipartFile file : files) {
+                if (file == null || file.isEmpty()) {
+                    continue;
+                }
+                UploadResponse uploaded = fileService.uploadImage(file);
                 mediaList.add(Post.Media.builder()
-                        .url(m.getUrl())
+                        .url(uploaded.getUrl())
+                        .width(uploaded.getWidth())
+                        .height(uploaded.getHeight())
+                        .build());
+            }
+            if (mediaList.isEmpty()) {
+                throw new RuntimeException("At least 1 valid image is required when `files` is provided");
+            }
+        } else if (payload.getMedia() != null && !payload.getMedia().isEmpty()) {
+            if (payload.getMedia().size() > 10) {
+                throw new RuntimeException("A post can contain at most 10 media items");
+            }
+            for (CreatePostRequest.MediaRequest m : payload.getMedia()) {
+                if (m.getUrl() == null || m.getUrl().isBlank()) {
+                    throw new RuntimeException("Each media item must have a non-empty url");
+                }
+                mediaList.add(Post.Media.builder()
+                        .url(m.getUrl().trim())
                         .width(m.getWidth())
                         .height(m.getHeight())
                         .build());
@@ -88,32 +120,32 @@ public class PostService {
         }
 
         Post.Location location = null;
-        if (request.getLocation() != null) {
+        if (payload.getLocation() != null) {
             location = Post.Location.builder()
-                    .name(request.getLocation().getName())
-                    .coordinates(request.getLocation().getCoordinates())
+                    .name(payload.getLocation().getName())
+                    .coordinates(payload.getLocation().getCoordinates())
                     .build();
         }
 
         Post.MusicSuggestion musicSuggestion = null;
-        if (request.getMusic_suggestion() != null) {
+        if (payload.getMusic_suggestion() != null) {
             musicSuggestion = Post.MusicSuggestion.builder()
-                    .song_name(request.getMusic_suggestion().getSong_name())
-                    .artist(request.getMusic_suggestion().getArtist())
-                    .preview_url(request.getMusic_suggestion().getPreview_url())
+                    .song_name(payload.getMusic_suggestion().getSong_name())
+                    .artist(payload.getMusic_suggestion().getArtist())
+                    .preview_url(payload.getMusic_suggestion().getPreview_url())
                     .build();
         }
 
         List<Post.TaggedUser> taggedUsers = new ArrayList<>();
-        if (request.getTagged_users() != null) {
-            for (CreatePostRequest.TaggedUserRequest t : request.getTagged_users()) {
+        if (payload.getTagged_users() != null) {
+            for (CreatePostRequest.TaggedUserRequest t : payload.getTagged_users()) {
                 taggedUsers.add(Post.TaggedUser.builder().user_id(t.getUser_id()).build());
             }
         }
 
         Post post = Post.builder()
                 .author_id(authorId)
-                .caption(request.getCaption())
+                .caption(payload.getCaption())
                 .location(location)
                 .media(mediaList)
                 .music_suggestion(musicSuggestion)
@@ -126,17 +158,27 @@ public class PostService {
     }
 
     // Get a single post by ID
-    public PostResponse getPostById(String postId) {
+    public PostResponse getPostById(String postId, String callerPrincipal) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
         User author = resolveAuthorById(post.getAuthor_id());
+        assertCanViewAuthorContent(author, callerPrincipal);
         return toPostResponse(post, author);
     }
 
     // Get all posts sorted by newest first
-    public List<PostResponse> getFeed() {
+    public List<PostResponse> getFeed(String callerPrincipal) {
         Query query = new Query().with(Sort.by(Sort.Direction.DESC, "created_at"));
         return mongoTemplate.find(query, Post.class).stream()
+                .filter(post -> {
+                    User author = resolveAuthorById(post.getAuthor_id());
+                    try {
+                        assertCanViewAuthorContent(author, callerPrincipal);
+                        return true;
+                    } catch (RuntimeException ex) {
+                        return false;
+                    }
+                })
                 .map(post -> {
                     User author = resolveAuthorById(post.getAuthor_id());
                     return toPostResponse(post, author);
@@ -144,27 +186,30 @@ public class PostService {
     }
 
     // Get all posts by userId
-    public List<PostResponse> getPostsByUserId(String userId) {
+    public List<PostResponse> getPostsByUserId(String userId, String callerPrincipal) {
         User author = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        assertCanViewAuthorContent(author, callerPrincipal);
         return findPostsByAuthorId(author.getId()).stream()
                 .map(post -> toPostResponse(post, author))
                 .toList();
     }
 
     // Get all posts by username
-    public List<PostResponse> getPostsByUsername(String username) {
+    public List<PostResponse> getPostsByUsername(String username, String callerPrincipal) {
         User author = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+        assertCanViewAuthorContent(author, callerPrincipal);
         return findPostsByAuthorId(author.getId()).stream()
                 .map(post -> toPostResponse(post, author))
                 .toList();
     }
 
     // Get all posts by email
-    public List<PostResponse> getPostsByEmail(String email) {
+    public List<PostResponse> getPostsByEmail(String email, String callerPrincipal) {
         User author = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+        assertCanViewAuthorContent(author, callerPrincipal);
         return findPostsByAuthorId(author.getId()).stream()
                 .map(post -> toPostResponse(post, author))
                 .toList();
@@ -175,7 +220,7 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
 
-        User caller = resolveUserByEmail(callerEmail);
+        User caller = resolveUserFromPrincipal(callerEmail);
 
         // Compare using normalized string IDs
         String postAuthorId = post.getAuthor_id();
@@ -205,7 +250,7 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
 
-        User caller = resolveUserByEmail(callerEmail);
+        User caller = resolveUserFromPrincipal(callerEmail);
 
         // Compare using normalized string IDs
         if (!normalizeId(post.getAuthor_id()).equals(normalizeId(caller.getId()))) {
@@ -215,10 +260,164 @@ public class PostService {
         postRepository.deleteById(postId);
     }
 
+    public PostResponse likePost(String postId, String callerPrincipal) {
+        postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        boolean alreadyLiked = interactionRepository
+                .findOne(caller.getId(), postId, "post", "like")
+                .isPresent();
+
+        if (!alreadyLiked) {
+            Interaction interaction = Interaction.builder()
+                    .user_id(caller.getId())
+                    .target_id(postId)
+                    .target_type("post")
+                    .type("like")
+                    .created_at(Instant.now())
+                    .build();
+            interactionRepository.save(interaction);
+            incrementPostStat(postId, "stats.likes", 1);
+        }
+
+        return getPostById(postId, callerPrincipal);
+    }
+
+    public PostResponse sharePost(String postId, String callerPrincipal) {
+        postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+
+        // Allow multiple shares — each share creates a new interaction
+        Interaction interaction = Interaction.builder()
+                .user_id(caller.getId())
+                .target_id(postId)
+                .target_type("post")
+                .type("share")
+                .created_at(Instant.now())
+                .build();
+        interactionRepository.save(interaction);
+        incrementPostStat(postId, "stats.shares", 1);
+
+        return getPostById(postId, callerPrincipal);
+    }
+
+    public PostResponse unlikePost(String postId, String callerPrincipal) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        interactionRepository.findOne(caller.getId(), postId, "post", "like")
+                .ifPresent(interaction -> {
+                    interactionRepository.deleteById(interaction.getId());
+                    int currentLikes = post.getStats() != null ? post.getStats().getLikes() : 0;
+                    if (currentLikes > 0) {
+                        incrementPostStat(postId, "stats.likes", -1);
+                    }
+                });
+
+        return getPostById(postId, callerPrincipal);
+    }
+
+    public CommentResponse addComment(String postId, String callerPrincipal, CreateCommentRequest request) {
+        postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+
+        if (request == null || request.getContent() == null || request.getContent().trim().isEmpty()) {
+            throw new RuntimeException("Comment content is required");
+        }
+
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        Interaction interaction = Interaction.builder()
+                .user_id(caller.getId())
+                .target_id(postId)
+                .target_type("post")
+                .type("comment")
+                .reaction_icon(request.getReaction_icon())
+                .content(request.getContent().trim())
+                .created_at(Instant.now())
+                .build();
+
+        Interaction saved = interactionRepository.save(interaction);
+        incrementPostStat(postId, "stats.comments", 1);
+        return toCommentResponse(saved, caller);
+    }
+
+    public List<CommentResponse> getComments(String postId) {
+        postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+
+        List<Interaction> comments = interactionRepository.findByTargetAndType(postId, "post", "comment");
+        Set<String> userIds = comments.stream()
+                .map(Interaction::getUser_id)
+                .filter(id -> id != null && !id.isBlank())
+                .collect(Collectors.toSet());
+
+        Map<String, User> usersById = new LinkedHashMap<>();
+        if (!userIds.isEmpty()) {
+            userRepository.findAllById(userIds).forEach(user -> usersById.put(user.getId(), user));
+        }
+
+        return comments.stream()
+                .map(comment -> toCommentResponse(comment, usersById.get(comment.getUser_id())))
+                .toList();
+    }
+
+    public void deleteComment(String postId, String commentId, String callerPrincipal) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+
+        Interaction comment = interactionRepository.findById(commentId)
+                .orElseThrow(() -> new RuntimeException("Comment not found: " + commentId));
+
+        if (!postId.equals(comment.getTarget_id()) || !"post".equals(comment.getTarget_type()) || !"comment".equals(comment.getType())) {
+            throw new RuntimeException("Comment not found: " + commentId);
+        }
+
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        if (!caller.getId().equals(comment.getUser_id())) {
+            throw new RuntimeException("Forbidden — you are not the author of this comment");
+        }
+
+        interactionRepository.deleteById(commentId);
+        int currentComments = post.getStats() != null ? post.getStats().getComments() : 0;
+        if (currentComments > 0) {
+            incrementPostStat(postId, "stats.comments", -1);
+        }
+    }
+
+    private void incrementPostStat(String postId, String field, int delta) {
+        Query query = new Query(Criteria.where("_id").is(postId));
+        Update update = new Update().inc(field, delta);
+        mongoTemplate.findAndModify(query, update, FindAndModifyOptions.options().returnNew(true), Post.class);
+    }
+
+    private CommentResponse toCommentResponse(Interaction interaction, User author) {
+        CommentResponse.AuthorInfo authorInfo = null;
+        if (author != null) {
+            authorInfo = CommentResponse.AuthorInfo.builder()
+                    .id(author.getId())
+                    .username(author.getUsername())
+                    .full_name(author.getFull_name())
+                    .avatar_url(author.getAvatar_url())
+                    .build();
+        }
+
+        return CommentResponse.builder()
+                .id(interaction.getId())
+                .post_id(interaction.getTarget_id())
+                .content(interaction.getContent())
+                .reaction_icon(interaction.getReaction_icon())
+                .author(authorInfo)
+                .created_at(interaction.getCreated_at())
+                .build();
+    }
+
     // Normalize MongoDB ID: strip ObjectId wrapper if present
     private String normalizeId(String id) {
         if (id == null) return "";
-        // ObjectId.toString() returns the hex string directly, so just trim
         return id.trim();
     }
 
@@ -245,5 +444,45 @@ public class PostService {
                 .stats(post.getStats())
                 .created_at(post.getCreated_at())
                 .build();
+    }
+
+    private Criteria idCriteria(String field, String id) {
+        List<Criteria> items = new ArrayList<>();
+        items.add(Criteria.where(field).is(id));
+        try {
+            items.add(Criteria.where(field).is(new ObjectId(id)));
+        } catch (Exception ignored) {
+        }
+        return new Criteria().orOperator(items.toArray(new Criteria[0]));
+    }
+
+    private boolean isPrivateAuthor(User author) {
+        return author != null
+                && author.getSettings() != null
+                && Boolean.TRUE.equals(author.getSettings().getIs_private());
+    }
+
+    private boolean hasAcceptedFollow(String requesterId, String recipientId) {
+        Query query = new Query(new Criteria().andOperator(
+                idCriteria("requester_id", requesterId),
+                idCriteria("recipient_id", recipientId),
+                Criteria.where("status").is("accepted")
+        ));
+        return mongoTemplate.exists(query, "relationships");
+    }
+
+    private void assertCanViewAuthorContent(User author, String callerPrincipal) {
+        if (!isPrivateAuthor(author)) {
+            return;
+        }
+
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        if (caller.getId().equals(author.getId())) {
+            return;
+        }
+
+        if (!hasAcceptedFollow(caller.getId(), author.getId())) {
+            throw new RuntimeException("Forbidden — this account is private");
+        }
     }
 }

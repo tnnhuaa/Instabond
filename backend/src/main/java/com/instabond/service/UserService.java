@@ -7,17 +7,19 @@ import com.instabond.dto.UpdateProfileRequest;
 import com.instabond.entity.Post;
 import com.instabond.entity.Relationship;
 import com.instabond.entity.User;
-import com.instabond.repository.PostRepository;
 import com.instabond.repository.RelationshipRepository;
 import com.instabond.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -25,7 +27,6 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final PostRepository postRepository;
     private final RelationshipRepository relationshipRepository;
     private final FileService fileService;
     private final MongoTemplate mongoTemplate;
@@ -33,8 +34,7 @@ public class UserService {
     // Used by GET /api/users/me
 
     public UserMeResponse getMe(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = resolveUserFromPrincipal(email);
 
         return UserMeResponse.builder()
                 .id(user.getId())
@@ -55,15 +55,41 @@ public class UserService {
                 .toList();
     }
 
-    public ProfileResponse getProfile(String userId) {
+    private boolean hasAcceptedFollow(String requesterId, String recipientId) {
+        Query query = new Query(new Criteria().andOperator(
+                idCriteria("requester_id", requesterId),
+                idCriteria("recipient_id", recipientId),
+                Criteria.where("status").is("accepted")
+        ));
+        return mongoTemplate.exists(query, Relationship.class);
+    }
+
+    private void assertCanViewProfile(User target, String callerPrincipal) {
+        if (!isPrivateAccount(target)) {
+            return;
+        }
+
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        if (caller.getId().equals(target.getId())) {
+            return;
+        }
+
+        if (!hasAcceptedFollow(caller.getId(), target.getId())) {
+            throw new RuntimeException("Forbidden — this profile is private");
+        }
+    }
+
+    public ProfileResponse getProfile(String userId, String callerPrincipal) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        assertCanViewProfile(user, callerPrincipal);
         return toProfileResponse(user);
     }
 
-    public ProfileResponse getProfileByUsername(String username) {
+    public ProfileResponse getProfileByUsername(String username, String callerPrincipal) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found: " + username));
+        assertCanViewProfile(user, callerPrincipal);
         return toProfileResponse(user);
     }
 
@@ -95,38 +121,299 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-        user.setAvatar_url(fileService.uploadImage(file));
+        user.setAvatar_url(fileService.uploadImageUrl(file));
         return toProfileResponse(userRepository.save(user));
+    }
+
+    private boolean isPrivateAccount(User user) {
+        return user.getSettings() != null && Boolean.TRUE.equals(user.getSettings().getIs_private());
     }
 
     // Social graph
 
     public List<FollowUserResponse> getFollowers(String userId) {
-        ObjectId oid = new ObjectId(userId);
-        List<Relationship> rels = relationshipRepository.findByRecipientIdAndStatus(oid, "accepted");
-        return rels.stream()
-                .map(rel -> toFollowUserResponse(userRepository.findById(rel.getRequester_id()).orElse(null)))
+        userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        Query query = new Query(new Criteria().andOperator(
+                idCriteria("recipient_id", userId),
+                Criteria.where("status").is("accepted")
+        )).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+
+        return mongoTemplate.find(query, Relationship.class).stream()
+                .map(rel -> toFollowUserResponse(userRepository.findById(rel.getRequester_id()).orElse(null), rel.getStatus()))
                 .filter(r -> r != null)
                 .toList();
     }
 
     public List<FollowUserResponse> getFollowing(String userId) {
-        ObjectId oid = new ObjectId(userId);
-        List<Relationship> rels = relationshipRepository.findByRequesterIdAndStatus(oid, "accepted");
-        return rels.stream()
-                .map(rel -> toFollowUserResponse(userRepository.findById(rel.getRecipient_id()).orElse(null)))
+        userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        Query query = new Query(new Criteria().andOperator(
+                idCriteria("requester_id", userId),
+                Criteria.where("status").is("accepted")
+        )).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+
+        return mongoTemplate.find(query, Relationship.class).stream()
+                .map(rel -> toFollowUserResponse(userRepository.findById(rel.getRecipient_id()).orElse(null), rel.getStatus()))
+                .filter(r -> r != null)
+                .toList();
+    }
+
+    public FollowUserResponse followUser(String targetUserId, String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + targetUserId));
+
+        if (caller.getId().equals(target.getId())) {
+            throw new RuntimeException("Forbidden — you cannot follow yourself");
+        }
+
+        Relationship relationship = mongoTemplate.findOne(
+                relationshipQuery(caller.getId(), target.getId()),
+                Relationship.class
+        );
+
+        String nextStatus = isPrivateAccount(target) ? "pending" : "accepted";
+        Instant now = Instant.now();
+
+        if (relationship == null) {
+            relationship = Relationship.builder()
+                    .requester_id(caller.getId())
+                    .recipient_id(target.getId())
+                    .status(nextStatus)
+                    .type("follow")
+                    .friendship_level("normal")
+                    .intimacy_score(0)
+                    .created_at(now)
+                    .updated_at(now)
+                    .build();
+        } else {
+            relationship.setStatus(nextStatus);
+            relationship.setType("follow");
+            if (relationship.getFriendship_level() == null || relationship.getFriendship_level().isBlank()) {
+                relationship.setFriendship_level("normal");
+            }
+            relationship.setUpdated_at(now);
+        }
+
+        relationshipRepository.save(relationship);
+        return toFollowUserResponse(target, nextStatus);
+    }
+
+    public void unfollowUser(String targetUserId, String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        userRepository.findById(targetUserId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + targetUserId));
+
+        if (caller.getId().equals(targetUserId)) {
+            throw new RuntimeException("Forbidden — you cannot unfollow yourself");
+        }
+
+        Relationship relationship = mongoTemplate.findOne(
+                relationshipQuery(caller.getId(), targetUserId),
+                Relationship.class
+        );
+
+        if (relationship == null) {
+            throw new RuntimeException("Relationship not found");
+        }
+
+        relationshipRepository.deleteById(relationship.getId());
+    }
+
+    public void removeFollower(String followerUserId, String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        userRepository.findById(followerUserId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + followerUserId));
+
+        if (caller.getId().equals(followerUserId)) {
+            throw new RuntimeException("Forbidden — you cannot remove yourself");
+        }
+
+        Relationship relationship = mongoTemplate.findOne(
+                relationshipQuery(followerUserId, caller.getId()),
+                Relationship.class
+        );
+
+        if (relationship == null) {
+            throw new RuntimeException("Relationship not found");
+        }
+
+        relationshipRepository.deleteById(relationship.getId());
+    }
+
+    public List<FollowUserResponse> getIncomingFollowRequests(String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+
+        Query query = new Query(new Criteria().andOperator(
+                idCriteria("recipient_id", caller.getId()),
+                Criteria.where("status").is("pending")
+        )).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+
+        return mongoTemplate.find(query, Relationship.class).stream()
+                .map(rel -> toFollowUserResponse(userRepository.findById(rel.getRequester_id()).orElse(null), rel.getStatus()))
+                .filter(r -> r != null)
+                .toList();
+    }
+
+    public List<FollowUserResponse> getSentFollowRequests(String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+
+        Query query = new Query(new Criteria().andOperator(
+                idCriteria("requester_id", caller.getId()),
+                Criteria.where("status").is("pending")
+        )).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+
+        return mongoTemplate.find(query, Relationship.class).stream()
+                .map(rel -> toFollowUserResponse(userRepository.findById(rel.getRecipient_id()).orElse(null), rel.getStatus()))
+                .filter(r -> r != null)
+                .toList();
+    }
+
+    public void cancelSentFollowRequest(String recipientId, String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        userRepository.findById(recipientId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + recipientId));
+
+        Relationship relationship = mongoTemplate.findOne(
+                relationshipQuery(caller.getId(), recipientId),
+                Relationship.class
+        );
+
+        if (relationship == null || !"pending".equalsIgnoreCase(relationship.getStatus())) {
+            throw new RuntimeException("Pending follow request not found");
+        }
+
+        relationshipRepository.deleteById(relationship.getId());
+    }
+
+    public FollowUserResponse acceptFollowRequest(String requesterId, String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        User requester = userRepository.findById(requesterId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + requesterId));
+
+        Relationship relationship = mongoTemplate.findOne(
+                relationshipQuery(requester.getId(), caller.getId()),
+                Relationship.class
+        );
+
+        if (relationship == null || !"pending".equalsIgnoreCase(relationship.getStatus())) {
+            throw new RuntimeException("Follow request not found");
+        }
+
+        relationship.setStatus("accepted");
+        relationship.setUpdated_at(Instant.now());
+        relationshipRepository.save(relationship);
+
+        return toFollowUserResponse(requester, "accepted");
+    }
+
+    public void rejectFollowRequest(String requesterId, String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        userRepository.findById(requesterId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + requesterId));
+
+        Relationship relationship = mongoTemplate.findOne(
+                relationshipQuery(requesterId, caller.getId()),
+                Relationship.class
+        );
+
+        if (relationship == null || !"pending".equalsIgnoreCase(relationship.getStatus())) {
+            throw new RuntimeException("Follow request not found");
+        }
+
+        relationship.setStatus("rejected");
+        relationship.setType("follow");
+        relationship.setFriendship_level("normal");
+        relationship.setUpdated_at(Instant.now());
+        relationshipRepository.save(relationship);
+    }
+
+    public FollowUserResponse setCloseFriend(String targetUserId, String callerPrincipal, boolean isCloseFriend) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + targetUserId));
+
+        Relationship relationship = mongoTemplate.findOne(
+                relationshipQuery(caller.getId(), target.getId()),
+                Relationship.class
+        );
+
+        if (relationship == null || !"accepted".equalsIgnoreCase(relationship.getStatus())) {
+            throw new RuntimeException("Relationship not found");
+        }
+
+        relationship.setType(isCloseFriend ? "close_friend" : "follow");
+        relationship.setFriendship_level(isCloseFriend ? "close_friend" : "normal");
+        relationship.setUpdated_at(Instant.now());
+        relationshipRepository.save(relationship);
+
+        return toFollowUserResponse(target, relationship.getStatus());
+    }
+
+    public List<FollowUserResponse> getCloseFriends(String userId) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        Query query = new Query(new Criteria().andOperator(
+                idCriteria("requester_id", userId),
+                Criteria.where("status").is("accepted"),
+                Criteria.where("type").is("close_friend")
+        )).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+
+        return mongoTemplate.find(query, Relationship.class).stream()
+                .map(rel -> toFollowUserResponse(
+                        userRepository.findById(rel.getRecipient_id()).orElse(null),
+                        rel.getStatus()
+                ))
                 .filter(r -> r != null)
                 .toList();
     }
 
     // Mappers
 
+    private User resolveUserFromPrincipal(String principal) {
+        if (principal == null || principal.isBlank()) {
+            throw new RuntimeException("Invalid user principal");
+        }
+        return userRepository.findByEmail(principal)
+                .or(() -> userRepository.findByUsername(principal))
+                .or(() -> userRepository.findById(principal))
+                .orElseThrow(() -> new RuntimeException("User not found: " + principal));
+    }
+
+    private Criteria idCriteria(String field, String id) {
+        List<Criteria> items = new ArrayList<>();
+        items.add(Criteria.where(field).is(id));
+        try {
+            items.add(Criteria.where(field).is(new ObjectId(id)));
+        } catch (Exception ignored) {
+        }
+        return new Criteria().orOperator(items.toArray(new Criteria[0]));
+    }
+
+    private Query relationshipQuery(String requesterId, String recipientId) {
+        Criteria requester = idCriteria("requester_id", requesterId);
+        Criteria recipient = idCriteria("recipient_id", recipientId);
+        return new Query(new Criteria().andOperator(requester, recipient));
+    }
+
     private ProfileResponse toProfileResponse(User user) {
-        long postsCount = mongoTemplate.count(
-                new Query(Criteria.where("author_id").is(new ObjectId(user.getId()))), Post.class);
-        ObjectId oid = new ObjectId(user.getId());
-        long followersCount = relationshipRepository.countByRecipientIdAndStatus(oid, "accepted");
-        long followingCount = relationshipRepository.countByRequesterIdAndStatus(oid, "accepted");
+        Query postsQuery = new Query(idCriteria("author_id", user.getId()));
+        long postsCount = mongoTemplate.count(postsQuery, Post.class);
+
+        Query followersQuery = new Query(new Criteria().andOperator(
+                idCriteria("recipient_id", user.getId()),
+                Criteria.where("status").is("accepted")
+        ));
+        long followersCount = mongoTemplate.count(followersQuery, Relationship.class);
+
+        Query followingQuery = new Query(new Criteria().andOperator(
+                idCriteria("requester_id", user.getId()),
+                Criteria.where("status").is("accepted")
+        ));
+        long followingCount = mongoTemplate.count(followingQuery, Relationship.class);
+
         boolean isPrivate = user.getSettings() != null && Boolean.TRUE.equals(user.getSettings().getIs_private());
 
         return ProfileResponse.builder()
@@ -147,12 +434,57 @@ public class UserService {
     }
 
     private FollowUserResponse toFollowUserResponse(User user) {
+        return toFollowUserResponse(user, null);
+    }
+
+    private FollowUserResponse toFollowUserResponse(User user, String relationshipStatus) {
         if (user == null) return null;
         return FollowUserResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .full_name(user.getFull_name())
                 .avatar_url(user.getAvatar_url())
+                .relationship_status(relationshipStatus)
                 .build();
+    }
+
+    public ProfileResponse updateMyPrivacy(String callerPrincipal, Boolean isPrivate) {
+        if (isPrivate == null) {
+            throw new RuntimeException("is_private is required");
+        }
+
+        User user = resolveUserFromPrincipal(callerPrincipal);
+        User.Setting setting = user.getSettings() != null ? user.getSettings() : new User.Setting();
+
+        boolean wasPrivate = Boolean.TRUE.equals(setting.getIs_private());
+        setting.setIs_private(isPrivate);
+        user.setSettings(setting);
+        User savedUser = userRepository.save(user);
+
+        // When turning public, accept all pending requests to this account.
+        if (wasPrivate && !isPrivate) {
+            Query pendingQuery = new Query(new Criteria().andOperator(
+                    idCriteria("recipient_id", savedUser.getId()),
+                    Criteria.where("status").is("pending")
+            ));
+
+            List<Relationship> pendingRequests = mongoTemplate.find(pendingQuery, Relationship.class);
+            Instant now = Instant.now();
+            for (Relationship relationship : pendingRequests) {
+                relationship.setStatus("accepted");
+                if (relationship.getType() == null || relationship.getType().isBlank()) {
+                    relationship.setType("follow");
+                }
+                if (relationship.getFriendship_level() == null || relationship.getFriendship_level().isBlank()) {
+                    relationship.setFriendship_level("normal");
+                }
+                relationship.setUpdated_at(now);
+            }
+            if (!pendingRequests.isEmpty()) {
+                relationshipRepository.saveAll(pendingRequests);
+            }
+        }
+
+        return toProfileResponse(savedUser);
     }
 }
