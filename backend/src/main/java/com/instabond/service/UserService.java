@@ -121,7 +121,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-        user.setAvatar_url(fileService.uploadImage(file));
+        user.setAvatar_url(fileService.uploadImageUrl(file));
         return toProfileResponse(userRepository.save(user));
     }
 

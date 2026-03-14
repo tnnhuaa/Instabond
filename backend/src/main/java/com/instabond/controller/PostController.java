@@ -15,10 +15,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -48,13 +50,14 @@ public class PostController {
             @ApiResponse(responseCode = "400", description = "Invalid request body"),
             @ApiResponse(responseCode = "401", description = "Missing or expired token")
     })
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PostResponse> createPost(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody CreatePostRequest request) {
+            @RequestPart(value = "request", required = false) CreatePostRequest request,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
 
         String callerEmail = getUserId(userDetails);
-        return ResponseEntity.status(201).body(postService.createPost(callerEmail, request, null));
+        return ResponseEntity.status(201).body(postService.createPost(callerEmail, request, files));
     }
 
     // Get feed
