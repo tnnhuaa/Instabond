@@ -220,4 +220,3 @@ public class PostController {
         return ResponseEntity.status(400).body(Map.of("error", msg != null ? msg : "Bad request"));
     }
 }
-

@@ -30,6 +30,13 @@ public class UserService {
     private final FileService fileService;
     private final MongoTemplate mongoTemplate;
 
+    // GET id
+    public String getUserIdByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"))
+                .getId();
+    }
+
     // Used by GET /api/users/me
 
     public UserMeResponse getMe(String email) {
