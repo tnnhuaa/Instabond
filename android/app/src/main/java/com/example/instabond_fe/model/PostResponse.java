@@ -73,11 +73,14 @@ public class PostResponse {
     }
 
     public static class Stats {
-        @SerializedName("likes")
+        @SerializedName(value = "likes", alternate = {"likes_count"})
         private int likes;
 
-        @SerializedName("comments")
+        @SerializedName(value = "comments", alternate = {"comments_count"})
         private int comments;
+
+        @SerializedName(value = "shares", alternate = {"shares_count"})
+        private int shares;
 
         public int getLikes() {
             return likes;
@@ -85,6 +88,10 @@ public class PostResponse {
 
         public int getComments() {
             return comments;
+        }
+
+        public int getShares() {
+            return shares;
         }
     }
 }

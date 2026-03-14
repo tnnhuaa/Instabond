@@ -56,7 +56,10 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         holder.tvUsername.setText(post.getUsername());
         holder.tvLikes.setText(post.getLikesCount() + " lượt thích");
         holder.tvCaption.setText(post.getUsername() + "  " + post.getCaption());
-        holder.btnViewComments.setText("Xem " + post.getCommentsCount() + " bình luận");
+        holder.btnViewComments.setText(
+                "Xem " + post.getCommentsCount() + " bình luận • "
+                        + post.getSharesCount() + " lượt chia sẻ"
+        );
         holder.flMusicBadge.setVisibility(post.isHasMusicBadge() ? View.VISIBLE : View.GONE);
 
         Glide.with(holder.itemView)

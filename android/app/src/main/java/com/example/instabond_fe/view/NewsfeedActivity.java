@@ -212,9 +212,11 @@ public class NewsfeedActivity extends AppCompatActivity {
 
             int likes = 0;
             int comments = 0;
+            int shares = 0;
             if (postResponse.getStats() != null) {
                 likes = postResponse.getStats().getLikes();
                 comments = postResponse.getStats().getComments();
+                shares = postResponse.getStats().getShares();
             }
 
             result.add(new Post(
@@ -222,6 +224,7 @@ public class NewsfeedActivity extends AppCompatActivity {
                     postResponse.getCaption() == null ? "" : postResponse.getCaption(),
                     likes,
                     comments,
+                    shares,
                     avatarUrl,
                     imageUrl,
                     postResponse.hasMusicSuggestion()
