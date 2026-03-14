@@ -53,7 +53,7 @@ public class ProfileActivity extends AppCompatActivity {
         });
 
         binding.btnCreate.setOnClickListener(v ->
-                Toast.makeText(this, "Tạo bài viết (mock)", Toast.LENGTH_SHORT).show());
+                startActivity(new Intent(this, CreatePostActivity.class)));
 
         binding.tabGrid.setOnClickListener(v ->
                 Toast.makeText(this, "Lưới ảnh", Toast.LENGTH_SHORT).show());

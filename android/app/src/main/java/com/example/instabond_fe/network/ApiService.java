@@ -2,6 +2,8 @@ package com.example.instabond_fe.network;
 
 import com.example.instabond_fe.model.AuthRequest;
 import com.example.instabond_fe.model.AuthResponse;
+import com.example.instabond_fe.model.CreatePostRequest;
+import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.model.UserProfileResponse;
 import com.google.gson.JsonElement;
 
@@ -30,4 +32,7 @@ public interface ApiService {
 
     @GET("api/test")
     Call<ResponseBody> testConnection();
+
+    @POST("api/posts")
+    Call<PostResponse> createPost(@Body CreatePostRequest request);
 }

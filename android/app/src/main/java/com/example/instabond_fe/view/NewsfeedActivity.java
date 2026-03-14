@@ -55,6 +55,10 @@ public class NewsfeedActivity extends AppCompatActivity {
                 startActivity(new Intent(this, ProfileActivity.class));
                 return true;
             }
+            if (id == R.id.nav_create) {
+                startActivity(new Intent(this, CreatePostActivity.class));
+                return true;
+            }
             return true;
         });
 
