@@ -8,21 +8,33 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.instabond_fe.databinding.ActivitySigninBinding;
+import com.example.instabond_fe.model.AuthRequest;
+import com.example.instabond_fe.model.AuthResponse;
+import com.example.instabond_fe.network.ApiClient;
+import com.example.instabond_fe.network.ApiService;
+import com.example.instabond_fe.network.SessionManager;
+
+import java.io.IOException;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class SignInActivity extends AppCompatActivity {
 
     private ActivitySigninBinding binding;
     private boolean passwordVisible = false;
-
-    // Mock credentials
-    private static final String MOCK_USERNAME = "admin";
-    private static final String MOCK_PASSWORD = "123456";
+    private ApiService apiService;
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivitySigninBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        apiService = ApiClient.getApiService(this);
+        sessionManager = new SessionManager(this);
 
         // Tab: switch to Sign Up
         binding.tvTabSignup.setOnClickListener(v -> {
@@ -44,27 +56,11 @@ public class SignInActivity extends AppCompatActivity {
         });
 
         // Sign In button
-        binding.btnSignin.setOnClickListener(v -> {
-            String username = binding.etUsername.getText().toString().trim();
-            String password = binding.etPassword.getText().toString();
-
-            if (username.isEmpty() || password.isEmpty()) {
-                Toast.makeText(this, "Vui lòng nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            // Mock authentication
-            if (username.equals(MOCK_USERNAME) && password.equals(MOCK_PASSWORD)) {
-                goToNewsfeed();
-            } else {
-                Toast.makeText(this, "Tên đăng nhập hoặc mật khẩu không đúng", Toast.LENGTH_SHORT).show();
-            }
-        });
+        binding.btnSignin.setOnClickListener(v -> performLogin());
 
         // Google Sign In (mock)
-        binding.btnGoogle.setOnClickListener(v -> {
-            Toast.makeText(this, "Đăng nhập với Google (mock)", Toast.LENGTH_SHORT).show();
-            goToNewsfeed();
-        });
+        binding.btnGoogle.setOnClickListener(v ->
+                Toast.makeText(this, "Đăng nhập Google chưa được tích hợp backend", Toast.LENGTH_SHORT).show());
 
         // "Register now" link
         binding.tvRegisterNow.setOnClickListener(v -> {
@@ -73,10 +69,63 @@ public class SignInActivity extends AppCompatActivity {
         });
     }
 
+    private void performLogin() {
+        String email = binding.etUsername.getText().toString().trim();
+        String password = binding.etPassword.getText().toString();
+
+        if (email.isEmpty() || password.isEmpty()) {
+            Toast.makeText(this, "Vui lòng nhập email và mật khẩu", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        setLoading(true);
+        AuthRequest request = AuthRequest.forLogin(email, password);
+        apiService.login(request).enqueue(new Callback<AuthResponse>() {
+            @Override
+            public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+                setLoading(false);
+                if (response.isSuccessful() && response.body() != null
+                        && response.body().getAccessToken() != null) {
+                    sessionManager.saveSession(response.body());
+                    goToNewsfeed();
+                    return;
+                }
+
+                Toast.makeText(SignInActivity.this,
+                        extractError(response, "Đăng nhập thất bại"),
+                        Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onFailure(Call<AuthResponse> call, Throwable t) {
+                setLoading(false);
+                Toast.makeText(SignInActivity.this,
+                        "Không kết nối được server: " + t.getMessage(),
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void setLoading(boolean loading) {
+        binding.btnSignin.setEnabled(!loading);
+        binding.btnSignin.setText(loading ? "Đang đăng nhập..." : "Đăng nhập");
+    }
+
+    private String extractError(Response<?> response, String fallback) {
+        if (response.errorBody() == null) {
+            return fallback;
+        }
+        try {
+            String raw = response.errorBody().string();
+            return raw == null || raw.isEmpty() ? fallback : raw;
+        } catch (IOException e) {
+            return fallback;
+        }
+    }
+
     private void goToNewsfeed() {
         Intent intent = new Intent(this, NewsfeedActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
     }
 }
-

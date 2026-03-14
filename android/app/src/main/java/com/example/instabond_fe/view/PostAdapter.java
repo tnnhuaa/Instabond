@@ -10,9 +10,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.Post;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder> {
@@ -20,7 +22,13 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     private final List<Post> posts;
 
     public PostAdapter(List<Post> posts) {
-        this.posts = posts;
+        this.posts = new ArrayList<>(posts);
+    }
+
+    public void setPosts(List<Post> newPosts) {
+        posts.clear();
+        posts.addAll(newPosts);
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -39,12 +47,18 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         holder.tvCaption.setText(post.getUsername() + "  " + post.getCaption());
         holder.btnViewComments.setText("Xem " + post.getCommentsCount() + " bình luận");
         holder.flMusicBadge.setVisibility(post.isHasMusicBadge() ? View.VISIBLE : View.GONE);
-        if (post.getAvatarResId() != 0) {
-            holder.ivAvatar.setImageResource(post.getAvatarResId());
-        }
-        if (post.getImageResId() != 0) {
-            holder.ivPostImage.setImageResource(post.getImageResId());
-        }
+
+        Glide.with(holder.itemView)
+                .load(post.getAvatarUrl())
+                .placeholder(R.drawable.avatar_circle_bg)
+                .error(R.drawable.avatar_circle_bg)
+                .into(holder.ivAvatar);
+
+        Glide.with(holder.itemView)
+                .load(post.getImageUrl())
+                .placeholder(R.drawable.avatar_circle_bg)
+                .error(R.drawable.avatar_circle_bg)
+                .into(holder.ivPostImage);
     }
 
     @Override
@@ -73,4 +87,3 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         }
     }
 }
-
