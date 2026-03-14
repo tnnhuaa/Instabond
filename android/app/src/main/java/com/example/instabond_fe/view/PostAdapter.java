@@ -27,8 +27,19 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
 
     public void setPosts(List<Post> newPosts) {
         posts.clear();
-        posts.addAll(newPosts);
+        if (newPosts != null) {
+            posts.addAll(newPosts);
+        }
         notifyDataSetChanged();
+    }
+
+    public void appendPosts(List<Post> morePosts) {
+        if (morePosts == null || morePosts.isEmpty()) {
+            return;
+        }
+        int start = posts.size();
+        posts.addAll(morePosts);
+        notifyItemRangeInserted(start, morePosts.size());
     }
 
     @NonNull
@@ -54,6 +65,14 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                 .error(R.drawable.avatar_circle_bg)
                 .into(holder.ivAvatar);
 
+        if (post.getImageUrl() == null || post.getImageUrl().trim().isEmpty()) {
+            holder.flPostImage.setVisibility(View.GONE);
+            Glide.with(holder.itemView).clear(holder.ivPostImage);
+            holder.ivPostImage.setImageDrawable(null);
+            return;
+        }
+
+        holder.flPostImage.setVisibility(View.VISIBLE);
         Glide.with(holder.itemView)
                 .load(post.getImageUrl())
                 .placeholder(R.drawable.avatar_circle_bg)
@@ -73,6 +92,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         TextView tvLikes;
         TextView tvCaption;
         Button btnViewComments;
+        View flPostImage;
         View flMusicBadge;
 
         PostViewHolder(@NonNull View itemView) {
@@ -83,6 +103,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             tvLikes = itemView.findViewById(R.id.tv_likes);
             tvCaption = itemView.findViewById(R.id.tv_caption);
             btnViewComments = itemView.findViewById(R.id.btn_view_comments);
+            flPostImage = itemView.findViewById(R.id.fl_post_image);
             flMusicBadge = itemView.findViewById(R.id.fl_music_badge);
         }
     }

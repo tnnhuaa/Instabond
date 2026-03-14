@@ -61,4 +61,7 @@ dependencies {
     // 4. Kiến trúc MVVM (ViewModel & LiveData)
     implementation("androidx.lifecycle:lifecycle-viewmodel:2.6.2")
     implementation("androidx.lifecycle:lifecycle-livedata:2.6.2")
+
+    // SwipeRefreshLayout for pull-to-refresh functionality
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 }

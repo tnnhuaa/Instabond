@@ -13,6 +13,7 @@ import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
+import retrofit2.http.Query;
 
 public interface ApiService {
     @POST("api/auth/login")
@@ -23,6 +24,10 @@ public interface ApiService {
 
     @GET("api/users/me")
     Call<UserProfileResponse> getMe();
+
+    @GET("api/posts/feed")
+    Call<JsonElement> getFeed(@Query("page") int page,
+                              @Query("size") int size);
 
     @GET("api/posts/feed")
     Call<JsonElement> getFeed();

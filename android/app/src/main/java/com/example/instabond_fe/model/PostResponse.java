@@ -51,7 +51,7 @@ public class PostResponse {
         @SerializedName("username")
         private String username;
 
-        @SerializedName("avatar_url")
+        @SerializedName(value = "avatar_url", alternate = {"avatarUrl", "avatar"})
         private String avatarUrl;
 
         public String getUsername() {
@@ -64,7 +64,7 @@ public class PostResponse {
     }
 
     public static class MediaItem {
-        @SerializedName("url")
+        @SerializedName(value = "url", alternate = {"media_url", "secure_url", "image_url"})
         private String url;
 
         public String getUrl() {
@@ -88,4 +88,3 @@ public class PostResponse {
         }
     }
 }
-

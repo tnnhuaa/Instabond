@@ -75,7 +75,7 @@
             android:contentDescription="More options"
             android:padding="4dp"
             android:src="@drawable/ic_more_horizontal"
-            android:tint="@color/text_primary"
+            app:tint="@color/text_primary"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -89,20 +89,14 @@
     <FrameLayout
         android:id="@+id/fl_post_image"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="0"
+        android:layout_height="wrap_content"
         android:minHeight="200dp">
 
-        <!--
-            Use a fixed aspect-ratio trick: set height via paddingTop=125%
-            For simplicity we use a fixed height of 280dp which approximates the
-            438x548 ratio (548/438 ≈ 1.25) on a 360dp-wide device.
-            In production bind via Glide/Coil with AspectRatioImageView.
-        -->
         <ImageView
             android:id="@+id/iv_post_image"
             android:layout_width="match_parent"
             android:layout_height="280dp"
+            android:adjustViewBounds="true"
             android:contentDescription="Post image"
             android:scaleType="centerCrop"
             tools:src="@tools:sample/backgrounds/scenic" />
@@ -128,7 +122,7 @@
                 android:layout_gravity="center"
                 android:contentDescription="Music"
                 android:src="@drawable/ic_music"
-                android:tint="@color/text_primary" />
+                app:tint="@color/text_primary" />
 
         </FrameLayout>
 
@@ -153,7 +147,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Like"
             android:src="@drawable/ic_heart"
-            android:tint="@color/text_primary"
+            app:tint="@color/text_primary"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -167,7 +161,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Comment"
             android:src="@drawable/ic_message_circle"
-            android:tint="@color/text_primary"
+            app:tint="@color/text_primary"
             app:layout_constraintStart_toEndOf="@id/btn_like"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -179,7 +173,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Bookmark"
             android:src="@drawable/ic_bookmark"
-            android:tint="@color/text_primary"
+            app:tint="@color/text_primary"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
