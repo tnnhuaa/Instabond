@@ -15,6 +15,9 @@ public class UserProfileResponse {
     @SerializedName("bio")
     private String bio;
 
+    @SerializedName(value = "phone_number")
+    private String phoneNumber;
+
     @SerializedName("avatar_url")
     private String avatarUrl;
 
@@ -43,6 +46,9 @@ public class UserProfileResponse {
         return bio;
     }
 
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
     public String getAvatarUrl() {
         return avatarUrl;
     }

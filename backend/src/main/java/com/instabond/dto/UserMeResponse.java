@@ -24,6 +24,9 @@ public class UserMeResponse {
     @Schema(description = "Email address", example = "john@example.com")
     private String email;
 
+    @Schema(description = "Phone number", example = "0912345678")
+    private String phone_number;
+
     @Schema(description = "Display name", example = "John Doe")
     private String full_name;
 
