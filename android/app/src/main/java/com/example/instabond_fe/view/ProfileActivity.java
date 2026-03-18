@@ -1,10 +1,14 @@
 package com.example.instabond_fe.view;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
@@ -19,10 +23,18 @@ import com.example.instabond_fe.network.SessionManager;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -33,6 +45,8 @@ public class ProfileActivity extends AppCompatActivity {
     private ApiService apiService;
     private SessionManager sessionManager;
     private final Gson gson = new Gson();
+    private ActivityResultLauncher<String> imagePickerLauncher;
+    private String currentUserId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,9 +57,22 @@ public class ProfileActivity extends AppCompatActivity {
         apiService = ApiClient.getApiService(this);
         sessionManager = new SessionManager(this);
 
+        // Setup image picker launcher
+        imagePickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.GetContent(),
+                imageUri -> {
+                    if (imageUri != null) {
+                        uploadAvatar(imageUri);
+                    }
+                }
+        );
+
         binding.toolbar.setTitle("");
 
         binding.btnSettings.setOnClickListener(v -> logoutForTesting());
+
+        // Camera button to edit avatar
+        binding.btnEditAvatar.setOnClickListener(v -> pickImage());
 
         binding.navHome.setOnClickListener(v -> {
             startActivity(new Intent(this, NewsfeedActivity.class));
@@ -83,6 +110,7 @@ public class ProfileActivity extends AppCompatActivity {
                 }
 
                 UserProfileResponse profile = response.body();
+                currentUserId = profile.getId();
                 bindProfile(profile);
                 if (profile.getId() != null && !profile.getId().isEmpty()) {
                     loadUserPosts(profile.getId());
@@ -99,11 +127,25 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void bindProfile(UserProfileResponse profile) {
-        binding.tvUsername.setText(nonEmpty(profile.getFullName(), profile.getUsername(), "Unknown user"));
-        binding.tvBio.setText(nonEmpty(profile.getBio(), "Chưa có tiểu sử"));
+        if (profile.getId() != null && !profile.getId().trim().isEmpty()) {
+            currentUserId = profile.getId();
+        }
+
+        // Display full name (or username if full name is missing)
+        binding.tvFullname.setText(nonEmpty(profile.getFullName(), profile.getUsername(), "Unknown User"));
+        
+        // Display username with @ prefix (smaller text below full name)
+        String username = profile.getUsername() != null ? "@" + profile.getUsername() : "";
+        binding.tvUsername.setText(username);
+        
+        // Display bio (or default message if empty)
+        binding.tvBio.setText(nonEmpty(profile.getBio(), "      "));
+        
+        // Display stats
         binding.tvPostsCount.setText(String.valueOf(profile.getPostsCount()));
         binding.tvFriendsCount.setText(String.valueOf(profile.getFollowersCount()));
 
+        // Load avatar image
         Glide.with(this)
                 .load(profile.getAvatarUrl())
                 .placeholder(R.drawable.avatar_circle_bg)
@@ -206,5 +248,113 @@ public class ProfileActivity extends AppCompatActivity {
         Intent intent = new Intent(this, SignInActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
+    }
+
+    private void pickImage() {
+        imagePickerLauncher.launch("image/*");
+    }
+
+    private void uploadAvatar(Uri imageUri) {
+        String userId = resolveCurrentUserId();
+        if (userId == null || userId.isEmpty()) {
+            Toast.makeText(this, "Không tìm thấy user id, hãy thử tải lại hồ sơ", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try {
+            File file = createTempFileFromUri(imageUri);
+            if (file == null || !file.exists()) {
+                Toast.makeText(this, "Không thể đọc file ảnh", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Create RequestBody for multipart upload
+            String mimeType = getContentResolver().getType(imageUri);
+            if (mimeType == null || mimeType.isEmpty()) {
+                mimeType = "image/*";
+            }
+
+            RequestBody requestBody = RequestBody.create(MediaType.parse(mimeType), file);
+            MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(), requestBody);
+
+            // Show loading state
+            binding.btnEditAvatar.setEnabled(false);
+            Toast.makeText(this, "Đang tải ảnh lên...", Toast.LENGTH_SHORT).show();
+
+            // Upload avatar
+            apiService.uploadAvatar(userId, filePart).enqueue(new Callback<UserProfileResponse>() {
+                @Override
+                public void onResponse(Call<UserProfileResponse> call, Response<UserProfileResponse> response) {
+                    binding.btnEditAvatar.setEnabled(true);
+                    
+                    if (response.isSuccessful() && response.body() != null) {
+                        Toast.makeText(ProfileActivity.this, "Cập nhật ảnh đại diện thành công", Toast.LENGTH_SHORT).show();
+                        // Reload /me to ensure latest avatar_url is shown from server state.
+                        loadProfile();
+                    } else {
+                        Toast.makeText(ProfileActivity.this, "Cập nhật thất bại", Toast.LENGTH_SHORT).show();
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<UserProfileResponse> call, Throwable t) {
+                    binding.btnEditAvatar.setEnabled(true);
+                    Toast.makeText(ProfileActivity.this,
+                            "Lỗi tải lên: " + t.getMessage(),
+                            Toast.LENGTH_SHORT).show();
+                }
+            });
+        } catch (Exception e) {
+            binding.btnEditAvatar.setEnabled(true);
+            Toast.makeText(this, "Lỗi: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private File createTempFileFromUri(Uri uri) throws IOException {
+        String fileName = queryDisplayName(uri);
+        if (fileName == null || fileName.trim().isEmpty()) {
+            fileName = "avatar_upload.jpg";
+        }
+
+        File tempFile = new File(getCacheDir(), fileName);
+        try (InputStream inputStream = getContentResolver().openInputStream(uri);
+             OutputStream outputStream = new FileOutputStream(tempFile, false)) {
+            if (inputStream == null) {
+                return null;
+            }
+
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, read);
+            }
+        }
+
+        return tempFile;
+    }
+
+    private String queryDisplayName(Uri uri) {
+        try (android.database.Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor == null || !cursor.moveToFirst()) {
+                return null;
+            }
+
+            int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+            if (nameIndex >= 0) {
+                return cursor.getString(nameIndex);
+            }
+            return null;
+        }
+    }
+
+    private String resolveCurrentUserId() {
+        String sessionUserId = sessionManager.getUserId();
+        if (sessionUserId != null && !sessionUserId.trim().isEmpty()) {
+            return sessionUserId;
+        }
+        if (currentUserId != null && !currentUserId.trim().isEmpty()) {
+            return currentUserId;
+        }
+        return null;
     }
 }
