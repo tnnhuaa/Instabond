@@ -48,6 +48,8 @@
 
     <!-- ── Bottom Navigation ─────────────────────────────── -->
     <dimen name="bottom_nav_height">64dp</dimen>
+    <dimen name="bottom_nav_total_height">92dp</dimen>
+    <dimen name="bottom_nav_create_margin_bottom">36dp</dimen>
 
     <!-- ── Toolbar ────────────────────────────────────────── -->
     <dimen name="toolbar_height">56dp</dimen>

@@ -1,8 +1,6 @@
 package com.example.instabond_fe.view;
 
-import android.content.Intent;
 import android.os.Bundle;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -10,6 +8,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityNotificationsBinding;
 import com.example.instabond_fe.model.NotificationItem;
+import com.example.instabond_fe.view.component.InstaBottomNavView;
 
 import java.util.Arrays;
 import java.util.List;
@@ -30,38 +29,7 @@ public class NotificationsActivity extends AppCompatActivity {
 
         binding.rvNotifications.setLayoutManager(new LinearLayoutManager(this));
         binding.rvNotifications.setAdapter(new NotificationAdapter(buildItems()));
-
-        binding.bottomNav.setSelectedItemId(R.id.nav_notifications);
-        binding.bottomNav.setOnItemSelectedListener(item -> {
-            int itemId = item.getItemId();
-            if (itemId == R.id.nav_notifications) {
-                return true;
-            }
-            if (itemId == R.id.nav_home) {
-                openScreen(NewsfeedActivity.class);
-                return true;
-            }
-            if (itemId == R.id.nav_profile) {
-                openScreen(ProfileActivity.class);
-                return true;
-            }
-            if (itemId == R.id.nav_create) {
-                startActivity(new Intent(this, CreatePostActivity.class));
-                return true;
-            }
-            if (itemId == R.id.nav_search) {
-                Toast.makeText(this, R.string.search_coming_soon, Toast.LENGTH_SHORT).show();
-                return false;
-            }
-            return false;
-        });
-    }
-
-    private void openScreen(Class<?> destination) {
-        Intent intent = new Intent(this, destination);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(intent);
-        finish();
+        binding.bottomNav.bind(this, InstaBottomNavView.Tab.NOTIFICATIONS);
     }
 
     private List<NotificationItem> buildItems() {

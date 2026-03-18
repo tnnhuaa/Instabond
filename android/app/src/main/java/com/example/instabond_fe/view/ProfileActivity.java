@@ -20,6 +20,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiListParser;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 
@@ -74,21 +75,7 @@ public class ProfileActivity extends AppCompatActivity {
         // Camera button to edit avatar
         binding.btnEditAvatar.setOnClickListener(v -> pickImage());
 
-        binding.navHome.setOnClickListener(v -> {
-            startActivity(new Intent(this, NewsfeedActivity.class));
-            finish();
-        });
-
-        binding.navSearch.setOnClickListener(v ->
-                Toast.makeText(this, R.string.search_coming_soon, Toast.LENGTH_SHORT).show());
-
-        binding.navNotifications.setOnClickListener(v -> {
-            startActivity(new Intent(this, NotificationsActivity.class));
-            finish();
-        });
-
-        binding.btnCreate.setOnClickListener(v ->
-                startActivity(new Intent(this, CreatePostActivity.class)));
+        binding.bottomNav.bind(this, InstaBottomNavView.Tab.PROFILE);
 
         binding.tabGrid.setOnClickListener(v ->
                 Toast.makeText(this, "Lưới ảnh", Toast.LENGTH_SHORT).show());
