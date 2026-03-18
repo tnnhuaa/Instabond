@@ -38,6 +38,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".view.SearchActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".view.ProfileActivity"
             android:exported="false" />
     </application>

@@ -81,6 +81,10 @@ public class NewsfeedActivity extends AppCompatActivity {
         binding.bottomNav.setSelectedItemId(R.id.nav_home);
         binding.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
+            if (id == R.id.nav_search) {
+                startActivity(new Intent(this, SearchActivity.class));
+                return true;
+            }
             if (id == R.id.nav_profile) {
                 startActivity(new Intent(this, ProfileActivity.class));
                 return true;

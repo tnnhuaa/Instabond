@@ -25,6 +25,16 @@
     <string name="nav_create">Create</string>
     <string name="nav_notifications">Notifications</string>
     <string name="nav_profile">Profile</string>
+    <string name="search_hint">T&#236;m ki&#7871;m...</string>
+    <string name="search_ai_heading">G&#7907;i &#253; t&#7915; AI</string>
+    <string name="search_explore_heading">Kh&#225;m ph&#225;</string>
+    <string name="search_chip_food">&#272;&#7891; &#259;n</string>
+    <string name="search_chip_travel">Du l&#7883;ch</string>
+    <string name="search_chip_photo">Nhi&#7871;p &#7843;nh</string>
+    <string name="search_chip_cafe">Cafe</string>
+    <string name="search_chip_nature">Thi&#234;n nhi&#234;n</string>
+    <string name="search_chip_music">&#194;m nh&#7841;c</string>
+    <string name="title_search">Search</string>
 
     <!-- Sign-In / Sign-Up screen -->
     <string name="tab_signin">Đăng nhập</string>
