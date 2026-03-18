@@ -79,7 +79,7 @@ public class MessageService {
         User sender = resolveUserByEmail(senderEmail);
         Conversation conversation = resolveConversationAndValidateParticipant(conversationId, sender.getId());
 
-        String imageUrl = fileService.uploadImage(file);
+        String imageUrl = String.valueOf(fileService.uploadImage(file));
         Message message = Message.builder()
                 .conversation_id(conversationId)
                 .sender_id(sender.getId())
