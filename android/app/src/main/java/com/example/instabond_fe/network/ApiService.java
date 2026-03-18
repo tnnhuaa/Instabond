@@ -7,11 +7,15 @@ import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.model.UserProfileResponse;
 import com.google.gson.JsonElement;
 
+import okhttp3.MultipartBody;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.Multipart;
 import retrofit2.http.POST;
+import retrofit2.http.PUT;
+import retrofit2.http.Part;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
@@ -40,4 +44,8 @@ public interface ApiService {
 
     @POST("api/posts")
     Call<PostResponse> createPost(@Body CreatePostRequest request);
+
+    @Multipart
+    @PUT("api/users/{id}/avatar")
+    Call<UserProfileResponse> uploadAvatar(@Path("id") String userId, @Part MultipartBody.Part file);
 }

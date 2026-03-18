@@ -117,18 +117,42 @@
                         android:contentDescription="@string/cd_profile_photo"
                         android:scaleType="centerCrop" />
 
+                    <!-- Camera icon button (bottom-right corner) -->
+                    <ImageButton
+                        android:id="@+id/btn_edit_avatar"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_gravity="bottom|end"
+                        android:layout_marginEnd="0dp"
+                        android:layout_marginBottom="0dp"
+                        android:background="@drawable/avatar_camera_btn_bg"
+                        android:contentDescription="@string/cd_edit_avatar"
+                        android:padding="8dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/baseline_camera_alt_24" />
+
                 </FrameLayout>
 
-                <!-- Username (node 6:277) -->
+                <!-- Full Name (main title) -->
                 <TextView
-                    android:id="@+id/tv_username"
+                    android:id="@+id/tv_fullname"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:fontFamily="sans-serif-medium"
-                    android:text="Minh Anh"
                     android:textColor="@color/text_primary"
                     android:textSize="20sp"
+                    tools:ignore="HardcodedText" />
+
+                <!-- Username (node 6:278 — smaller, below fullname) -->
+                <TextView
+                    android:id="@+id/tv_username"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:fontFamily="sans-serif"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
                     tools:ignore="HardcodedText" />
 
                 <!-- Bio (node 6:279) -->
@@ -136,11 +160,11 @@
                     android:id="@+id/tv_bio"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="8dp"
                     android:fontFamily="sans-serif"
                     android:text="Yêu nhiếp ảnh &amp; du lịch ✨"
                     android:textColor="@color/text_secondary"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     tools:ignore="HardcodedText" />
 
             </LinearLayout>
