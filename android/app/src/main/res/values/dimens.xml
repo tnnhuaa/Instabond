@@ -96,4 +96,18 @@
     <!-- Create FAB size -->
     <dimen name="profile_fab_size">56dp</dimen>
 
+    <!-- Notifications screen -->
+    <dimen name="notifications_top_padding">52dp</dimen>
+    <dimen name="notification_row_height">73dp</dimen>
+    <dimen name="notification_horizontal_padding">16dp</dimen>
+    <dimen name="notification_vertical_padding">12dp</dimen>
+    <dimen name="notification_icon_slot_size">48dp</dimen>
+    <dimen name="notification_small_chip_size">28dp</dimen>
+    <dimen name="notification_large_chip_size">48dp</dimen>
+    <dimen name="notification_chip_icon_size">20dp</dimen>
+    <dimen name="notification_text_margin_start">12dp</dimen>
+    <dimen name="notification_text_margin_end">12dp</dimen>
+    <dimen name="notification_preview_size">48dp</dimen>
+    <dimen name="notification_preview_margin_start">8dp</dimen>
+
 </resources>

@@ -1,6 +1,7 @@
 # --- CẤU HÌNH CHO ANDROID ---
 android/build/
 android/.gradle/
+android/.gradle-home/
 android/app/build/
 android/local.properties
 android/.idea/

@@ -79,6 +79,14 @@ public class ProfileActivity extends AppCompatActivity {
             finish();
         });
 
+        binding.navSearch.setOnClickListener(v ->
+                Toast.makeText(this, R.string.search_coming_soon, Toast.LENGTH_SHORT).show());
+
+        binding.navNotifications.setOnClickListener(v -> {
+            startActivity(new Intent(this, NotificationsActivity.class));
+            finish();
+        });
+
         binding.btnCreate.setOnClickListener(v ->
                 startActivity(new Intent(this, CreatePostActivity.class)));
 

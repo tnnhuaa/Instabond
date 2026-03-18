@@ -54,6 +54,7 @@
     <string name="cd_settings">Settings</string>
     <string name="cd_profile_photo">Profile photo</string>
     <string name="cd_edit_avatar">Edit avatar</string>
+    <string name="search_coming_soon">Tính năng tìm kiếm đang được phát triển</string>
 
     <!-- Sign-Up screen extras -->
     <string name="hint_email">Email</string>

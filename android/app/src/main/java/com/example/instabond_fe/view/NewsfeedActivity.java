@@ -81,15 +81,28 @@ public class NewsfeedActivity extends AppCompatActivity {
         binding.bottomNav.setSelectedItemId(R.id.nav_home);
         binding.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
+            if (id == R.id.nav_home) {
+                return true;
+            }
             if (id == R.id.nav_profile) {
                 startActivity(new Intent(this, ProfileActivity.class));
+                finish();
+                return true;
+            }
+            if (id == R.id.nav_notifications) {
+                startActivity(new Intent(this, NotificationsActivity.class));
+                finish();
                 return true;
             }
             if (id == R.id.nav_create) {
                 startActivity(new Intent(this, CreatePostActivity.class));
                 return true;
             }
-            return true;
+            if (id == R.id.nav_search) {
+                Toast.makeText(this, R.string.search_coming_soon, Toast.LENGTH_SHORT).show();
+                return false;
+            }
+            return false;
         });
 
         binding.swipeRefreshFeed.setRefreshing(true);
