@@ -74,6 +74,9 @@ public class ProfileActivity extends AppCompatActivity {
         // Camera button to edit avatar
         binding.btnEditAvatar.setOnClickListener(v -> pickImage());
 
+        // Camera button to edit avatar
+        binding.btnEditAvatar.setOnClickListener(v -> pickImage());
+
         binding.navHome.setOnClickListener(v -> {
             startActivity(new Intent(this, NewsfeedActivity.class));
             finish();
