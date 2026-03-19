@@ -1,13 +1,8 @@
 package com.example.instabond_fe.view;
 
-import android.content.Intent;
 import android.os.Bundle;
-import android.widget.ImageView;
-
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.bumptech.glide.Glide;
-import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivitySearchBinding;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
 
