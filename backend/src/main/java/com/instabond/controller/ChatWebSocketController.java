@@ -4,6 +4,7 @@ import com.instabond.dto.ChatMessageRequest;
 import com.instabond.dto.ChatMessageResponse;
 import com.instabond.entity.Message;
 import com.instabond.service.MessageService;
+import com.instabond.service.ConversationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -11,6 +12,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
+import java.util.List;
 
 @Controller
 @RequiredArgsConstructor
@@ -18,6 +20,7 @@ public class ChatWebSocketController {
 
     private final MessageService messageService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ConversationService conversationService;
 
     @MessageMapping("/chat.send")
     public void processMessage(@Payload ChatMessageRequest request, Principal principal) {
@@ -25,10 +28,22 @@ public class ChatWebSocketController {
             throw new RuntimeException("User must be authenticated to send messages");
         }
 
+        // Store to DB
         Message saved = messageService.saveTextMessage(request, principal.getName());
         ChatMessageResponse response = messageService.toResponse(saved);
 
-        // Broadcast the message to all subscribers of the conversation topic
-        messagingTemplate.convertAndSend("/topic/conversations/" + saved.getConversation_id(), response);
+        // Get username's list of the conversation and send to each of them
+        List<String> participants = conversationService.getParticipantUsernames(saved.getConversation_id());
+
+        for (String participant : participants) {
+            messagingTemplate.convertAndSendToUser(
+                    participant,
+                    "/queue/messages",
+                    response
+            );
+        }
+
+        // @TODO: Handle notification for offline users (Background/Killed app)
+        // Call Notification Service to send push notification to offline users
     }
 }
