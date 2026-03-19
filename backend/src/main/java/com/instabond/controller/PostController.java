@@ -72,8 +72,13 @@ public class PostController {
             @ApiResponse(responseCode = "401", description = "Missing or expired access token")
     })
     @GetMapping("/feed")
-    public ResponseEntity<List<PostResponse>> getFeed(@AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(postService.getFeed(getUserId(userDetails)));
+    public ResponseEntity<List<PostResponse>> getFeed(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page", example = "20")
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(postService.getFeed(getUserId(userDetails), page, size));
     }
 
     // Get a single post by its ID
@@ -223,7 +228,7 @@ public class PostController {
             @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
             @ApiResponse(responseCode = "404", description = "Post not found")
     })
-    @PostMapping("/{postId}/like")
+    @PostMapping(value = "/{postId}/like", consumes = MediaType.ALL_VALUE)
     public ResponseEntity<PostResponse> likePost(
             @Parameter(description = "ID of the target post", example = "65b444444444444444444441")
             @PathVariable String postId,
@@ -263,13 +268,32 @@ public class PostController {
             @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
             @ApiResponse(responseCode = "404", description = "Post not found")
     })
-    @PostMapping("/{postId}/share")
+    @PostMapping(value = "/{postId}/share", consumes = MediaType.ALL_VALUE)
     public ResponseEntity<PostResponse> sharePost(
             @Parameter(description = "ID of the post to share", example = "65b444444444444444444441")
             @PathVariable String postId,
             @AuthenticationPrincipal UserDetails userDetails) {
 
         return ResponseEntity.ok(postService.sharePost(postId, getUserId(userDetails)));
+    }
+
+    @Operation(
+            summary = "Unshare a post",
+            description = "Removes one share interaction of the authenticated user from the post and decreases `stats.shares` by 1. If not shared yet, this call is idempotent."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Unshare processed successfully",
+                    content = @Content(schema = @Schema(implementation = PostResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "404", description = "Post not found")
+    })
+    @DeleteMapping("/{postId}/share")
+    public ResponseEntity<PostResponse> unsharePost(
+            @Parameter(description = "ID of the target post", example = "65b444444444444444444441")
+            @PathVariable String postId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(postService.unsharePost(postId, getUserId(userDetails)));
     }
 
     // Add comment to a post
