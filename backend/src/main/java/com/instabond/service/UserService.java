@@ -43,6 +43,7 @@ public class UserService {
 
     public UserMeResponse getMe(String email) {
         User user = resolveUserFromPrincipal(email);
+        ProfileResponse profile = toProfileResponse(user);
 
         return UserMeResponse.builder()
                 .id(user.getId())
@@ -52,14 +53,21 @@ public class UserService {
                 .full_name(user.getFull_name())
                 .avatar_url(user.getAvatar_url())
                 .bio(user.getBio())
+                .posts_count(profile.getPosts_count())
+                .followers_count(profile.getFollowers_count())
+                .following_count(profile.getFollowing_count())
+                .is_private(profile.is_private())
+                .badges(user.getBadges())
+                .settings(user.getSettings())
                 .created_at(user.getCreated_at())
                 .build();
     }
 
     // Profile queries
 
-    public List<ProfileResponse> getAllUsers() {
-        return userRepository.findAll().stream()
+    public List<ProfileResponse> getAllUsers(int page, int limit) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, limit);
+        return userRepository.findAll(pageable).stream()
                 .map(this::toProfileResponse)
                 .toList();
     }

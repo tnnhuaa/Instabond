@@ -113,8 +113,12 @@ public class UserController {
             @ApiResponse(responseCode = "401", description = "Missing or expired access token")
     })
     @GetMapping
-    public ResponseEntity<List<ProfileResponse>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<ProfileResponse>> getAllUsers(
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page", example = "20")
+            @RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(userService.getAllUsers(page, limit));
     }
 
     //  Get profile by userId
