@@ -18,6 +18,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiListParser;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 
@@ -78,23 +79,7 @@ public class NewsfeedActivity extends AppCompatActivity {
 
         binding.swipeRefreshFeed.setOnRefreshListener(this::refreshFeed);
 
-        binding.bottomNav.setSelectedItemId(R.id.nav_home);
-        binding.bottomNav.setOnItemSelectedListener(item -> {
-            int id = item.getItemId();
-            if (id == R.id.nav_search) {
-                startActivity(new Intent(this, SearchActivity.class));
-                return true;
-            }
-            if (id == R.id.nav_profile) {
-                startActivity(new Intent(this, ProfileActivity.class));
-                return true;
-            }
-            if (id == R.id.nav_create) {
-                startActivity(new Intent(this, CreatePostActivity.class));
-                return true;
-            }
-            return true;
-        });
+        binding.bottomNav.bind(this, InstaBottomNavView.Tab.HOME);
 
         binding.swipeRefreshFeed.setRefreshing(true);
         refreshFeed();

@@ -1,14 +1,10 @@
 package com.example.instabond_fe.view;
 
-import android.content.Intent;
 import android.os.Bundle;
-import android.widget.ImageView;
-
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.bumptech.glide.Glide;
-import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivitySearchBinding;
+import com.example.instabond_fe.view.component.InstaBottomNavView;
 
 public class SearchActivity extends AppCompatActivity {
 
@@ -31,54 +27,6 @@ public class SearchActivity extends AppCompatActivity {
         binding = ActivitySearchBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        setupBottomNav();
-        bindExploreImages();
-    }
-
-    private void setupBottomNav() {
-        binding.bottomNav.setSelectedItemId(R.id.nav_search);
-        binding.bottomNav.setOnItemSelectedListener(item -> {
-            int itemId = item.getItemId();
-            if (itemId == R.id.nav_search) {
-                return true;
-            }
-            if (itemId == R.id.nav_home) {
-                startActivity(new Intent(this, NewsfeedActivity.class));
-                finish();
-                return true;
-            }
-            if (itemId == R.id.nav_create) {
-                startActivity(new Intent(this, CreatePostActivity.class));
-                return true;
-            }
-            if (itemId == R.id.nav_profile) {
-                startActivity(new Intent(this, ProfileActivity.class));
-                finish();
-                return true;
-            }
-            return true;
-        });
-    }
-
-    private void bindExploreImages() {
-        ImageView[] targetViews = {
-                binding.ivExploreHeroTop,
-                binding.ivExploreTopRight,
-                binding.ivExploreMidRight,
-                binding.ivExploreSmallLeft,
-                binding.ivExploreSmallCenter,
-                binding.ivExploreHeroBottom,
-                binding.ivExploreBottomRightTop,
-                binding.ivExploreBottomRightBottom
-        };
-
-        for (int i = 0; i < targetViews.length; i++) {
-            Glide.with(this)
-                    .load(EXPLORE_IMAGE_URLS[i])
-                    .placeholder(R.drawable.search_tile_placeholder)
-                    .error(R.drawable.search_tile_placeholder)
-                    .centerCrop()
-                    .into(targetViews[i]);
-        }
+        binding.bottomNav.bind(this, InstaBottomNavView.Tab.SEARCH);
     }
 }

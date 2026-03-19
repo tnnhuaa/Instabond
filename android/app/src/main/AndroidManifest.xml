@@ -43,6 +43,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".view.NotificationsActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".view.ProfileActivity"
             android:exported="false" />
 

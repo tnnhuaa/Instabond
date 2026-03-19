@@ -19,7 +19,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_primary"
-    tools:context=".ProfileActivity">
+    tools:context=".view.ProfileActivity">
 
     <!-- ───────── STICKY HEADER (node 6:326) ───────── -->
     <com.google.android.material.appbar.AppBarLayout
@@ -75,7 +75,7 @@
         android:layout_height="match_parent"
         android:clipToPadding="false"
         android:overScrollMode="never"
-        android:paddingBottom="@dimen/bottom_nav_height"
+        android:paddingBottom="@dimen/bottom_nav_total_height"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
@@ -434,182 +434,10 @@
 
     </androidx.core.widget.NestedScrollView>
 
-    <!-- ───────── BOTTOM NAVIGATION (node 6:334) ───────── -->
-    <!--
-        FrameLayout anchored to the bottom. Contains:
-          • The dark nav bar surface with 1dp top border
-          • Four icon-label buttons: Home | Search | (gap) | Notifications | Profile
-          • Floating Create button centred above the nav bar, elevated above it
-        The Create FAB extends 28dp above the nav bar top edge (half its 56dp height).
-    -->
-    <FrameLayout
-        android:id="@+id/bottom_nav_container"
+    <com.example.instabond_fe.view.component.InstaBottomNavView
+        android:id="@+id/bottom_nav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom">
-
-        <!-- 1dp top border -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_gravity="top"
-            android:background="@color/divider" />
-
-        <!-- Nav bar surface (node 6:334 bg #141419) -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/bottom_nav_height"
-            android:layout_marginTop="1dp"
-            android:background="@color/signin_surface"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:weightSum="5">
-
-                <!-- Home button (node 6:336) -->
-                <LinearLayout
-                    android:id="@+id/nav_home"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center_horizontal"
-                    android:orientation="vertical">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_gravity="center_horizontal"
-                        android:contentDescription=""
-                        android:src="@drawable/ic_home" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_horizontal"
-                        android:layout_marginTop="2dp"
-                        android:fontFamily="sans-serif-medium"
-                        android:text="@string/nav_home"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="10sp" />
-
-                </LinearLayout>
-
-                <!-- Search button (node 6:343) -->
-                <LinearLayout
-                    android:id="@+id/nav_search"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center_horizontal"
-                    android:orientation="vertical">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_gravity="center_horizontal"
-                        android:contentDescription=""
-                        android:src="@drawable/ic_search" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_horizontal"
-                        android:layout_marginTop="2dp"
-                        android:fontFamily="sans-serif-medium"
-                        android:text="@string/nav_search"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="10sp" />
-
-                </LinearLayout>
-
-                <!-- Centre spacer — FAB occupies this slot visually -->
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="1" />
-
-                <!-- Notifications button (node 6:350) -->
-                <LinearLayout
-                    android:id="@+id/nav_notifications"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center_horizontal"
-                    android:orientation="vertical">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_gravity="center_horizontal"
-                        android:contentDescription=""
-                        android:src="@drawable/ic_bell" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_horizontal"
-                        android:layout_marginTop="2dp"
-                        android:fontFamily="sans-serif-medium"
-                        android:text="@string/nav_notifications"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="10sp" />
-
-                </LinearLayout>
-
-                <!-- Profile button — ACTIVE (node 6:357) -->
-                <LinearLayout
-                    android:id="@+id/nav_profile"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center_horizontal"
-                    android:orientation="vertical">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_gravity="center_horizontal"
-                        android:contentDescription=""
-                        android:src="@drawable/ic_person" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_horizontal"
-                        android:layout_marginTop="2dp"
-                        android:fontFamily="sans-serif-medium"
-                        android:text="@string/nav_profile"
-                        android:textColor="@color/text_primary"
-                        android:textSize="10sp" />
-
-                </LinearLayout>
-
-        </LinearLayout>
-
-        <!-- Floating Create button centred above the bar (node 6:364 / 6:365) -->
-        <!--
-            bottom_margin = nav_height (68dp) − fab_size/2 (28dp) = 40dp
-            The button sits centred horizontally and its centre aligns with the
-            nav bar's top edge.
-        -->
-
-    </FrameLayout>
-
-    <ImageButton
-        android:id="@+id/btn_create"
-        android:layout_width="@dimen/profile_fab_size"
-        android:layout_height="@dimen/profile_fab_size"
-        android:layout_gravity="top|center_horizontal"
-        android:layout_marginTop="-28dp"
-        android:background="@drawable/profile_create_btn_bg"
-        android:contentDescription="@string/nav_create"
-        android:elevation="6dp"
-        android:padding="14dp"
-        android:src="@drawable/ic_add_circle"
-        app:layout_anchor="@+id/bottom_nav_container"
-        app:layout_anchorGravity="center" />
+        android:layout_gravity="bottom" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

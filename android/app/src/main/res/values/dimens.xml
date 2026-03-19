@@ -48,6 +48,8 @@
 
     <!-- ── Bottom Navigation ─────────────────────────────── -->
     <dimen name="bottom_nav_height">64dp</dimen>
+    <dimen name="bottom_nav_total_height">92dp</dimen>
+    <dimen name="bottom_nav_create_margin_bottom">36dp</dimen>
 
     <!-- ── Toolbar ────────────────────────────────────────── -->
     <dimen name="toolbar_height">56dp</dimen>
@@ -95,6 +97,20 @@
     <dimen name="profile_grid_cell">130dp</dimen>
     <!-- Create FAB size -->
     <dimen name="profile_fab_size">56dp</dimen>
+
+    <!-- Notifications screen -->
+    <dimen name="notifications_top_padding">52dp</dimen>
+    <dimen name="notification_row_height">73dp</dimen>
+    <dimen name="notification_horizontal_padding">16dp</dimen>
+    <dimen name="notification_vertical_padding">12dp</dimen>
+    <dimen name="notification_icon_slot_size">48dp</dimen>
+    <dimen name="notification_small_chip_size">28dp</dimen>
+    <dimen name="notification_large_chip_size">48dp</dimen>
+    <dimen name="notification_chip_icon_size">20dp</dimen>
+    <dimen name="notification_text_margin_start">12dp</dimen>
+    <dimen name="notification_text_margin_end">12dp</dimen>
+    <dimen name="notification_preview_size">48dp</dimen>
+    <dimen name="notification_preview_margin_start">8dp</dimen>
 
     <!-- Search screen -->
     <dimen name="search_topbar_height">80dp</dimen>
