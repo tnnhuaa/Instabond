@@ -25,6 +25,16 @@
     <string name="nav_create">Create</string>
     <string name="nav_notifications">Notifications</string>
     <string name="nav_profile">Profile</string>
+    <string name="search_hint">T&#236;m ki&#7871;m...</string>
+    <string name="search_ai_heading">G&#7907;i &#253; t&#7915; AI</string>
+    <string name="search_explore_heading">Kh&#225;m ph&#225;</string>
+    <string name="search_chip_food">&#272;&#7891; &#259;n</string>
+    <string name="search_chip_travel">Du l&#7883;ch</string>
+    <string name="search_chip_photo">Nhi&#7871;p &#7843;nh</string>
+    <string name="search_chip_cafe">Cafe</string>
+    <string name="search_chip_nature">Thi&#234;n nhi&#234;n</string>
+    <string name="search_chip_music">&#194;m nh&#7841;c</string>
+    <string name="title_search">Search</string>
 
     <!-- Sign-In / Sign-Up screen -->
     <string name="tab_signin">Đăng nhập</string>
@@ -58,6 +68,28 @@
     <string name="title_search">Search</string>
     <string name="search_placeholder_title">Khám phá sẽ sớm xuất hiện</string>
     <string name="search_placeholder_body">Màn hình Search đã được nối vào nav-bottom chung để bạn tiếp tục triển khai nội dung sau.</string>
+
+    <!-- Settings screen -->
+    <string name="title_settings">Cài đặt</string>
+    <string name="settings_edit_profile">Chỉnh sửa hồ sơ</string>
+    <string name="settings_privacy">Quyền riêng tư</string>
+    <string name="hint_full_name">Họ và tên</string>
+    <string name="hint_bio">Tiểu sử</string>
+    <string name="hint_phone_number">Số điện thoại</string>
+    <string name="btn_save_profile">Lưu profile</string>
+    <string name="btn_logout">Đăng xuất</string>
+    <string name="cd_back">Quay lại</string>
+    <string name="privacy_label">Quyền riêng tư</string>
+    <string name="allow_tagging_label">Cho phép gắn thẻ</string>
+    <string name="theme_label">Giao diện</string>
+    <string name="msg_user_id_missing">Không tìm thấy user id</string>
+    <string name="msg_profile_update_failed">Cập nhật profile thất bại</string>
+    <string name="msg_profile_updated">Đã cập nhật profile</string>
+    <string name="msg_login_expired">Phiên đăng nhập đã hết hạn</string>
+    <string name="msg_logged_out">Đã đăng xuất</string>
+    <string name="msg_connection_error">Lỗi kết nối: %1$s</string>
+    <string name="msg_update_error">Lỗi cập nhật: %1$s</string>
+    <string name="btn_save_profile_loading">Đang lưu...</string>
 
     <!-- Sign-Up screen extras -->
     <string name="hint_email">Email</string>

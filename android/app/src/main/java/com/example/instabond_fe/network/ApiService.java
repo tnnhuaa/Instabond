@@ -4,6 +4,7 @@ import com.example.instabond_fe.model.AuthRequest;
 import com.example.instabond_fe.model.AuthResponse;
 import com.example.instabond_fe.model.CreatePostRequest;
 import com.example.instabond_fe.model.PostResponse;
+import com.example.instabond_fe.model.UpdateProfileRequest;
 import com.example.instabond_fe.model.UserProfileResponse;
 import com.google.gson.JsonElement;
 
@@ -44,6 +45,9 @@ public interface ApiService {
 
     @POST("api/posts")
     Call<PostResponse> createPost(@Body CreatePostRequest request);
+
+    @PUT("api/users/{id}")
+    Call<UserProfileResponse> updateProfile(@Path("id") String userId, @Body UpdateProfileRequest request);
 
     @Multipart
     @PUT("api/users/{id}/avatar")

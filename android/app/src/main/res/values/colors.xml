@@ -75,4 +75,16 @@
     <!-- Gradient via mid-blue -->
     <color name="signin_grad_mid">#7EC8E3</color>
 
+    <!-- Search screen -->
+    <color name="search_topbar_bg">#141419</color>
+    <color name="search_input_bg">#80262626</color>
+    <color name="search_chip_start">#33D7EDFB</color>
+    <color name="search_chip_end">#33D5AD41</color>
+    <color name="search_chip_border">#4DD7EDFB</color>
+    <color name="search_placeholder">#A1A1A1</color>
+    <color name="search_tile_placeholder">#1A1A22</color>
+    <color name="search_chip_emoji">#0A0A0A</color>
+    <!-- Settings actions -->
+    <color name="logout_button_bg">#000000</color>
+
 </resources>

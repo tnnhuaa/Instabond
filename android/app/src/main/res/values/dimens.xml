@@ -112,4 +112,15 @@
     <dimen name="notification_preview_size">48dp</dimen>
     <dimen name="notification_preview_margin_start">8dp</dimen>
 
+    <!-- Search screen -->
+    <dimen name="search_topbar_height">80dp</dimen>
+    <dimen name="search_field_height">48dp</dimen>
+    <dimen name="search_field_radius">24dp</dimen>
+    <dimen name="search_chip_height">42dp</dimen>
+    <dimen name="search_chip_radius">21dp</dimen>
+    <dimen name="search_section_gap">24dp</dimen>
+    <dimen name="search_image_corner">10dp</dimen>
+    <dimen name="search_tile_large">262dp</dimen>
+    <dimen name="search_tile_small">129dp</dimen>
+
 </resources>
