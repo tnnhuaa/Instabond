@@ -234,6 +234,25 @@ public class UserController {
         return ResponseEntity.ok(userService.updateAvatar(id, file));
     }
 
+    // Device token
+    @PostMapping("/device-token")
+    public ResponseEntity<Void> addDeviceToken(
+            @RequestParam String token,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        userService.addDeviceToken(userDetails.getUsername(), token);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/device-token")
+    public ResponseEntity<Void> removeDeviceToken(
+            @RequestParam String token,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        userService.removeDeviceToken(userDetails.getUsername(), token);
+        return ResponseEntity.ok().build();
+    }
+
     // Followers
 
     @Operation(

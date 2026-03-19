@@ -121,38 +121,34 @@ public class MessageService {
         User reader = resolveUserByEmail(readerEmail);
         resolveConversationAndValidateParticipant(conversationId, reader.getId());
 
-        List<Message> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+        // Filter messages
+        List<Message> unreadMessages = messageRepository.findUnreadMessages(conversationId, reader.getId());
+
+        if (unreadMessages.isEmpty()) {
+            return 0;
+        }
+
         Instant readAt = Instant.now();
-        int updatedCount = 0;
 
-        for (Message message : messages) {
-            if (reader.getId().equals(message.getSender_id())) {
-                continue;
-            }
-
+        for (Message message : unreadMessages) {
             List<Message.ReadReceipt> readBy = message.getRead_by();
             if (readBy == null) {
                 readBy = new ArrayList<>();
                 message.setRead_by(readBy);
             }
 
-            boolean alreadyRead = readBy.stream()
-                    .anyMatch(receipt -> reader.getId().equals(receipt.getUser_id()));
+            readBy.add(Message.ReadReceipt.builder()
+                    .user_id(reader.getId())
+                    .read_at(readAt)
+                    .build());
 
-            if (!alreadyRead) {
-                readBy.add(Message.ReadReceipt.builder()
-                        .user_id(reader.getId())
-                        .read_at(readAt)
-                        .build());
-                updatedCount++;
-            }
+            message.set_viewed(true);
         }
 
-        if (updatedCount > 0) {
-            messageRepository.saveAll(messages);
-        }
+        // Save all updated messages
+        messageRepository.saveAll(unreadMessages);
 
-        return updatedCount;
+        return unreadMessages.size();
     }
 
     public ChatMessageResponse toResponse(Message message) {

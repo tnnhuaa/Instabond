@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.scheduling.concurrent.DefaultManagedTaskScheduler;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
@@ -25,9 +26,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // For Mobile, Mobile connect to ws://domain/ws
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*") // TODO: Replace "*" with domain/app scheme of your mobile clients in production
-                .withSockJS(); // Fallback to long-polling if WebSocket is not supported
+                .setAllowedOriginPatterns("*"); // TODO: Replace "*" with domain/app scheme of your mobile clients in production
+
+        // Fallback SockJS, Web connect to ws://domain/ws-web
+        registry.addEndpoint("/ws-web")
+                .setAllowedOriginPatterns("*")
+                .withSockJS();
     }
 
     @Override
@@ -36,7 +42,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.setApplicationDestinationPrefixes("/app");
 
         // Open a simple in-memory message broker for destinations starting with "/topic" (group) and "/user" (private)
-        registry.enableSimpleBroker("/topic", "/user");
+        registry.enableSimpleBroker("/topic", "/user")
+                .setHeartbeatValue(new long[]{10000, 10000})
+                .setTaskScheduler(new DefaultManagedTaskScheduler());
 
         // Prefix for user-specific messages (e.g. private chat)
         registry.setUserDestinationPrefix("/user");

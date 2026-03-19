@@ -2,6 +2,7 @@ package com.instabond.controller;
 
 import com.instabond.dto.ChatMessageResponse;
 import com.instabond.entity.Message;
+import com.instabond.service.ConversationService;
 import com.instabond.service.MessageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -34,6 +35,7 @@ public class MessageRestController {
 
     private final MessageService messageService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ConversationService conversationService;
 
     @Operation(
             summary = "Get conversation history",
@@ -86,11 +88,22 @@ public class MessageRestController {
             @RequestPart("file") MultipartFile file,
             @AuthenticationPrincipal UserDetails userDetails) {
 
+        // Store to DB and create message record
         Message saved = messageService.saveImageMessage(conversationId, file, userDetails.getUsername());
         ChatMessageResponse response = messageService.toResponse(saved);
 
-        // After uploading and saving to DB, push the event through WebSocket for real-time client update
-        messagingTemplate.convertAndSend("/topic/conversations/" + conversationId, response);
+        // Get username's list of the conversation and send to each of them
+        List<String> participants = conversationService.getParticipantUsernames(saved.getConversation_id());
+        for (String participant : participants) {
+            messagingTemplate.convertAndSendToUser(
+                    participant,
+                    "/queue/messages",
+                    response
+            );
+        }
+
+        // @TODO: Handle notification for offline users (Background/Killed app)
+        // Call Notification Service to send push notification to offline users ("User X sent a photo")
 
         return ResponseEntity.status(201).body(response);
     }
