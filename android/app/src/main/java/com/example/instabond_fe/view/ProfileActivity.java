@@ -69,7 +69,10 @@ public class ProfileActivity extends AppCompatActivity {
 
         binding.toolbar.setTitle("");
 
-        binding.btnSettings.setOnClickListener(v -> logoutForTesting());
+        binding.btnSettings.setOnClickListener(v -> openSettings());
+
+        // Camera button to edit avatar
+        binding.btnEditAvatar.setOnClickListener(v -> pickImage());
 
         // Camera button to edit avatar
         binding.btnEditAvatar.setOnClickListener(v -> pickImage());
@@ -242,11 +245,11 @@ public class ProfileActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private void logoutForTesting() {
-        sessionManager.clearSession();
-        Toast.makeText(this, "Đã đăng xuất (test)", Toast.LENGTH_SHORT).show();
-        Intent intent = new Intent(this, SignInActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+    private void openSettings() {
+        Intent intent = new Intent(this, SettingsActivity.class);
+        if (currentUserId != null && !currentUserId.trim().isEmpty()) {
+            intent.putExtra("user_id", currentUserId);
+        }
         startActivity(intent);
     }
 

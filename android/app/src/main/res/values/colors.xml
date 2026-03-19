@@ -74,5 +74,7 @@
     <color name="search_placeholder">#A1A1A1</color>
     <color name="search_tile_placeholder">#1A1A22</color>
     <color name="search_chip_emoji">#0A0A0A</color>
+    <!-- Settings actions -->
+    <color name="logout_button_bg">#000000</color>
 
 </resources>
