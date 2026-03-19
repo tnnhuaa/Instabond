@@ -145,6 +145,9 @@ public class MessageService {
             message.set_viewed(true);
         }
 
+        // Save all updated messages
+        messageRepository.saveAll(unreadMessages);
+
         return unreadMessages.size();
     }
 

@@ -6,13 +6,16 @@ import com.instabond.entity.Message;
 import com.instabond.service.MessageService;
 import com.instabond.service.ConversationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
@@ -45,5 +48,14 @@ public class ChatWebSocketController {
 
         // @TODO: Handle notification for offline users (Background/Killed app)
         // Call Notification Service to send push notification to offline users
+    }
+
+    @MessageExceptionHandler
+    @SendToUser("/queue/errors")
+    public Map<String, String> handleException(RuntimeException ex) {
+        return Map.of(
+                "status", "error",
+                "message", "Failed to send message: " + ex.getMessage()
+        );
     }
 }
