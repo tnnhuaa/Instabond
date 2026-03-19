@@ -167,18 +167,41 @@ public class PostService {
     }
 
     // Get all posts sorted by newest first
-    public List<PostResponse> getFeed(String callerPrincipal) {
-        Query query = new Query().with(Sort.by(Sort.Direction.DESC, "created_at"));
-        return mongoTemplate.find(query, Post.class).stream()
-                .filter(post -> {
-                    User author = resolveAuthorById(post.getAuthor_id());
-                    try {
-                        assertCanViewAuthorContent(author, callerPrincipal);
-                        return true;
-                    } catch (RuntimeException ex) {
-                        return false;
-                    }
-                })
+    public List<PostResponse> getFeed(String callerPrincipal, int page, int size) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        
+        // Find users the caller is following
+        Query followingQuery = new Query(new Criteria().andOperator(
+                idCriteria("requester_id", caller.getId()),
+                Criteria.where("status").is("accepted")
+        ));
+        
+        // Use relationships collection to get recipient_ids
+        List<String> validAuthorIds = new ArrayList<>();
+        validAuthorIds.add(caller.getId()); // Include their own posts
+        
+        List<java.util.Map> rels = mongoTemplate.find(followingQuery, java.util.Map.class, "relationships");
+        for (java.util.Map map : rels) {
+            Object recId = map.get("recipient_id");
+            if (recId != null) {
+                validAuthorIds.add(recId.toString());
+            }
+        }
+
+        // Build criteria for 'in' clause. Author ID could be stored as String or ObjectId
+        List<Object> inClauseArgs = new ArrayList<>();
+        for (String aid : validAuthorIds) {
+            inClauseArgs.add(aid);
+            try {
+                inClauseArgs.add(new ObjectId(aid));
+            } catch (Exception ignored) {}
+        }
+
+        Query postQuery = new Query(Criteria.where("author_id").in(inClauseArgs))
+                .with(Sort.by(Sort.Direction.DESC, "created_at"))
+                .with(org.springframework.data.domain.PageRequest.of(page, size));
+
+        return mongoTemplate.find(postQuery, Post.class).stream()
                 .map(post -> {
                     User author = resolveAuthorById(post.getAuthor_id());
                     return toPostResponse(post, author);
@@ -290,7 +313,6 @@ public class PostService {
 
         User caller = resolveUserFromPrincipal(callerPrincipal);
 
-        // Allow multiple shares — each share creates a new interaction
         Interaction interaction = Interaction.builder()
                 .user_id(caller.getId())
                 .target_id(postId)
@@ -300,6 +322,24 @@ public class PostService {
                 .build();
         interactionRepository.save(interaction);
         incrementPostStat(postId, "stats.shares", 1);
+
+        return getPostById(postId, callerPrincipal);
+    }
+
+    public PostResponse unsharePost(String postId, String callerPrincipal) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+
+        interactionRepository.findOne(caller.getId(), postId, "post", "share")
+                .ifPresent(interaction -> {
+                    interactionRepository.deleteById(interaction.getId());
+                    int currentShares = post.getStats() != null ? post.getStats().getShares() : 0;
+                    if (currentShares > 0) {
+                        incrementPostStat(postId, "stats.shares", -1);
+                    }
+                });
 
         return getPostById(postId, callerPrincipal);
     }

@@ -306,7 +306,7 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = "Forbidden — cannot follow yourself"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
-    @PostMapping("/{id}/follow")
+    @PostMapping(value = "/{id}/follow", consumes = MediaType.ALL_VALUE)
     public ResponseEntity<FollowUserResponse> followUser(
             @Parameter(description = "ID of user to follow", example = "65b222222222222222222222")
             @PathVariable String id,
