@@ -82,6 +82,11 @@ public class ProfileActivity extends AppCompatActivity {
             finish();
         });
 
+        binding.navSearch.setOnClickListener(v -> {
+            startActivity(new Intent(this, SearchActivity.class));
+            finish();
+        });
+
         binding.btnCreate.setOnClickListener(v ->
                 startActivity(new Intent(this, CreatePostActivity.class)));
 
