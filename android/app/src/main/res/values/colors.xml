@@ -65,4 +65,7 @@
     <!-- Gradient via mid-blue -->
     <color name="signin_grad_mid">#7EC8E3</color>
 
+    <!-- Settings actions -->
+    <color name="logout_button_bg">#000000</color>
+
 </resources>

@@ -55,6 +55,28 @@
     <string name="cd_profile_photo">Profile photo</string>
     <string name="cd_edit_avatar">Edit avatar</string>
 
+    <!-- Settings screen -->
+    <string name="title_settings">Cài đặt</string>
+    <string name="settings_edit_profile">Chỉnh sửa hồ sơ</string>
+    <string name="settings_privacy">Quyền riêng tư</string>
+    <string name="hint_full_name">Họ và tên</string>
+    <string name="hint_bio">Tiểu sử</string>
+    <string name="hint_phone_number">Số điện thoại</string>
+    <string name="btn_save_profile">Lưu profile</string>
+    <string name="btn_logout">Đăng xuất</string>
+    <string name="cd_back">Quay lại</string>
+    <string name="privacy_label">Quyền riêng tư</string>
+    <string name="allow_tagging_label">Cho phép gắn thẻ</string>
+    <string name="theme_label">Giao diện</string>
+    <string name="msg_user_id_missing">Không tìm thấy user id</string>
+    <string name="msg_profile_update_failed">Cập nhật profile thất bại</string>
+    <string name="msg_profile_updated">Đã cập nhật profile</string>
+    <string name="msg_login_expired">Phiên đăng nhập đã hết hạn</string>
+    <string name="msg_logged_out">Đã đăng xuất</string>
+    <string name="msg_connection_error">Lỗi kết nối: %1$s</string>
+    <string name="msg_update_error">Lỗi cập nhật: %1$s</string>
+    <string name="btn_save_profile_loading">Đang lưu...</string>
+
     <!-- Sign-Up screen extras -->
     <string name="hint_email">Email</string>
     <string name="hint_confirm_password">Nhập lại mật khẩu</string>
