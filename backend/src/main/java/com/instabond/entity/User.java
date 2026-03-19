@@ -41,6 +41,10 @@ public class User {
 
     private Instant created_at;
 
+    private Instant last_active;
+
+    private java.util.Set<String> device_tokens;
+
     // Embedded Documents
 
     @Data

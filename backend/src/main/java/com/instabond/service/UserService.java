@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -135,6 +136,38 @@ public class UserService {
 
     private boolean isPrivateAccount(User user) {
         return user.getSettings() != null && Boolean.TRUE.equals(user.getSettings().getIs_private());
+    }
+
+    public void updateLastActive(String email, Instant lastActive) {
+        if (email == null || email.isBlank()) return;
+
+        Query query = new Query(Criteria.where("email").is(email));
+        Update update = new Update().set("last_active", lastActive);
+
+        mongoTemplate.updateFirst(query, update, User.class);
+    }
+
+    // Device token
+    public void addDeviceToken(String callerPrincipal, String token) {
+        if (token == null || token.isBlank()) return;
+
+        User user = resolveUserFromPrincipal(callerPrincipal);
+
+        Query query = new Query(Criteria.where("_id").is(user.getId()));
+        Update update = new Update().addToSet("device_tokens", token);
+
+        mongoTemplate.updateFirst(query, update, User.class);
+    }
+
+    public void removeDeviceToken(String callerPrincipal, String token) {
+        if (token == null || token.isBlank()) return;
+
+        User user = resolveUserFromPrincipal(callerPrincipal);
+
+        Query query = new Query(Criteria.where("_id").is(user.getId()));
+        Update update = new Update().pull("device_tokens", token);
+
+        mongoTemplate.updateFirst(query, update, User.class);
     }
 
     // Social graph
