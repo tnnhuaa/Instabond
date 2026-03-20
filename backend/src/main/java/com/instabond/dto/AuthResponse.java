@@ -18,4 +18,5 @@ public class AuthResponse {
 
     @Schema(description = "JWT refresh token — expires in 7 days, use POST /api/auth/refresh to renew access token", example = "eyJhbGci...")
     private String refreshToken;
+    private String id;
 }

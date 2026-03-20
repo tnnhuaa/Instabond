@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -14,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityProfileBinding;
+import com.example.instabond_fe.model.FollowUserResponse;
 import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
@@ -48,15 +50,28 @@ public class ProfileActivity extends AppCompatActivity {
     private final Gson gson = new Gson();
     private ActivityResultLauncher<String> imagePickerLauncher;
     private String currentUserId;
+    private boolean isFollowing = false;
+
+    private ProfileGridAdapter gridAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityProfileBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
+        gridAdapter = new ProfileGridAdapter();
+        binding.rvProfileGrid.setAdapter(gridAdapter);
+        gridAdapter.setListener((allPosts, clickedPosition) -> {
+            Intent intent = new Intent(this, ProfilePostDetailActivity.class);
+            intent.putExtra("targetUserId", currentUserId);
+            intent.putExtra("scrollToPosition", clickedPosition);
+            startActivity(intent);
+        });
         apiService = ApiClient.getApiService(this);
         sessionManager = new SessionManager(this);
+
+        // Check for targetUserId in Intent
+        String targetUserId = getIntent().getStringExtra("targetUserId");
 
         // Setup image picker launcher
         imagePickerLauncher = registerForActivityResult(
@@ -65,58 +80,158 @@ public class ProfileActivity extends AppCompatActivity {
                     if (imageUri != null) {
                         uploadAvatar(imageUri);
                     }
-                }
-        );
+                });
 
         binding.toolbar.setTitle("");
 
-        binding.btnSettings.setOnClickListener(v -> openSettings());
+        if (targetUserId == null || targetUserId.equals(sessionManager.getUserId())) {
+            // Viewing my own profile
+            binding.btnSettings.setOnClickListener(v -> openSettings());
+            binding.btnEditAvatar.setOnClickListener(v -> pickImage());
+            binding.btnEditAvatar.setVisibility(View.VISIBLE);
+            binding.btnSettings.setVisibility(View.VISIBLE);
+            binding.btnSettings.setImageResource(R.drawable.ic_settings);
+            binding.bottomNav.bind(this, InstaBottomNavView.Tab.PROFILE);
+            loadMyProfile();
+        } else {
 
-        // Camera button to edit avatar
-        binding.btnEditAvatar.setOnClickListener(v -> pickImage());
+            binding.btnEditAvatar.setVisibility(View.GONE);
 
-        // Camera button to edit avatar
-        binding.btnEditAvatar.setOnClickListener(v -> pickImage());
+            binding.btnSettings.setVisibility(View.GONE);
 
-        binding.bottomNav.bind(this, InstaBottomNavView.Tab.PROFILE);
+            binding.bottomNav.setVisibility(View.GONE);
 
-        binding.tabGrid.setOnClickListener(v ->
-                Toast.makeText(this, "Lưới ảnh", Toast.LENGTH_SHORT).show());
-        binding.tabTagged.setOnClickListener(v ->
-                Toast.makeText(this, "Có mặt tôi", Toast.LENGTH_SHORT).show());
+            setSupportActionBar(binding.toolbar);
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            }
+            binding.toolbar.setNavigationOnClickListener(v -> finish());
 
-        loadProfile();
+            loadUserProfile(targetUserId);
+        }
+
+        binding.tabGrid.setOnClickListener(v -> Toast.makeText(this, "Lưới ảnh", Toast.LENGTH_SHORT).show());
+        binding.tabTagged.setOnClickListener(v -> Toast.makeText(this, "Có mặt tôi", Toast.LENGTH_SHORT).show());
     }
 
-    private void loadProfile() {
+    private void toggleFollow(String targetUserId) {
+        if (isFollowing) {
+            apiService.unfollowUser(targetUserId).enqueue(new Callback<Void>() {
+                @Override
+                public void onResponse(Call<Void> call, Response<Void> response) {
+                    if (response.isSuccessful()) {
+                        isFollowing = false;
+                        updateFollowButtonUI(false);
+                        Toast.makeText(ProfileActivity.this, "Đã bỏ theo dõi", Toast.LENGTH_SHORT).show();
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<Void> call, Throwable t) {
+                }
+            });
+        } else {
+            apiService.followUser(targetUserId).enqueue(new Callback<FollowUserResponse>() {
+                @Override
+                public void onResponse(Call<FollowUserResponse> call, Response<FollowUserResponse> response) {
+                    if (response.isSuccessful()) {
+                        isFollowing = true;
+                        updateFollowButtonUI(true);
+                        Toast.makeText(ProfileActivity.this, "Đã theo dõi", Toast.LENGTH_SHORT).show();
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<FollowUserResponse> call, Throwable t) {
+                }
+            });
+        }
+    }
+
+    private void updateFollowButtonUI(boolean following) {
+        binding.btnSettings.setVisibility(View.VISIBLE);
+        if (following) {
+            binding.btnSettings.setImageResource(R.drawable.ic_follow_minus);
+            binding.btnSettings.setContentDescription("Unfollow");
+        } else {
+            binding.btnSettings.setImageResource(R.drawable.ic_follow_plus);
+            binding.btnSettings.setContentDescription("Follow");
+        }
+    }
+
+    private void loadMyProfile() {
         apiService.getMe().enqueue(new Callback<UserProfileResponse>() {
             @Override
             public void onResponse(Call<UserProfileResponse> call, Response<UserProfileResponse> response) {
-                if (response.code() == 401) {
-                    handleUnauthorized();
-                    return;
-                }
-
-                if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(ProfileActivity.this, "Không tải được hồ sơ", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                UserProfileResponse profile = response.body();
-                currentUserId = profile.getId();
-                bindProfile(profile);
-                if (profile.getId() != null && !profile.getId().isEmpty()) {
-                    loadUserPosts(profile.getId());
-                }
+                handleProfileResponse(response);
             }
 
             @Override
             public void onFailure(Call<UserProfileResponse> call, Throwable t) {
-                Toast.makeText(ProfileActivity.this,
-                        "Lỗi kết nối: " + t.getMessage(),
-                        Toast.LENGTH_SHORT).show();
+                Toast.makeText(ProfileActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void loadUserProfile(String userId) {
+        apiService.getUserProfile(userId).enqueue(new Callback<UserProfileResponse>() {
+            @Override
+            public void onResponse(Call<UserProfileResponse> call, Response<UserProfileResponse> response) {
+                handleProfileResponse(response);
+                checkFollowStatus(userId);
+            }
+
+            @Override
+            public void onFailure(Call<UserProfileResponse> call, Throwable t) {
+                Toast.makeText(ProfileActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void checkFollowStatus(String targetUserId) {
+        String myId = sessionManager.getUserId();
+        if (myId == null)
+            return;
+
+        apiService.getFollowing(myId).enqueue(new Callback<List<FollowUserResponse>>() {
+            @Override
+            public void onResponse(Call<List<FollowUserResponse>> call, Response<List<FollowUserResponse>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    isFollowing = false;
+                    for (FollowUserResponse user : response.body()) {
+                        if (targetUserId.equals(user.getId())) {
+                            isFollowing = true;
+                            break;
+                        }
+                    }
+                    updateFollowButtonUI(isFollowing);
+                    binding.btnSettings.setOnClickListener(v -> toggleFollow(targetUserId));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<FollowUserResponse>> call, Throwable t) {
+            }
+        });
+    }
+
+    private void handleProfileResponse(Response<UserProfileResponse> response) {
+        if (response.code() == 401) {
+            handleUnauthorized();
+            return;
+        }
+
+        if (!response.isSuccessful() || response.body() == null) {
+            Toast.makeText(ProfileActivity.this, "Không tải được hồ sơ", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        UserProfileResponse profile = response.body();
+        currentUserId = profile.getId();
+        bindProfile(profile);
+        if (profile.getId() != null && !profile.getId().isEmpty()) {
+            loadUserPosts(profile.getId());
+        }
     }
 
     private void bindProfile(UserProfileResponse profile) {
@@ -124,21 +239,23 @@ public class ProfileActivity extends AppCompatActivity {
             currentUserId = profile.getId();
         }
 
-        // Display full name (or username if full name is missing)
         binding.tvFullname.setText(nonEmpty(profile.getFullName(), profile.getUsername(), "Unknown User"));
-        
-        // Display username with @ prefix (smaller text below full name)
+
         String username = profile.getUsername() != null ? "@" + profile.getUsername() : "";
         binding.tvUsername.setText(username);
-        
-        // Display bio (or default message if empty)
+
         binding.tvBio.setText(nonEmpty(profile.getBio(), "      "));
-        
-        // Display stats
+
         binding.tvPostsCount.setText(String.valueOf(profile.getPostsCount()));
         binding.tvFriendsCount.setText(String.valueOf(profile.getFollowersCount()));
 
-        // Load avatar image
+        binding.tvFriendsCount.setOnClickListener(v -> {
+            Intent intent = new Intent(this, FollowListActivity.class);
+            intent.putExtra(FollowListActivity.EXTRA_MODE, "followers");
+            intent.putExtra(FollowListActivity.EXTRA_USER_ID, profile.getId());
+            startActivity(intent);
+        });
+
         Glide.with(this)
                 .load(profile.getAvatarUrl())
                 .placeholder(R.drawable.avatar_circle_bg)
@@ -160,12 +277,11 @@ public class ProfileActivity extends AppCompatActivity {
 
                 List<PostResponse> posts = ApiListParser.parsePostList(gson, response.body());
                 bindLikesCount(posts);
-                bindPhotoGrid(extractPhotoUrls(posts));
+                gridAdapter.setPosts(posts);
             }
 
             @Override
             public void onFailure(Call<JsonElement> call, Throwable t) {
-                // Keep profile visible even if posts fail.
             }
         });
     }
@@ -178,44 +294,6 @@ public class ProfileActivity extends AppCompatActivity {
             }
         }
         binding.tvLikesCount.setText(String.valueOf(totalLikes));
-    }
-
-    private List<String> extractPhotoUrls(List<PostResponse> posts) {
-        List<String> urls = new ArrayList<>();
-        for (PostResponse post : posts) {
-            if (post.getMedia() == null || post.getMedia().isEmpty()) {
-                continue;
-            }
-            for (PostResponse.MediaItem mediaItem : post.getMedia()) {
-                if (mediaItem != null && mediaItem.getUrl() != null && !mediaItem.getUrl().isEmpty()) {
-                    urls.add(mediaItem.getUrl());
-                    if (urls.size() == 6) {
-                        return urls;
-                    }
-                }
-            }
-        }
-        return urls;
-    }
-
-    private void bindPhotoGrid(List<String> photoUrls) {
-        List<ImageView> cells = Arrays.asList(
-                binding.ivPhoto1,
-                binding.ivPhoto2,
-                binding.ivPhoto3,
-                binding.ivPhoto4,
-                binding.ivPhoto5,
-                binding.ivPhoto6
-        );
-
-        for (int i = 0; i < cells.size(); i++) {
-            String url = i < photoUrls.size() ? photoUrls.get(i) : null;
-            Glide.with(this)
-                    .load(url)
-                    .placeholder(R.drawable.avatar_circle_bg)
-                    .error(R.drawable.avatar_circle_bg)
-                    .into(cells.get(i));
-        }
     }
 
     private String nonEmpty(String... values) {
@@ -279,11 +357,12 @@ public class ProfileActivity extends AppCompatActivity {
                 @Override
                 public void onResponse(Call<UserProfileResponse> call, Response<UserProfileResponse> response) {
                     binding.btnEditAvatar.setEnabled(true);
-                    
+
                     if (response.isSuccessful() && response.body() != null) {
-                        Toast.makeText(ProfileActivity.this, "Cập nhật ảnh đại diện thành công", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(ProfileActivity.this, "Cập nhật ảnh đại diện thành công", Toast.LENGTH_SHORT)
+                                .show();
                         // Reload /me to ensure latest avatar_url is shown from server state.
-                        loadProfile();
+                        loadMyProfile();
                     } else {
                         Toast.makeText(ProfileActivity.this, "Cập nhật thất bại", Toast.LENGTH_SHORT).show();
                     }
@@ -311,7 +390,7 @@ public class ProfileActivity extends AppCompatActivity {
 
         File tempFile = new File(getCacheDir(), fileName);
         try (InputStream inputStream = getContentResolver().openInputStream(uri);
-             OutputStream outputStream = new FileOutputStream(tempFile, false)) {
+                OutputStream outputStream = new FileOutputStream(tempFile, false)) {
             if (inputStream == null) {
                 return null;
             }
