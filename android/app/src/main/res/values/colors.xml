@@ -112,6 +112,10 @@
     <color name="feed_nav_overlay">#99CB80FE</color>
     <color name="feed_nav_active">#33FFFFFF</color>
     <color name="feed_counter_bg">#66F9F6F5</color>
+    <color name="create_post_switch_track_on">#D8B4FE</color>
+    <color name="create_post_switch_track_off">#E5E2E1</color>
+    <color name="create_post_switch_thumb_on">#FFFFFF</color>
+    <color name="create_post_switch_thumb_off">#FFFFFF</color>
     <color name="search_section_muted">#99787676</color>
     <color name="search_avatar_ring">#BD73EF</color>
     <color name="search_close_icon">#B8B0B0</color>

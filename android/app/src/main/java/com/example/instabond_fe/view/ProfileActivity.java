@@ -1,6 +1,7 @@
 package com.example.instabond_fe.view;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
@@ -31,8 +32,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import okhttp3.MediaType;
@@ -44,14 +43,24 @@ import retrofit2.Response;
 
 public class ProfileActivity extends AppCompatActivity {
 
+    private static final String HIGHLIGHT_PROCESS =
+            "https://www.figma.com/api/mcp/asset/5b99f577-4b4d-478f-9713-de1a77a92f1b";
+    private static final String HIGHLIGHT_VIBE =
+            "https://www.figma.com/api/mcp/asset/37d6dab0-ce83-4973-853c-c638eac998cd";
+    private static final String HIGHLIGHT_TRAVEL =
+            "https://www.figma.com/api/mcp/asset/9220028b-16cc-45b0-a2b0-df2799b074db";
+    private static final String HIGHLIGHT_NATURE =
+            "https://www.figma.com/api/mcp/asset/369303e1-7b73-438e-be7b-9c65d568a10b";
+
     private ActivityProfileBinding binding;
     private ApiService apiService;
     private SessionManager sessionManager;
     private final Gson gson = new Gson();
     private ActivityResultLauncher<String> imagePickerLauncher;
-    private String currentUserId;
-    private boolean isFollowing = false;
 
+    private String currentUserId;
+    private boolean isFollowing;
+    private boolean isOwnProfileView;
     private ProfileGridAdapter gridAdapter;
 
     @Override
@@ -59,6 +68,11 @@ public class ProfileActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityProfileBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
+
+        apiService = ApiClient.getApiService(this);
+        sessionManager = new SessionManager(this);
+
         gridAdapter = new ProfileGridAdapter();
         binding.rvProfileGrid.setAdapter(gridAdapter);
         gridAdapter.setListener((allPosts, clickedPosition) -> {
@@ -67,13 +81,7 @@ public class ProfileActivity extends AppCompatActivity {
             intent.putExtra("scrollToPosition", clickedPosition);
             startActivity(intent);
         });
-        apiService = ApiClient.getApiService(this);
-        sessionManager = new SessionManager(this);
 
-        // Check for targetUserId in Intent
-        String targetUserId = getIntent().getStringExtra("targetUserId");
-
-        // Setup image picker launcher
         imagePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.GetContent(),
                 imageUri -> {
@@ -82,36 +90,57 @@ public class ProfileActivity extends AppCompatActivity {
                     }
                 });
 
-        binding.toolbar.setTitle("");
+        bindHighlightImages();
 
-        if (targetUserId == null || targetUserId.equals(sessionManager.getUserId())) {
-            // Viewing my own profile
-            binding.btnSettings.setOnClickListener(v -> openSettings());
-            binding.btnEditAvatar.setOnClickListener(v -> pickImage());
-            binding.btnEditAvatar.setVisibility(View.VISIBLE);
-            binding.btnSettings.setVisibility(View.VISIBLE);
-            binding.btnSettings.setImageResource(R.drawable.ic_settings);
-            binding.bottomNav.bind(this, InstaBottomNavView.Tab.PROFILE);
+        String targetUserId = getIntent().getStringExtra("targetUserId");
+        isOwnProfileView = targetUserId == null || targetUserId.equals(sessionManager.getUserId());
+
+        if (isOwnProfileView) {
+            configureOwnProfileView();
             loadMyProfile();
         } else {
-
-            binding.btnEditAvatar.setVisibility(View.GONE);
-
-            binding.btnSettings.setVisibility(View.GONE);
-
-            binding.bottomNav.setVisibility(View.GONE);
-
-            setSupportActionBar(binding.toolbar);
-            if (getSupportActionBar() != null) {
-                getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            }
-            binding.toolbar.setNavigationOnClickListener(v -> finish());
-
+            configureExternalProfileView(targetUserId);
             loadUserProfile(targetUserId);
         }
+    }
 
-        binding.tabGrid.setOnClickListener(v -> Toast.makeText(this, "Lưới ảnh", Toast.LENGTH_SHORT).show());
-        binding.tabTagged.setOnClickListener(v -> Toast.makeText(this, "Có mặt tôi", Toast.LENGTH_SHORT).show());
+    private void configureOwnProfileView() {
+        binding.bottomNav.bind(this, InstaBottomNavView.Tab.PROFILE);
+        binding.bottomNav.setVisibility(View.VISIBLE);
+        binding.btnEditAvatar.setVisibility(View.VISIBLE);
+        binding.btnEditAvatar.setOnClickListener(v -> pickImage());
+
+        binding.btnSettings.setVisibility(View.VISIBLE);
+        binding.btnSettings.setImageResource(R.drawable.ic_settings);
+        binding.btnSettings.setContentDescription(getString(R.string.cd_settings));
+        binding.btnSettings.setOnClickListener(v -> openSettings());
+
+        binding.btnPrimaryAction.setText(R.string.profile_action_edit);
+        binding.btnPrimaryAction.setBackgroundResource(R.drawable.search_follow_button_bg);
+        binding.btnPrimaryAction.setTextColor(getColor(R.color.login_primary_text));
+        binding.btnPrimaryAction.setOnClickListener(v -> openSettings());
+
+        binding.btnSecondaryAction.setText(R.string.profile_action_share);
+        binding.btnSecondaryAction.setBackgroundResource(R.drawable.search_follow_back_button_bg);
+        binding.btnSecondaryAction.setTextColor(getColor(R.color.login_text_primary));
+        binding.btnSecondaryAction.setOnClickListener(v -> shareProfile());
+    }
+
+    private void configureExternalProfileView(String targetUserId) {
+        binding.bottomNav.setVisibility(View.GONE);
+        binding.btnEditAvatar.setVisibility(View.GONE);
+
+        binding.btnSettings.setVisibility(View.VISIBLE);
+        binding.btnSettings.setImageResource(R.drawable.ic_arrow_back);
+        binding.btnSettings.setContentDescription(getString(R.string.cd_back));
+        binding.btnSettings.setOnClickListener(v -> finish());
+
+        binding.btnPrimaryAction.setText(R.string.profile_action_follow);
+        binding.btnPrimaryAction.setOnClickListener(v -> toggleFollow(targetUserId));
+
+        binding.btnSecondaryAction.setText(R.string.profile_action_message);
+        binding.btnSecondaryAction.setOnClickListener(v ->
+                Toast.makeText(this, getString(R.string.feed_messages_coming_soon), Toast.LENGTH_SHORT).show());
     }
 
     private void toggleFollow(String targetUserId) {
@@ -149,13 +178,14 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void updateFollowButtonUI(boolean following) {
-        binding.btnSettings.setVisibility(View.VISIBLE);
         if (following) {
-            binding.btnSettings.setImageResource(R.drawable.ic_follow_minus);
-            binding.btnSettings.setContentDescription("Unfollow");
+            binding.btnPrimaryAction.setText(R.string.profile_action_following);
+            binding.btnPrimaryAction.setBackgroundResource(R.drawable.search_follow_back_button_bg);
+            binding.btnPrimaryAction.setTextColor(getColor(R.color.login_text_primary));
         } else {
-            binding.btnSettings.setImageResource(R.drawable.ic_follow_plus);
-            binding.btnSettings.setContentDescription("Follow");
+            binding.btnPrimaryAction.setText(R.string.profile_action_follow);
+            binding.btnPrimaryAction.setBackgroundResource(R.drawable.search_follow_button_bg);
+            binding.btnPrimaryAction.setTextColor(getColor(R.color.login_primary_text));
         }
     }
 
@@ -190,8 +220,9 @@ public class ProfileActivity extends AppCompatActivity {
 
     private void checkFollowStatus(String targetUserId) {
         String myId = sessionManager.getUserId();
-        if (myId == null)
+        if (myId == null) {
             return;
+        }
 
         apiService.getFollowing(myId).enqueue(new Callback<List<FollowUserResponse>>() {
             @Override
@@ -205,7 +236,6 @@ public class ProfileActivity extends AppCompatActivity {
                         }
                     }
                     updateFollowButtonUI(isFollowing);
-                    binding.btnSettings.setOnClickListener(v -> toggleFollow(targetUserId));
                 }
             }
 
@@ -239,27 +269,31 @@ public class ProfileActivity extends AppCompatActivity {
             currentUserId = profile.getId();
         }
 
-        binding.tvFullname.setText(nonEmpty(profile.getFullName(), profile.getUsername(), "Unknown User"));
+        String displayName = nonEmpty(profile.getUsername(), profile.getFullName(), "Unknown User");
+        String subtitle = nonEmpty(profile.getFullName(), "Digital Artist & Storyteller");
+        String bio = nonEmpty(profile.getBio(),
+                "Capturing the ethereal in the everyday. Currently exploring the intersection of AI and human emotion.");
+        String link = profile.getUsername() == null || profile.getUsername().trim().isEmpty()
+                ? ""
+                : "linktr.ee/" + profile.getUsername().replace("@", "");
 
-        String username = profile.getUsername() != null ? "@" + profile.getUsername() : "";
-        binding.tvUsername.setText(username);
+        binding.tvFullname.setText(displayName);
+        binding.tvUsername.setText(subtitle);
+        binding.tvBio.setText(bio);
+        binding.tvProfileLink.setText(link);
+        binding.tvProfileLink.setVisibility(link.isEmpty() ? View.GONE : View.VISIBLE);
 
-        binding.tvBio.setText(nonEmpty(profile.getBio(), "      "));
+        binding.tvPostsCount.setText(formatCount(profile.getPostsCount()));
+        binding.tvFriendsCount.setText(formatCount(profile.getFollowersCount()));
+        binding.tvLikesCount.setText(formatCount(profile.getFollowingCount()));
 
-        binding.tvPostsCount.setText(String.valueOf(profile.getPostsCount()));
-        binding.tvFriendsCount.setText(String.valueOf(profile.getFollowersCount()));
-
-        binding.tvFriendsCount.setOnClickListener(v -> {
-            Intent intent = new Intent(this, FollowListActivity.class);
-            intent.putExtra(FollowListActivity.EXTRA_MODE, "followers");
-            intent.putExtra(FollowListActivity.EXTRA_USER_ID, profile.getId());
-            startActivity(intent);
-        });
+        binding.tvFriendsCount.setOnClickListener(v -> openFollowList(profile.getId(), "followers"));
+        binding.tvLikesCount.setOnClickListener(v -> openFollowList(profile.getId(), "following"));
 
         Glide.with(this)
                 .load(profile.getAvatarUrl())
-                .placeholder(R.drawable.avatar_circle_bg)
-                .error(R.drawable.avatar_circle_bg)
+                .placeholder(R.drawable.profile_placeholder_bg)
+                .error(R.drawable.profile_placeholder_bg)
                 .into(binding.ivAvatar);
     }
 
@@ -276,7 +310,6 @@ public class ProfileActivity extends AppCompatActivity {
                 }
 
                 List<PostResponse> posts = ApiListParser.parsePostList(gson, response.body());
-                bindLikesCount(posts);
                 gridAdapter.setPosts(posts);
             }
 
@@ -286,14 +319,35 @@ public class ProfileActivity extends AppCompatActivity {
         });
     }
 
-    private void bindLikesCount(List<PostResponse> posts) {
-        int totalLikes = 0;
-        for (PostResponse post : posts) {
-            if (post.getStats() != null) {
-                totalLikes += post.getStats().getLikes();
-            }
+    private void bindHighlightImages() {
+        loadImage(binding.ivHighlightProcess, HIGHLIGHT_PROCESS);
+        loadImage(binding.ivHighlightVibe, HIGHLIGHT_VIBE);
+        loadImage(binding.ivHighlightTravel, HIGHLIGHT_TRAVEL);
+        loadImage(binding.ivHighlightNature, HIGHLIGHT_NATURE);
+    }
+
+    private void loadImage(ImageView view, String url) {
+        Glide.with(this)
+                .load(url)
+                .centerCrop()
+                .into(view);
+    }
+
+    private void openFollowList(String userId, String mode) {
+        Intent intent = new Intent(this, FollowListActivity.class);
+        intent.putExtra(FollowListActivity.EXTRA_MODE, mode);
+        intent.putExtra(FollowListActivity.EXTRA_USER_ID, userId);
+        startActivity(intent);
+    }
+
+    private String formatCount(int value) {
+        if (value >= 1000000) {
+            return String.format(java.util.Locale.US, "%.1fm", value / 1000000f).replace(".0", "");
         }
-        binding.tvLikesCount.setText(String.valueOf(totalLikes));
+        if (value >= 1000) {
+            return String.format(java.util.Locale.US, "%.1fk", value / 1000f).replace(".0", "");
+        }
+        return String.valueOf(value);
     }
 
     private String nonEmpty(String... values) {
@@ -303,6 +357,14 @@ public class ProfileActivity extends AppCompatActivity {
             }
         }
         return "";
+    }
+
+    private void shareProfile() {
+        String username = binding.tvFullname.getText().toString().trim();
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.setType("text/plain");
+        shareIntent.putExtra(Intent.EXTRA_TEXT, "Check out " + username + " on Instabond");
+        startActivity(Intent.createChooser(shareIntent, getString(R.string.profile_action_share)));
     }
 
     private void handleUnauthorized() {
@@ -339,7 +401,6 @@ public class ProfileActivity extends AppCompatActivity {
                 return;
             }
 
-            // Create RequestBody for multipart upload
             String mimeType = getContentResolver().getType(imageUri);
             if (mimeType == null || mimeType.isEmpty()) {
                 mimeType = "image/*";
@@ -348,11 +409,9 @@ public class ProfileActivity extends AppCompatActivity {
             RequestBody requestBody = RequestBody.create(MediaType.parse(mimeType), file);
             MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(), requestBody);
 
-            // Show loading state
             binding.btnEditAvatar.setEnabled(false);
             Toast.makeText(this, "Đang tải ảnh lên...", Toast.LENGTH_SHORT).show();
 
-            // Upload avatar
             apiService.uploadAvatar(userId, filePart).enqueue(new Callback<UserProfileResponse>() {
                 @Override
                 public void onResponse(Call<UserProfileResponse> call, Response<UserProfileResponse> response) {
@@ -361,7 +420,6 @@ public class ProfileActivity extends AppCompatActivity {
                     if (response.isSuccessful() && response.body() != null) {
                         Toast.makeText(ProfileActivity.this, "Cập nhật ảnh đại diện thành công", Toast.LENGTH_SHORT)
                                 .show();
-                        // Reload /me to ensure latest avatar_url is shown from server state.
                         loadMyProfile();
                     } else {
                         Toast.makeText(ProfileActivity.this, "Cập nhật thất bại", Toast.LENGTH_SHORT).show();
