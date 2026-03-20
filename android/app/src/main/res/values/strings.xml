@@ -144,4 +144,11 @@
     <string name="search_action_follow_back">Follow Back</string>
     <string name="search_action_following">Following</string>
     <string name="cd_dismiss">Dismiss suggestion</string>
+    <string name="search_modern_hint">Search creators, trends, or moments...</string>
+    <string name="search_chip_for_you">For You</string>
+    <string name="search_chip_trending_en">Trending</string>
+    <string name="search_chip_shop">Shop</string>
+    <string name="search_chip_creators">Creators</string>
+    <string name="search_chip_nature_en">Nature</string>
+    <string name="search_chip_tech">Tech</string>
 </resources>

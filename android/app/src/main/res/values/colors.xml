@@ -118,4 +118,7 @@
     <color name="search_suggestion_overlay">#0D8037B1</color>
     <color name="search_preview_fill">#E5E2E1</color>
     <color name="search_preview_border">#4DCB80FE</color>
+    <color name="search_input_outline">#26AFACAC</color>
+    <color name="search_chip_inactive">#DFDCDC</color>
+    <color name="search_featured_badge">#8C7668</color>
 </resources>
