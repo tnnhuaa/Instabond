@@ -81,6 +81,8 @@ public class NewsfeedActivity extends AppCompatActivity {
 
         binding.bottomNav.bind(this, InstaBottomNavView.Tab.HOME);
 
+        binding.btnMessages.setOnClickListener(v -> startActivity(new Intent(this, InboxActivity.class)));
+
         binding.swipeRefreshFeed.setRefreshing(true);
         refreshFeed();
     }

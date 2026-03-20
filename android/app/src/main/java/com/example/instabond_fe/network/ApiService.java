@@ -6,6 +6,9 @@ import com.example.instabond_fe.model.CreatePostRequest;
 import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.model.UpdateProfileRequest;
 import com.example.instabond_fe.model.UserProfileResponse;
+import com.example.instabond_fe.model.ChatMessageResponse;
+import com.example.instabond_fe.model.Conversation;
+import com.example.instabond_fe.model.ConversationPageResponse;
 import com.google.gson.JsonElement;
 
 import okhttp3.MultipartBody;
@@ -52,4 +55,30 @@ public interface ApiService {
     @Multipart
     @PUT("api/users/{id}/avatar")
     Call<UserProfileResponse> uploadAvatar(@Path("id") String userId, @Part MultipartBody.Part file);
+
+    @POST("api/conversations/direct")
+    Call<Conversation> getOrCreateDirectConversation(@Query("partnerId") String partnerId);
+
+    @GET("api/messages/conversation/{conversationId}/history")
+    Call<JsonElement> getHistory(
+            @Path("conversationId") String convId,
+            @Query("page") int page,
+            @Query("size") int size
+    );
+
+    @Multipart
+    @POST("api/messages/conversation/{conversationId}/images")
+    Call<ChatMessageResponse> uploadChatImage(
+            @Path("conversationId") String convId,
+            @Part MultipartBody.Part file
+    );
+
+    @POST("api/messages/conversation/{conversationId}/read")
+    Call<Void> markMessagesAsRead(@Path("conversationId") String convId);
+
+    @GET("api/conversations")
+    Call<ConversationPageResponse> getUserConversations(
+            @Query("cursor") String cursor,
+            @Query("limit") int limit
+    );
 }

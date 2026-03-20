@@ -53,6 +53,14 @@
         <activity
             android:name=".view.SettingsActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".view.InboxActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.ChatActivity"
+            android:exported="false" />
     </application>
 
 </manifest>
