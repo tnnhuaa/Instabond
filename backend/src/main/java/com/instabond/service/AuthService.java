@@ -43,8 +43,8 @@ public class AuthService {
 
         userRepository.save(user);
 
-        String accessToken = jwtUtil.generateToken(user.getEmail());
-        String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
+        String accessToken = jwtUtil.generateToken(user.getEmail(), user.getId());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getEmail(), user.getId());
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
@@ -57,8 +57,10 @@ public class AuthService {
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
-        String accessToken = jwtUtil.generateToken(request.getEmail());
-        String refreshToken = jwtUtil.generateRefreshToken(request.getEmail());
+        User user = userRepository.findByEmail(request.getEmail()).orElseThrow();
+
+        String accessToken = jwtUtil.generateToken(user.getEmail(), user.getId());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getEmail(), user.getId());
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
@@ -70,7 +72,10 @@ public class AuthService {
         if (email == null || !jwtUtil.isTokenValid(refreshToken, email)) {
             throw new IllegalArgumentException("Invalid or expired refresh token!");
         }
-        String newAccessToken = jwtUtil.generateToken(email);
+
+        User user = userRepository.findByEmail(email).orElseThrow();
+
+        String newAccessToken = jwtUtil.generateToken(user.getEmail(), user.getId());
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(refreshToken)
