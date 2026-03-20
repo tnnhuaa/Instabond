@@ -1,8 +1,10 @@
 package com.example.instabond_fe.view;
 
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -11,7 +13,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.example.instabond_fe.databinding.ActivityCreatePostBinding;
-import com.example.instabond_fe.model.CreatePostRequest;
 import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
@@ -19,7 +20,14 @@ import com.example.instabond_fe.network.ApiService;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -30,8 +38,6 @@ public class CreatePostActivity extends AppCompatActivity {
     private ApiService apiService;
 
     private Uri selectedImageUri;
-    private int mediaWidth = 0;
-    private int mediaHeight = 0;
 
     private ActivityResultLauncher<String> pickImageLauncher;
     private ActivityResultLauncher<Void> takePhotoLauncher;
@@ -58,8 +64,6 @@ public class CreatePostActivity extends AppCompatActivity {
                 return;
             }
             selectedImageUri = uri;
-            mediaWidth = 0;
-            mediaHeight = 0;
             Glide.with(this).load(uri).into(binding.ivPreview);
         });
 
@@ -68,8 +72,6 @@ public class CreatePostActivity extends AppCompatActivity {
                 return;
             }
             selectedImageUri = saveBitmapToCache(bitmap);
-            mediaWidth = bitmap.getWidth();
-            mediaHeight = bitmap.getHeight();
             Glide.with(this).load(bitmap).into(binding.ivPreview);
         });
     }
@@ -88,6 +90,8 @@ public class CreatePostActivity extends AppCompatActivity {
 
     private void submitPost() {
         String caption = binding.etCaption.getText().toString().trim();
+        String tags = binding.etTags.getText().toString().trim();
+
         if (caption.isEmpty() && selectedImageUri == null) {
             Toast.makeText(this, "Nhap noi dung hoac chon anh", Toast.LENGTH_SHORT).show();
             return;
@@ -95,10 +99,48 @@ public class CreatePostActivity extends AppCompatActivity {
 
         setLoading(true);
 
-        String mediaUrl = selectedImageUri == null ? null : selectedImageUri.toString();
-        CreatePostRequest request = CreatePostRequest.fromCaptionAndMedia(caption, mediaUrl, mediaWidth, mediaHeight);
+        // Build JSON request body for the "request" part
+        StringBuilder json = new StringBuilder("{");
+        json.append("\"caption\":\"").append(escapeJson(caption)).append("\"");
+        if (!tags.isEmpty()) {
+            // Parse tags: split by comma or space, wrap as tagged_users
+            String[] tagArr = tags.split("[,\\s]+");
+            json.append(",\"tagged_users\":[");
+            for (int i = 0; i < tagArr.length; i++) {
+                String tag = tagArr[i].trim();
+                if (tag.startsWith("@")) tag = tag.substring(1);
+                if (!tag.isEmpty()) {
+                    if (i > 0) json.append(",");
+                    json.append("{\"user_id\":\"").append(escapeJson(tag)).append("\"}");
+                }
+            }
+            json.append("]");
+        }
+        json.append("}");
 
-        apiService.createPost(request).enqueue(new Callback<PostResponse>() {
+        RequestBody requestPart = RequestBody.create(
+                MediaType.parse("application/json"), json.toString());
+
+        // Build file parts
+        List<MultipartBody.Part> fileParts = new ArrayList<>();
+        if (selectedImageUri != null) {
+            try {
+                File imageFile = createTempFileFromUri(selectedImageUri);
+                if (imageFile != null) {
+                    RequestBody fileBody = RequestBody.create(
+                            MediaType.parse("image/*"), imageFile);
+                    MultipartBody.Part part = MultipartBody.Part.createFormData(
+                            "files", imageFile.getName(), fileBody);
+                    fileParts.add(part);
+                }
+            } catch (IOException e) {
+                Toast.makeText(this, "Khong doc duoc file anh", Toast.LENGTH_SHORT).show();
+                setLoading(false);
+                return;
+            }
+        }
+
+        apiService.createPost(requestPart, fileParts).enqueue(new Callback<PostResponse>() {
             @Override
             public void onResponse(Call<PostResponse> call, Response<PostResponse> response) {
                 setLoading(false);
@@ -107,11 +149,11 @@ public class CreatePostActivity extends AppCompatActivity {
                     return;
                 }
                 if (!response.isSuccessful()) {
-                    Toast.makeText(CreatePostActivity.this, "Dang bai that bai", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(CreatePostActivity.this, "Dang bai that bai (code " + response.code() + ")", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
-                Toast.makeText(CreatePostActivity.this, "Dang bai thanh cong", Toast.LENGTH_SHORT).show();
+                Toast.makeText(CreatePostActivity.this, "Dang bai thanh cong!", Toast.LENGTH_SHORT).show();
                 finish();
             }
 
@@ -123,6 +165,43 @@ public class CreatePostActivity extends AppCompatActivity {
         });
     }
 
+    private File createTempFileFromUri(Uri uri) throws IOException {
+        String fileName = queryDisplayName(uri);
+        if (fileName == null || fileName.trim().isEmpty()) {
+            fileName = "upload_" + System.currentTimeMillis() + ".jpg";
+        }
+
+        File tempFile = new File(getCacheDir(), fileName);
+        try (InputStream inputStream = getContentResolver().openInputStream(uri);
+             OutputStream outputStream = new FileOutputStream(tempFile, false)) {
+            if (inputStream == null) return null;
+            byte[] buffer = new byte[4096];
+            int len;
+            while ((len = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, len);
+            }
+        }
+        return tempFile;
+    }
+
+    private String queryDisplayName(Uri uri) {
+        try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (idx >= 0) return cursor.getString(idx);
+            }
+        }
+        return null;
+    }
+
+    private String escapeJson(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
+    }
+
     private void setLoading(boolean loading) {
         binding.btnPost.setEnabled(!loading);
         binding.btnChooseImage.setEnabled(!loading);
@@ -130,4 +209,3 @@ public class CreatePostActivity extends AppCompatActivity {
         binding.btnPost.setText(loading ? "Dang gui..." : "Dang bai");
     }
 }
-

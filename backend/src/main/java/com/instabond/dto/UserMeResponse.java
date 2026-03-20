@@ -1,5 +1,7 @@
 package com.instabond.dto;
 
+import java.util.List;
+import com.instabond.entity.User;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -41,6 +43,20 @@ public class UserMeResponse {
     @JsonProperty("is_private")
     private boolean is_private;
 
+    @Schema(description = "Total number of posts published by this user", example = "42")
+    private long posts_count;
+
+    @Schema(description = "Number of followers", example = "1200")
+    private long followers_count;
+
+    @Schema(description = "Number of users this account is following", example = "300")
+    private long following_count;
+
+    @Schema(description = "Badges earned by this user")
+    private List<User.Badge> badges;
+
+    @Schema(description = "Account settings (tagging permission, theme, etc.)")
+    private User.Setting settings;
 
     @Schema(description = "Account creation timestamp (UTC)", example = "2024-01-15T08:30:00Z")
     private Instant created_at;

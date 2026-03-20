@@ -27,4 +27,10 @@ public class FollowUserResponse {
 
     @Schema(description = "Relationship status from caller to this user", example = "accepted", allowableValues = {"pending", "accepted", "rejected"})
     private String relationship_status;
+
+    @Schema(description = "Whether the user mutually follows the caller", example = "true")
+    private boolean is_mutual_follow;
+
+    @Schema(description = "True if this user is a close friend of the caller", example = "true")
+    private boolean is_close_friend;
 }

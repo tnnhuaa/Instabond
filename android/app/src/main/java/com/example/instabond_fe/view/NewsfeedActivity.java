@@ -59,6 +59,68 @@ public class NewsfeedActivity extends AppCompatActivity {
         setSupportActionBar(binding.toolbar);
 
         adapter = new PostAdapter(new ArrayList<>());
+        adapter.setListener(new PostAdapter.OnPostInteractionListener() {
+            @Override
+            public void onLikeClicked(Post post, int position) {
+                boolean isCurrentlyLiked = post.isLiked();
+                post.setLiked(!isCurrentlyLiked);
+                post.setLikesCount(post.getLikesCount() + (isCurrentlyLiked ? -1 : 1));
+                adapter.notifyItemChanged(position);
+
+                Callback<PostResponse> cb = new Callback<PostResponse>() {
+                    @Override
+                    public void onResponse(Call<PostResponse> call, Response<PostResponse> response) {
+                        if (!response.isSuccessful()) {
+                            // Revert on failure
+                            post.setLiked(isCurrentlyLiked);
+                            post.setLikesCount(post.getLikesCount() + (isCurrentlyLiked ? 1 : -1));
+                            adapter.notifyItemChanged(position);
+                        }
+                    }
+                    @Override
+                    public void onFailure(Call<PostResponse> call, Throwable t) {
+                        post.setLiked(isCurrentlyLiked);
+                        post.setLikesCount(post.getLikesCount() + (isCurrentlyLiked ? 1 : -1));
+                        adapter.notifyItemChanged(position);
+                    }
+                };
+
+                if (isCurrentlyLiked) {
+                    apiService.unlikePost(post.getId()).enqueue(cb);
+                } else {
+                    apiService.likePost(post.getId()).enqueue(cb);
+                }
+            }
+
+            @Override
+            public void onCommentClicked(Post post, int position) {
+                Intent intent = new Intent(NewsfeedActivity.this, CommentActivity.class);
+                intent.putExtra("postId", post.getId());
+                startActivity(intent);
+            }
+
+            @Override
+            public void onShareClicked(Post post, int position) {
+                apiService.sharePost(post.getId()).enqueue(new Callback<PostResponse>() {
+                    @Override
+                    public void onResponse(Call<PostResponse> call, Response<PostResponse> response) {}
+                    @Override
+                    public void onFailure(Call<PostResponse> call, Throwable t) {}
+                });
+                
+                Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                shareIntent.setType("text/plain");
+                shareIntent.putExtra(Intent.EXTRA_TEXT, "Xem bài viết của " + post.getUsername() + " trên InstaBond!");
+                startActivity(Intent.createChooser(shareIntent, "Chia sẻ bài viết"));
+            }
+
+            @Override
+            public void onUserClicked(Post post, int position) {
+                Intent intent = new Intent(NewsfeedActivity.this, ProfileActivity.class);
+                intent.putExtra("targetUserId", post.getAuthorId());
+                startActivity(intent);
+            }
+        });
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         binding.rvFeed.setLayoutManager(layoutManager);
         binding.rvFeed.setAdapter(adapter);
@@ -183,7 +245,13 @@ public class NewsfeedActivity extends AppCompatActivity {
         for (PostResponse postResponse : apiPosts) {
             String username = "unknown";
             String avatarUrl = "";
+            String postId = postResponse.getId();
+            String authorId = "";
+
             if (postResponse.getAuthor() != null) {
+                if (postResponse.getAuthor().getId() != null) {
+                    authorId = postResponse.getAuthor().getId();
+                }
                 if (postResponse.getAuthor().getUsername() != null) {
                     username = postResponse.getAuthor().getUsername();
                 }
@@ -209,6 +277,8 @@ public class NewsfeedActivity extends AppCompatActivity {
             }
 
             result.add(new Post(
+                    postId,
+                    authorId,
                     username,
                     postResponse.getCaption() == null ? "" : postResponse.getCaption(),
                     likes,
@@ -216,7 +286,8 @@ public class NewsfeedActivity extends AppCompatActivity {
                     shares,
                     avatarUrl,
                     imageUrl,
-                    postResponse.hasMusicSuggestion()
+                    postResponse.hasMusicSuggestion(),
+                    false // Assuming default false until we get state from server
             ));
         }
         return result;

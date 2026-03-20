@@ -165,6 +165,19 @@
             app:layout_constraintStart_toEndOf="@id/btn_like"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <!-- Share / Send button -->
+        <ImageButton
+            android:id="@+id/btn_share"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="16dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Share"
+            android:src="@drawable/ic_send"
+            app:tint="@color/text_primary"
+            app:layout_constraintStart_toEndOf="@id/btn_comment"
+            app:layout_constraintTop_toTopOf="parent" />
+
         <!-- Bookmark button  (node 2:644 / 2:674 / 2:697) — pinned to end -->
         <ImageButton
             android:id="@+id/btn_bookmark"

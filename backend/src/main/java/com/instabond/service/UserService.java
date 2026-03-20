@@ -43,6 +43,7 @@ public class UserService {
 
     public UserMeResponse getMe(String email) {
         User user = resolveUserFromPrincipal(email);
+        ProfileResponse profile = toProfileResponse(user);
 
         return UserMeResponse.builder()
                 .id(user.getId())
@@ -52,15 +53,21 @@ public class UserService {
                 .full_name(user.getFull_name())
                 .avatar_url(user.getAvatar_url())
                 .bio(user.getBio())
+                .posts_count(profile.getPosts_count())
+                .followers_count(profile.getFollowers_count())
+                .following_count(profile.getFollowing_count())
                 .is_private(user.getSettings() != null && Boolean.TRUE.equals(user.getSettings().getIs_private()))
+                .badges(user.getBadges())
+                .settings(user.getSettings())
                 .created_at(user.getCreated_at())
                 .build();
     }
 
     // Profile queries
 
-    public List<ProfileResponse> getAllUsers() {
-        return userRepository.findAll().stream()
+    public List<ProfileResponse> getAllUsers(int page, int limit) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, limit);
+        return userRepository.findAll(pageable).stream()
                 .map(this::toProfileResponse)
                 .toList();
     }
@@ -69,8 +76,7 @@ public class UserService {
         Query query = new Query(new Criteria().andOperator(
                 idCriteria("requester_id", requesterId),
                 idCriteria("recipient_id", recipientId),
-                Criteria.where("status").is("accepted")
-        ));
+                Criteria.where("status").is("accepted")));
         return mongoTemplate.exists(query, Relationship.class);
     }
 
@@ -109,9 +115,12 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-        if (request.getFull_name() != null)    user.setFull_name(request.getFull_name());
-        if (request.getBio() != null)          user.setBio(request.getBio());
-        if (request.getPhone_number() != null) user.setPhone_number(request.getPhone_number());
+        if (request.getFull_name() != null)
+            user.setFull_name(request.getFull_name());
+        if (request.getBio() != null)
+            user.setBio(request.getBio());
+        if (request.getPhone_number() != null)
+            user.setPhone_number(request.getPhone_number());
 
         if (request.getSettings() != null) {
             User.Setting setting = user.getSettings() != null ? user.getSettings() : new User.Setting();
@@ -140,7 +149,8 @@ public class UserService {
     }
 
     public void updateLastActive(String email, Instant lastActive) {
-        if (email == null || email.isBlank()) return;
+        if (email == null || email.isBlank())
+            return;
 
         Query query = new Query(Criteria.where("email").is(email));
         Update update = new Update().set("last_active", lastActive);
@@ -150,7 +160,8 @@ public class UserService {
 
     // Device token
     public void addDeviceToken(String callerPrincipal, String token) {
-        if (token == null || token.isBlank()) return;
+        if (token == null || token.isBlank())
+            return;
 
         User user = resolveUserFromPrincipal(callerPrincipal);
 
@@ -161,7 +172,8 @@ public class UserService {
     }
 
     public void removeDeviceToken(String callerPrincipal, String token) {
-        if (token == null || token.isBlank()) return;
+        if (token == null || token.isBlank())
+            return;
 
         User user = resolveUserFromPrincipal(callerPrincipal);
 
@@ -172,31 +184,92 @@ public class UserService {
     }
 
     // Social graph
+    private java.util.Set<String> getMyCloseFriendIds(String callerId) {
+        Query query = new Query(new Criteria().andOperator(
+                idCriteria("requester_id", callerId),
+                Criteria.where("status").is("accepted"),
+                Criteria.where("type").is("close_friend"))); // Lọc những người có type là close_friend
+        return mongoTemplate.find(query, Relationship.class).stream()
+                .map(Relationship::getRecipient_id)
+                .collect(java.util.stream.Collectors.toSet());
+    }
 
-    public List<FollowUserResponse> getFollowers(String userId) {
+    private java.util.Set<String> getMyFollowingUserIds(String callerId) {
+        Query query = new Query(new Criteria().andOperator(
+                idCriteria("requester_id", callerId),
+                Criteria.where("status").is("accepted")));
+        return mongoTemplate.find(query, Relationship.class).stream()
+                .map(Relationship::getRecipient_id)
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    private java.util.Set<String> getMyFollowerUserIds(String callerId) {
+        Query query = new Query(new Criteria().andOperator(
+                idCriteria("recipient_id", callerId),
+                Criteria.where("status").is("accepted")));
+        return mongoTemplate.find(query, Relationship.class).stream()
+                .map(Relationship::getRequester_id)
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    public List<FollowUserResponse> getFollowers(String userId, String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
         userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
         Query query = new Query(new Criteria().andOperator(
                 idCriteria("recipient_id", userId),
-                Criteria.where("status").is("accepted")
-        )).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+                Criteria.where("status").is("accepted"))).with(Sort.by(Sort.Direction.DESC, "updated_at"));
 
+        java.util.Set<String> myFollowing = getMyFollowingUserIds(caller.getId());
+        java.util.Set<String> myFollowers = getMyFollowerUserIds(caller.getId());
+        java.util.Set<String> myCloseFriends = getMyCloseFriendIds(caller.getId());
         return mongoTemplate.find(query, Relationship.class).stream()
-                .map(rel -> toFollowUserResponse(userRepository.findById(rel.getRequester_id()).orElse(null), rel.getStatus()))
+                .map(rel -> buildFollowUserResponse(userRepository.findById(rel.getRequester_id()).orElse(null),
+                        myFollowing, myFollowers, myCloseFriends))
                 .filter(r -> r != null)
                 .toList();
     }
 
-    public List<FollowUserResponse> getFollowing(String userId) {
+    public List<FollowUserResponse> getFollowing(String userId, String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
         userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
         Query query = new Query(new Criteria().andOperator(
                 idCriteria("requester_id", userId),
-                Criteria.where("status").is("accepted")
-        )).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+                Criteria.where("status").is("accepted"))).with(Sort.by(Sort.Direction.DESC, "updated_at"));
 
+        java.util.Set<String> myFollowing = getMyFollowingUserIds(caller.getId());
+        java.util.Set<String> myFollowers = getMyFollowerUserIds(caller.getId());
+        java.util.Set<String> myCloseFriends = getMyCloseFriendIds(caller.getId());
         return mongoTemplate.find(query, Relationship.class).stream()
-                .map(rel -> toFollowUserResponse(userRepository.findById(rel.getRecipient_id()).orElse(null), rel.getStatus()))
+                .map(rel -> buildFollowUserResponse(userRepository.findById(rel.getRecipient_id()).orElse(null),
+                        myFollowing, myFollowers, myCloseFriends))
+                .filter(r -> r != null)
+                .toList();
+    }
+
+    public List<FollowUserResponse> getFriends(String userId, String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        Query followingQuery = new Query(new Criteria().andOperator(
+                idCriteria("requester_id", userId),
+                Criteria.where("status").is("accepted")));
+        List<String> followingIds = mongoTemplate.find(followingQuery, Relationship.class).stream()
+                .map(Relationship::getRecipient_id)
+                .toList();
+
+        Query followersQuery = new Query(new Criteria().andOperator(
+                idCriteria("recipient_id", userId),
+                Criteria.where("status").is("accepted"),
+                Criteria.where("requester_id").in(followingIds))).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+
+        java.util.Set<String> myFollowing = getMyFollowingUserIds(caller.getId());
+        java.util.Set<String> myFollowers = getMyFollowerUserIds(caller.getId());
+        java.util.Set<String> myCloseFriends = getMyCloseFriendIds(caller.getId());
+        return mongoTemplate.find(followersQuery, Relationship.class).stream()
+                .map(rel -> buildFollowUserResponse(userRepository.findById(rel.getRequester_id()).orElse(null),
+                        myFollowing, myFollowers, myCloseFriends))
                 .filter(r -> r != null)
                 .toList();
     }
@@ -212,8 +285,7 @@ public class UserService {
 
         Relationship relationship = mongoTemplate.findOne(
                 relationshipQuery(caller.getId(), target.getId()),
-                Relationship.class
-        );
+                Relationship.class);
 
         String nextStatus = isPrivateAccount(target) ? "pending" : "accepted";
         Instant now = Instant.now();
@@ -253,8 +325,7 @@ public class UserService {
 
         Relationship relationship = mongoTemplate.findOne(
                 relationshipQuery(caller.getId(), targetUserId),
-                Relationship.class
-        );
+                Relationship.class);
 
         if (relationship == null) {
             throw new RuntimeException("Relationship not found");
@@ -274,8 +345,7 @@ public class UserService {
 
         Relationship relationship = mongoTemplate.findOne(
                 relationshipQuery(followerUserId, caller.getId()),
-                Relationship.class
-        );
+                Relationship.class);
 
         if (relationship == null) {
             throw new RuntimeException("Relationship not found");
@@ -289,11 +359,11 @@ public class UserService {
 
         Query query = new Query(new Criteria().andOperator(
                 idCriteria("recipient_id", caller.getId()),
-                Criteria.where("status").is("pending")
-        )).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+                Criteria.where("status").is("pending"))).with(Sort.by(Sort.Direction.DESC, "updated_at"));
 
         return mongoTemplate.find(query, Relationship.class).stream()
-                .map(rel -> toFollowUserResponse(userRepository.findById(rel.getRequester_id()).orElse(null), rel.getStatus()))
+                .map(rel -> toFollowUserResponse(userRepository.findById(rel.getRequester_id()).orElse(null),
+                        rel.getStatus()))
                 .filter(r -> r != null)
                 .toList();
     }
@@ -303,11 +373,11 @@ public class UserService {
 
         Query query = new Query(new Criteria().andOperator(
                 idCriteria("requester_id", caller.getId()),
-                Criteria.where("status").is("pending")
-        )).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+                Criteria.where("status").is("pending"))).with(Sort.by(Sort.Direction.DESC, "updated_at"));
 
         return mongoTemplate.find(query, Relationship.class).stream()
-                .map(rel -> toFollowUserResponse(userRepository.findById(rel.getRecipient_id()).orElse(null), rel.getStatus()))
+                .map(rel -> toFollowUserResponse(userRepository.findById(rel.getRecipient_id()).orElse(null),
+                        rel.getStatus()))
                 .filter(r -> r != null)
                 .toList();
     }
@@ -319,8 +389,7 @@ public class UserService {
 
         Relationship relationship = mongoTemplate.findOne(
                 relationshipQuery(caller.getId(), recipientId),
-                Relationship.class
-        );
+                Relationship.class);
 
         if (relationship == null || !"pending".equalsIgnoreCase(relationship.getStatus())) {
             throw new RuntimeException("Pending follow request not found");
@@ -336,8 +405,7 @@ public class UserService {
 
         Relationship relationship = mongoTemplate.findOne(
                 relationshipQuery(requester.getId(), caller.getId()),
-                Relationship.class
-        );
+                Relationship.class);
 
         if (relationship == null || !"pending".equalsIgnoreCase(relationship.getStatus())) {
             throw new RuntimeException("Follow request not found");
@@ -357,8 +425,7 @@ public class UserService {
 
         Relationship relationship = mongoTemplate.findOne(
                 relationshipQuery(requesterId, caller.getId()),
-                Relationship.class
-        );
+                Relationship.class);
 
         if (relationship == null || !"pending".equalsIgnoreCase(relationship.getStatus())) {
             throw new RuntimeException("Follow request not found");
@@ -378,8 +445,7 @@ public class UserService {
 
         Relationship relationship = mongoTemplate.findOne(
                 relationshipQuery(caller.getId(), target.getId()),
-                Relationship.class
-        );
+                Relationship.class);
 
         if (relationship == null || !"accepted".equalsIgnoreCase(relationship.getStatus())) {
             throw new RuntimeException("Relationship not found");
@@ -393,21 +459,25 @@ public class UserService {
         return toFollowUserResponse(target, relationship.getStatus());
     }
 
-    public List<FollowUserResponse> getCloseFriends(String userId) {
+    public List<FollowUserResponse> getCloseFriends(String userId, String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
         userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
         Query query = new Query(new Criteria().andOperator(
                 idCriteria("requester_id", userId),
                 Criteria.where("status").is("accepted"),
-                Criteria.where("type").is("close_friend")
-        )).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+                Criteria.where("type").is("close_friend"))).with(Sort.by(Sort.Direction.DESC, "updated_at"));
 
+        java.util.Set<String> myFollowing = getMyFollowingUserIds(caller.getId());
+        java.util.Set<String> myFollowers = getMyFollowerUserIds(caller.getId());
+        java.util.Set<String> myCloseFriends = getMyCloseFriendIds(caller.getId());
         return mongoTemplate.find(query, Relationship.class).stream()
-                .map(rel -> toFollowUserResponse(
+                .map(rel -> buildFollowUserResponse(
                         userRepository.findById(rel.getRecipient_id()).orElse(null),
-                        rel.getStatus()
-                ))
+                        myFollowing,
+                        myFollowers,
+                        myCloseFriends))
                 .filter(r -> r != null)
                 .toList();
     }
@@ -446,14 +516,12 @@ public class UserService {
 
         Query followersQuery = new Query(new Criteria().andOperator(
                 idCriteria("recipient_id", user.getId()),
-                Criteria.where("status").is("accepted")
-        ));
+                Criteria.where("status").is("accepted")));
         long followersCount = mongoTemplate.count(followersQuery, Relationship.class);
 
         Query followingQuery = new Query(new Criteria().andOperator(
                 idCriteria("requester_id", user.getId()),
-                Criteria.where("status").is("accepted")
-        ));
+                Criteria.where("status").is("accepted")));
         long followingCount = mongoTemplate.count(followingQuery, Relationship.class);
 
         boolean isPrivate = user.getSettings() != null && Boolean.TRUE.equals(user.getSettings().getIs_private());
@@ -480,13 +548,42 @@ public class UserService {
     }
 
     private FollowUserResponse toFollowUserResponse(User user, String relationshipStatus) {
-        if (user == null) return null;
+        if (user == null)
+            return null;
         return FollowUserResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .full_name(user.getFull_name())
                 .avatar_url(user.getAvatar_url())
                 .relationship_status(relationshipStatus)
+                .is_mutual_follow(false)
+                .build();
+    }
+
+    private FollowUserResponse buildFollowUserResponse(User user, java.util.Set<String> myFollowing,
+            java.util.Set<String> myFollowers, java.util.Set<String> myCloseFriends) {
+        if (user == null)
+            return null;
+
+        String relationshipStatus = "none";
+        boolean isFollowingMe = false;
+
+        if (myFollowing.contains(user.getId())) {
+            relationshipStatus = "accepted";
+        }
+
+        if (myFollowers.contains(user.getId())) {
+            isFollowingMe = true;
+        }
+
+        return FollowUserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .full_name(user.getFull_name())
+                .avatar_url(user.getAvatar_url())
+                .relationship_status(relationshipStatus)
+                .is_mutual_follow(relationshipStatus.equals("accepted") && isFollowingMe)
+                .is_close_friend(myCloseFriends.contains(user.getId()))
                 .build();
     }
 
@@ -507,8 +604,7 @@ public class UserService {
         if (wasPrivate && !isPrivate) {
             Query pendingQuery = new Query(new Criteria().andOperator(
                     idCriteria("recipient_id", savedUser.getId()),
-                    Criteria.where("status").is("pending")
-            ));
+                    Criteria.where("status").is("pending")));
 
             List<Relationship> pendingRequests = mongoTemplate.find(pendingQuery, Relationship.class);
             Instant now = Instant.now();

@@ -41,4 +41,26 @@ public class ProfileResponse {
     private User.Setting settings;
     @Schema(description = "Account creation timestamp (UTC)", example = "2024-01-15T08:30:00Z")
     private Instant created_at;
+
+    @Schema(description = "Relationship status from caller to this user (none, pending, accepted)", example = "accepted")
+    private String relationship_status;
+
+    @Schema(description = "True if both users follow each other", example = "true")
+    private boolean is_mutual_follow;
+
+    public void setRelationship_status(String relationship_status) {
+        this.relationship_status = relationship_status;
+    }
+
+    public String getRelationship_status() {
+        return relationship_status;
+    }
+
+    public void setIs_mutual_follow(boolean is_mutual_follow) {
+        this.is_mutual_follow = is_mutual_follow;
+    }
+
+    public boolean isIs_mutual_follow() {
+        return is_mutual_follow;
+    }
 }
