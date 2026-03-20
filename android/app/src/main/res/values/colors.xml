@@ -87,4 +87,18 @@
     <!-- Settings actions -->
     <color name="logout_button_bg">#000000</color>
 
+    <!-- Login redesign -->
+    <color name="login_bg_start">#8037B1</color>
+    <color name="login_bg_mid">#CB80FE</color>
+    <color name="login_bg_end">#FFC4B7</color>
+    <color name="login_card_surface">#F9F6F5</color>
+    <color name="login_text_primary">#2F2E2E</color>
+    <color name="login_text_secondary">#5C5B5B</color>
+    <color name="login_hint_text">#AFACAC</color>
+    <color name="login_divider">#DFDCDC</color>
+    <color name="login_primary_text">#FDEEFF</color>
+    <color name="login_secondary_start">#E5E2E1</color>
+    <color name="login_secondary_end">#D7CFE3</color>
+    <color name="login_footer_text">#99FFFFFF</color>
+    <color name="login_footer_dot">#66FFFFFF</color>
 </resources>

@@ -97,4 +97,21 @@
     <string name="label_upload_hint">PNG, JPG tối đa 5MB</string>
     <string name="text_have_account">Đã có tài khoản?</string>
     <string name="cd_toggle_confirm_password">Toggle confirm password visibility</string>
+
+    <!-- Login redesign -->
+    <string name="login_brand_name">Instabond</string>
+    <string name="login_tagline">Curating your digital moments.</string>
+    <string name="login_email_label">EMAIL</string>
+    <string name="login_email_hint">johndoe@example.com</string>
+    <string name="login_password_label">PASSWORD</string>
+    <string name="login_forgot_password">Forgot?</string>
+    <string name="login_button_signin">Sign In</string>
+    <string name="login_secondary_divider">OR JOIN THE COLLECTIVE</string>
+    <string name="login_create_account">Create New Account</string>
+    <string name="login_footer_editorial">Group 5</string>
+    <string name="login_validation_empty">Please enter your email and password</string>
+    <string name="login_loading">Signing in...</string>
+    <string name="login_failed">Sign in failed</string>
+    <string name="login_connection_error">Could not reach the server: %1$s</string>
+    <string name="login_forgot_unavailable">Password recovery is not available yet</string>
 </resources>
