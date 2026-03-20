@@ -137,4 +137,11 @@
     <string name="feed_story_user_3">sara.ink</string>
     <string name="feed_story_user_4">lens.craft</string>
     <string name="feed_messages_coming_soon">Direct messages coming soon</string>
+    <string name="search_section_new">New</string>
+    <string name="search_section_today">Today</string>
+    <string name="search_section_this_week">This Week</string>
+    <string name="search_action_follow">Follow</string>
+    <string name="search_action_follow_back">Follow Back</string>
+    <string name="search_action_following">Following</string>
+    <string name="cd_dismiss">Dismiss suggestion</string>
 </resources>
