@@ -4,6 +4,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -19,10 +20,22 @@ import java.util.List;
 
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder> {
 
+    public interface OnPostInteractionListener {
+        void onLikeClicked(Post post, int position);
+        void onCommentClicked(Post post, int position);
+        void onShareClicked(Post post, int position);
+        void onUserClicked(Post post, int position);
+    }
+
     private final List<Post> posts;
+    private OnPostInteractionListener listener;
 
     public PostAdapter(List<Post> posts) {
         this.posts = new ArrayList<>(posts);
+    }
+
+    public void setListener(OnPostInteractionListener listener) {
+        this.listener = listener;
     }
 
     public void setPosts(List<Post> newPosts) {
@@ -62,11 +75,43 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         );
         holder.flMusicBadge.setVisibility(post.isHasMusicBadge() ? View.VISIBLE : View.GONE);
 
+        // Update like icon based on state
+        if (post.isLiked()) {
+            holder.btnLike.setImageResource(R.drawable.ic_heart);
+            holder.btnLike.setColorFilter(0xFFE53935); // Red tint when liked
+        } else {
+            holder.btnLike.setImageResource(R.drawable.ic_heart);
+            holder.btnLike.clearColorFilter();
+        }
+
         Glide.with(holder.itemView)
                 .load(post.getAvatarUrl())
                 .placeholder(R.drawable.avatar_circle_bg)
                 .error(R.drawable.avatar_circle_bg)
                 .into(holder.ivAvatar);
+
+        // Click listeners
+        holder.btnLike.setOnClickListener(v -> {
+            if (listener != null) listener.onLikeClicked(post, position);
+        });
+        holder.btnComment.setOnClickListener(v -> {
+            if (listener != null) listener.onCommentClicked(post, position);
+        });
+        holder.btnViewComments.setOnClickListener(v -> {
+            if (listener != null) listener.onCommentClicked(post, position);
+        });
+        holder.btnShare.setOnClickListener(v -> {
+            if (listener != null) listener.onShareClicked(post, position);
+        });
+        holder.btnBookmark.setOnClickListener(v -> {
+            // Bookmark functionality to be implemented
+        });
+        holder.ivAvatar.setOnClickListener(v -> {
+            if (listener != null) listener.onUserClicked(post, position);
+        });
+        holder.tvUsername.setOnClickListener(v -> {
+            if (listener != null) listener.onUserClicked(post, position);
+        });
 
         if (post.getImageUrl() == null || post.getImageUrl().trim().isEmpty()) {
             holder.flPostImage.setVisibility(View.GONE);
@@ -97,6 +142,10 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         Button btnViewComments;
         View flPostImage;
         View flMusicBadge;
+        ImageButton btnLike;
+        ImageButton btnComment;
+        ImageButton btnShare;
+        ImageButton btnBookmark;
 
         PostViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -108,6 +157,10 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             btnViewComments = itemView.findViewById(R.id.btn_view_comments);
             flPostImage = itemView.findViewById(R.id.fl_post_image);
             flMusicBadge = itemView.findViewById(R.id.fl_music_badge);
+            btnLike = itemView.findViewById(R.id.btn_like);
+            btnComment = itemView.findViewById(R.id.btn_comment);
+            btnShare = itemView.findViewById(R.id.btn_share);
+            btnBookmark = itemView.findViewById(R.id.btn_bookmark);
         }
     }
 }

@@ -71,9 +71,8 @@ public class PostService {
         Query query = new Query(
                 new Criteria().orOperator(
                         Criteria.where("author_id").is(oid),
-                        Criteria.where("author_id").is(authorId)
-                )
-        ).with(Sort.by(Sort.Direction.DESC, "created_at"));
+                        Criteria.where("author_id").is(authorId)))
+                .with(Sort.by(Sort.Direction.DESC, "created_at"));
         return mongoTemplate.find(query, Post.class);
     }
 
@@ -169,17 +168,16 @@ public class PostService {
     // Get all posts sorted by newest first
     public List<PostResponse> getFeed(String callerPrincipal, int page, int size) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
-        
+
         // Find users the caller is following
         Query followingQuery = new Query(new Criteria().andOperator(
                 idCriteria("requester_id", caller.getId()),
-                Criteria.where("status").is("accepted")
-        ));
-        
+                Criteria.where("status").is("accepted")));
+
         // Use relationships collection to get recipient_ids
         List<String> validAuthorIds = new ArrayList<>();
         validAuthorIds.add(caller.getId()); // Include their own posts
-        
+
         List<java.util.Map> rels = mongoTemplate.find(followingQuery, java.util.Map.class, "relationships");
         for (java.util.Map map : rels) {
             Object recId = map.get("recipient_id");
@@ -188,13 +186,15 @@ public class PostService {
             }
         }
 
-        // Build criteria for 'in' clause. Author ID could be stored as String or ObjectId
+        // Build criteria for 'in' clause. Author ID could be stored as String or
+        // ObjectId
         List<Object> inClauseArgs = new ArrayList<>();
         for (String aid : validAuthorIds) {
             inClauseArgs.add(aid);
             try {
                 inClauseArgs.add(new ObjectId(aid));
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
 
         Query postQuery = new Query(Criteria.where("author_id").in(inClauseArgs))
@@ -252,7 +252,8 @@ public class PostService {
             throw new RuntimeException("Forbidden — you are not the author of this post");
         }
 
-        if (request.getCaption() != null) post.setCaption(request.getCaption());
+        if (request.getCaption() != null)
+            post.setCaption(request.getCaption());
         if (request.getLocation() != null) {
             post.setLocation(Post.Location.builder()
                     .name(request.getLocation().getName())
@@ -313,6 +314,7 @@ public class PostService {
 
         User caller = resolveUserFromPrincipal(callerPrincipal);
 
+        // Allow multiple shares — each share creates a new interaction
         Interaction interaction = Interaction.builder()
                 .user_id(caller.getId())
                 .target_id(postId)
@@ -412,7 +414,8 @@ public class PostService {
         Interaction comment = interactionRepository.findById(commentId)
                 .orElseThrow(() -> new RuntimeException("Comment not found: " + commentId));
 
-        if (!postId.equals(comment.getTarget_id()) || !"post".equals(comment.getTarget_type()) || !"comment".equals(comment.getType())) {
+        if (!postId.equals(comment.getTarget_id()) || !"post".equals(comment.getTarget_type())
+                || !"comment".equals(comment.getType())) {
             throw new RuntimeException("Comment not found: " + commentId);
         }
 
@@ -457,7 +460,8 @@ public class PostService {
 
     // Normalize MongoDB ID: strip ObjectId wrapper if present
     private String normalizeId(String id) {
-        if (id == null) return "";
+        if (id == null)
+            return "";
         return id.trim();
     }
 
@@ -506,8 +510,7 @@ public class PostService {
         Query query = new Query(new Criteria().andOperator(
                 idCriteria("requester_id", requesterId),
                 idCriteria("recipient_id", recipientId),
-                Criteria.where("status").is("accepted")
-        ));
+                Criteria.where("status").is("accepted")));
         return mongoTemplate.exists(query, "relationships");
     }
 

@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
     InstaBond — String resources
 -->
 <resources>
@@ -57,7 +56,7 @@
     <!-- Profile screen -->
     <string name="title_profile">Hồ sơ</string>
     <string name="label_posts">Bài viết</string>
-    <string name="label_friends">Bạn bè</string>
+    <string name="label_friends">Người theo dõi</string>
     <string name="label_likes">Lượt thích</string>
     <string name="tab_grid">Lưới ảnh</string>
     <string name="tab_tagged">Có mặt tôi</string>
