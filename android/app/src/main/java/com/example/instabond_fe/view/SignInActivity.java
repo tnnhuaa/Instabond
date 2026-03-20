@@ -1,6 +1,7 @@
 package com.example.instabond_fe.view;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Patterns;
@@ -8,6 +9,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivitySigninBinding;
 import com.example.instabond_fe.model.AuthRequest;
 import com.example.instabond_fe.model.AuthResponse;
@@ -35,17 +37,16 @@ public class SignInActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivitySigninBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
 
         apiService = ApiClient.getApiService(this);
         sessionManager = new SessionManager(this);
 
-        // Tab: switch to Sign Up
-        binding.tvTabSignup.setOnClickListener(v -> {
+        binding.btnCreateAccount.setOnClickListener(v -> {
             startActivity(new Intent(this, SignUpActivity.class));
             finish();
         });
 
-        // Toggle password visibility
         binding.btnTogglePassword.setOnClickListener(v -> {
             passwordVisible = !passwordVisible;
             if (passwordVisible) {
@@ -58,22 +59,14 @@ public class SignInActivity extends AppCompatActivity {
             binding.etPassword.setSelection(binding.etPassword.getText().length());
         });
 
-        // Sign In button
         binding.btnSignin.setOnClickListener(v -> performLogin());
 
-        // Google Sign In (mock)
-        binding.btnGoogle.setOnClickListener(v ->
-                Toast.makeText(this, "Đăng nhập Google chưa được tích hợp backend", Toast.LENGTH_SHORT).show());
-
-        // "Register now" link
-        binding.tvRegisterNow.setOnClickListener(v -> {
-            startActivity(new Intent(this, SignUpActivity.class));
-            finish();
-        });
+        binding.tvForgotPassword.setOnClickListener(v ->
+                Toast.makeText(this, getString(R.string.login_forgot_unavailable), Toast.LENGTH_SHORT).show());
     }
 
     private void performLogin() {
-        String email = binding.etUsername.getText().toString().trim();
+        String email = binding.etEmail.getText().toString().trim();
         String password = binding.etPassword.getText().toString();
 
         clearFieldErrors();
@@ -95,7 +88,7 @@ public class SignInActivity extends AppCompatActivity {
                 }
 
                 Toast.makeText(SignInActivity.this,
-                        extractError(response, "Đăng nhập thất bại"),
+                        extractError(response, getString(R.string.login_failed)),
                         Toast.LENGTH_SHORT).show();
             }
 
@@ -103,10 +96,10 @@ public class SignInActivity extends AppCompatActivity {
             public void onFailure(Call<AuthResponse> call, Throwable t) {
                 setLoading(false);
                 String message = t.getMessage() == null || t.getMessage().trim().isEmpty()
-                        ? "Vui lòng thử lại"
+                        ? "Vui long thu lai"
                         : t.getMessage();
                 Toast.makeText(SignInActivity.this,
-                        "Không kết nối được server: " + message,
+                        getString(R.string.login_connection_error, message),
                         Toast.LENGTH_SHORT).show();
             }
         });
@@ -114,19 +107,19 @@ public class SignInActivity extends AppCompatActivity {
 
     private boolean validateInput(String email, String password) {
         if (email.isEmpty()) {
-            binding.etUsername.setError("Vui lòng nhập email");
-            binding.etUsername.requestFocus();
+            binding.etEmail.setError("Vui long nhap email");
+            binding.etEmail.requestFocus();
             return false;
         }
 
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            binding.etUsername.setError("Email không hợp lệ");
-            binding.etUsername.requestFocus();
+            binding.etEmail.setError("Email khong hop le");
+            binding.etEmail.requestFocus();
             return false;
         }
 
         if (password.isEmpty()) {
-            binding.etPassword.setError("Vui lòng nhập mật khẩu");
+            binding.etPassword.setError("Vui long nhap mat khau");
             binding.etPassword.requestFocus();
             return false;
         }
@@ -135,19 +128,20 @@ public class SignInActivity extends AppCompatActivity {
     }
 
     private void clearFieldErrors() {
-        binding.etUsername.setError(null);
+        binding.etEmail.setError(null);
         binding.etPassword.setError(null);
     }
 
     private void setLoading(boolean loading) {
         binding.btnSignin.setEnabled(!loading);
-        binding.btnSignin.setText(loading ? "Đang đăng nhập..." : "Đăng nhập");
-        binding.etUsername.setEnabled(!loading);
+        binding.btnSignin.setText(loading
+                ? getString(R.string.login_loading)
+                : getString(R.string.login_button_signin));
+        binding.etEmail.setEnabled(!loading);
         binding.etPassword.setEnabled(!loading);
         binding.btnTogglePassword.setEnabled(!loading);
-        binding.tvTabSignup.setEnabled(!loading);
-        binding.tvRegisterNow.setEnabled(!loading);
-        binding.btnGoogle.setEnabled(!loading);
+        binding.btnCreateAccount.setEnabled(!loading);
+        binding.tvForgotPassword.setEnabled(!loading);
     }
 
     private String extractError(Response<?> response, String fallback) {

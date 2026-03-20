@@ -57,8 +57,11 @@ public class ProfileGridAdapter extends RecyclerView.Adapter<ProfileGridAdapter.
 
         Glide.with(holder.itemView)
                 .load(imageUrl)
-                .placeholder(R.drawable.avatar_circle_bg) // Có thể đổi thành màu xám đen
+                .placeholder(R.drawable.profile_placeholder_bg)
+                .error(R.drawable.profile_placeholder_bg)
                 .into(holder.ivPhoto);
+
+        holder.ivBadge.setVisibility(position == 1 ? View.VISIBLE : View.GONE);
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
@@ -74,10 +77,12 @@ public class ProfileGridAdapter extends RecyclerView.Adapter<ProfileGridAdapter.
 
     static class GridViewHolder extends RecyclerView.ViewHolder {
         ImageView ivPhoto;
+        ImageView ivBadge;
 
         GridViewHolder(@NonNull View itemView) {
             super(itemView);
             ivPhoto = itemView.findViewById(R.id.iv_grid_photo);
+            ivBadge = itemView.findViewById(R.id.iv_grid_badge);
         }
     }
 }

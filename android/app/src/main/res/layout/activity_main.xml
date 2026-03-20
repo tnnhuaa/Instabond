@@ -1,108 +1,305 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- InstaBond - Main Feed Screen -->
-<!-- Design node: 2:619 | Frame: 439 x 917 -->
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_primary"
-    tools:context=".MainActivity">
+    android:background="@color/login_card_surface"
+    tools:context=".view.NewsfeedActivity">
 
-    <!-- ───────────────────── TOP APP BAR (node 2:620 header area) ───────────────────── -->
-    <androidx.appcompat.widget.Toolbar
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/toolbar"
         android:layout_width="0dp"
-        android:layout_height="56dp"
-        android:background="@color/bg_primary"
-        android:elevation="4dp"
+        android:layout_height="64dp"
+        android:background="@color/feed_topbar_overlay"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Logo / App Name -->
+        <ImageButton
+            android:id="@+id/btn_camera"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/nav_create"
+            android:padding="6dp"
+            android:src="@drawable/baseline_camera_alt_24"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/login_bg_start" />
+
         <TextView
             android:id="@+id/tv_app_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="start|center_vertical"
-            android:fontFamily="sans-serif-medium"
-            android:text="@string/app_name"
-            android:textColor="@color/text_primary"
-            android:textSize="22sp"
-            android:textStyle="bold" />
+            android:fontFamily="sans-serif-black"
+            android:text="@string/login_brand_name"
+            android:textColor="@color/login_bg_start"
+            android:textSize="24sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Action icons aligned to end of toolbar -->
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end|center_vertical"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+        <ImageButton
+            android:id="@+id/btn_inbox"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/cd_messages"
+            android:padding="6dp"
+            android:src="@drawable/ic_send"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/login_bg_start" />
 
-            <!-- Hamburger / Menu icon -->
-            <ImageButton
-                android:id="@+id/btn_menu"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/cd_menu"
-                android:padding="8dp"
-                android:src="@drawable/ic_menu"
-                app:tint="@color/text_primary" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <!-- QR Code icon -->
-            <ImageButton
-                android:id="@+id/btn_qr"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/cd_qr_code"
-                android:padding="8dp"
-                android:src="@drawable/ic_qr_code"
-                app:tint="@color/text_primary" />
-
-            <!-- Direct / Messages icon with badge -->
-            <FrameLayout
-                android:layout_width="40dp"
-                android:layout_height="40dp">
-
-                <ImageButton
-                    android:id="@+id/btn_messages"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/cd_messages"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_message_square"
-                    app:tint="@color/text_primary" />
-
-                <!-- Notification dot badge -->
-                <View
-                    android:id="@+id/view_message_badge"
-                    android:layout_width="8dp"
-                    android:layout_height="8dp"
-                    android:layout_gravity="top|end"
-                    android:layout_marginTop="6dp"
-                    android:layout_marginEnd="6dp"
-                    android:background="@drawable/badge_dot" />
-
-            </FrameLayout>
-
-        </LinearLayout>
-
-    </androidx.appcompat.widget.Toolbar>
-
-    <!-- Thin divider below toolbar -->
-    <View
-        android:id="@+id/divider_toolbar"
+    <HorizontalScrollView
+        android:id="@+id/stories_section"
         android:layout_width="0dp"
-        android:layout_height="1dp"
-        android:background="@color/divider"
+        android:layout_height="104dp"
+        android:fillViewport="true"
+        android:overScrollMode="never"
+        android:scrollbars="none"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/toolbar" />
+        app:layout_constraintTop_toBottomOf="@id/toolbar">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="24dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="8dp">
+
+            <LinearLayout
+                android:layout_width="72dp"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <FrameLayout
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:background="@drawable/feed_story_add_bg"
+                    android:padding="2dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/feed_story_avatar_orange"
+                        android:fontFamily="sans-serif-black"
+                        android:gravity="center"
+                        android:text="Y"
+                        android:textColor="@color/feed_icon_dark"
+                        android:textSize="24sp" />
+
+                    <FrameLayout
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="bottom|end"
+                        android:background="@drawable/feed_story_badge_bg">
+
+                        <ImageView
+                            android:layout_width="12dp"
+                            android:layout_height="12dp"
+                            android:layout_gravity="center"
+                            android:contentDescription=""
+                            android:src="@drawable/ic_plus_tiny" />
+
+                    </FrameLayout>
+
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="@string/feed_story_your_story"
+                    android:textColor="@color/feed_story_label"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <FrameLayout
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:background="@drawable/feed_story_active_ring"
+                    android:padding="2dp">
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@color/login_card_surface"
+                        android:padding="2dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/feed_story_avatar_lilac"
+                            android:fontFamily="sans-serif-black"
+                            android:gravity="center"
+                            android:text="E"
+                            android:textColor="@color/feed_icon_dark"
+                            android:textSize="24sp" />
+                    </FrameLayout>
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="@string/feed_story_user_1"
+                    android:textColor="@color/feed_story_label"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="72dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <FrameLayout
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:background="@drawable/feed_story_active_ring"
+                    android:padding="2dp">
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@color/login_card_surface"
+                        android:padding="2dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/feed_story_avatar_wheat"
+                            android:fontFamily="sans-serif-black"
+                            android:gravity="center"
+                            android:text="M"
+                            android:textColor="@color/feed_icon_dark"
+                            android:textSize="24sp" />
+                    </FrameLayout>
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="@string/feed_story_user_2"
+                    android:textColor="@color/feed_story_label"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="72dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <FrameLayout
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:background="@drawable/feed_story_active_ring"
+                    android:padding="2dp">
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@color/login_card_surface"
+                        android:padding="2dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/feed_story_avatar_brown"
+                            android:fontFamily="sans-serif-black"
+                            android:gravity="center"
+                            android:text="S"
+                            android:textColor="@android:color/white"
+                            android:textSize="24sp" />
+                    </FrameLayout>
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="@string/feed_story_user_3"
+                    android:textColor="@color/feed_story_label"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="72dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <FrameLayout
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:background="@drawable/feed_story_active_ring"
+                    android:padding="2dp">
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@color/login_card_surface"
+                        android:padding="2dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/feed_story_avatar_teal"
+                            android:fontFamily="sans-serif-black"
+                            android:gravity="center"
+                            android:text="L"
+                            android:textColor="@android:color/white"
+                            android:textSize="24sp" />
+                    </FrameLayout>
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="@string/feed_story_user_4"
+                    android:textColor="@color/feed_story_label"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+    </HorizontalScrollView>
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh_feed"
@@ -111,23 +308,22 @@
         app:layout_constraintBottom_toTopOf="@id/bottom_nav"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/divider_toolbar">
+        app:layout_constraintTop_toBottomOf="@id/stories_section">
 
-        <!-- ───────────────────── FEED (RecyclerView, node 2:622) ───────────────────── -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_feed"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/bg_primary"
+            android:background="@color/login_card_surface"
             android:clipToPadding="false"
             android:overScrollMode="never"
+            android:paddingBottom="24dp"
             android:scrollbars="none"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             tools:listitem="@layout/item_post" />
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- ───────────────────── BOTTOM NAVIGATION BAR ───────────────────── -->
     <com.example.instabond_fe.view.component.InstaBottomNavView
         android:id="@+id/bottom_nav"
         android:layout_width="0dp"

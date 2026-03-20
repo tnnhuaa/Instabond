@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Add / Create Post icon for bottom nav — filled blue circle with + -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="40dp"
     android:height="40dp"
     android:viewportWidth="40"
     android:viewportHeight="40">
-    <!-- Blue filled circle background -->
-    <path
-        android:fillColor="#3B82F6"
-        android:pathData="M20,20m-20,0a20,20 0,1 ,1 40,0a20,20 0,1 ,1 -40,0" />
-    <!-- White plus sign -->
+
     <path
         android:fillColor="@android:color/transparent"
-        android:pathData="M20,13v14M13,20h14"
+        android:pathData="M20,20m-18,0a18,18 0,1 1 36,0a18,18 0,1 1 -36,0"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2" />
+
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M20,13.5v13M13.5,20h13"
         android:strokeColor="#FFFFFF"
         android:strokeLineCap="round"
-        android:strokeWidth="2.5" />
+        android:strokeWidth="3" />
 </vector>

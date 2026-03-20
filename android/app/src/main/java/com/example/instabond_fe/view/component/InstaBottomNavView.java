@@ -8,7 +8,6 @@ import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -58,19 +57,21 @@ public class InstaBottomNavView extends FrameLayout {
     }
 
     public void setActiveTab(Tab activeTab) {
-        int activeColor = ContextCompat.getColor(getContext(), R.color.text_primary);
-        int inactiveColor = ContextCompat.getColor(getContext(), R.color.text_secondary);
+        int activeColor = ContextCompat.getColor(getContext(), android.R.color.white);
+        int inactiveColor = ContextCompat.getColor(getContext(), android.R.color.white);
 
-        applyState(binding.ivNavHome, binding.tvNavHome, activeTab == Tab.HOME, activeColor, inactiveColor);
-        applyState(binding.ivNavSearch, binding.tvNavSearch, activeTab == Tab.SEARCH, activeColor, inactiveColor);
-        applyState(binding.ivNavNotifications, binding.tvNavNotifications, activeTab == Tab.NOTIFICATIONS, activeColor, inactiveColor);
-        applyState(binding.ivNavProfile, binding.tvNavProfile, activeTab == Tab.PROFILE, activeColor, inactiveColor);
+        applyState(binding.navHome, binding.ivNavHome, activeTab == Tab.HOME, activeColor, inactiveColor);
+        applyState(binding.navSearch, binding.ivNavSearch, activeTab == Tab.SEARCH, activeColor, inactiveColor);
+        applyState(binding.navNotifications, binding.ivNavNotifications, activeTab == Tab.NOTIFICATIONS, activeColor, inactiveColor);
+        applyState(binding.navProfile, binding.ivNavProfile, activeTab == Tab.PROFILE, activeColor, inactiveColor);
     }
 
-    private void applyState(ImageView icon, TextView label, boolean active, int activeColor, int inactiveColor) {
+    private void applyState(FrameLayout container, ImageView icon, boolean active, int activeColor, int inactiveColor) {
         int color = active ? activeColor : inactiveColor;
         icon.setImageTintList(ColorStateList.valueOf(color));
-        label.setTextColor(color);
+        container.setBackgroundResource(active
+                ? R.drawable.feed_bottom_nav_active_bg
+                : android.R.color.transparent);
     }
 
     private void navigateTo(Activity activity, Class<?> destination) {

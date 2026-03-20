@@ -1,6 +1,7 @@
 package com.example.instabond_fe.view;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Toast;
@@ -52,11 +53,10 @@ public class NewsfeedActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
 
         apiService = ApiClient.getApiService(this);
         sessionManager = new SessionManager(this);
-
-        setSupportActionBar(binding.toolbar);
 
         adapter = new PostAdapter(new ArrayList<>());
         adapter.setListener(new PostAdapter.OnPostInteractionListener() {
@@ -140,8 +140,13 @@ public class NewsfeedActivity extends AppCompatActivity {
         });
 
         binding.swipeRefreshFeed.setOnRefreshListener(this::refreshFeed);
+        binding.swipeRefreshFeed.setColorSchemeResources(R.color.login_bg_start, R.color.login_bg_mid);
 
         binding.bottomNav.bind(this, InstaBottomNavView.Tab.HOME);
+        binding.btnCamera.setOnClickListener(v ->
+                startActivity(new Intent(this, CreatePostActivity.class)));
+        binding.btnInbox.setOnClickListener(v ->
+                Toast.makeText(this, getString(R.string.feed_messages_coming_soon), Toast.LENGTH_SHORT).show());
 
         binding.swipeRefreshFeed.setRefreshing(true);
         refreshFeed();
