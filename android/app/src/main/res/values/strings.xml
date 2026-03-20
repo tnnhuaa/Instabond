@@ -73,7 +73,7 @@
     <string name="hint_full_name">Họ và tên</string>
     <string name="hint_bio">Tiểu sử</string>
     <string name="hint_phone_number">Số điện thoại</string>
-    <string name="btn_save_profile">Lưu profile</string>
+    <string name="btn_save_profile">Cập nhật hồ sơ</string>
     <string name="btn_logout">Đăng xuất</string>
     <string name="cd_back">Quay lại</string>
     <string name="privacy_label">Quyền riêng tư</string>

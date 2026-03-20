@@ -56,7 +56,7 @@ public class UserService {
                 .posts_count(profile.getPosts_count())
                 .followers_count(profile.getFollowers_count())
                 .following_count(profile.getFollowing_count())
-                .is_private(profile.is_private())
+                .is_private(user.getSettings() != null && Boolean.TRUE.equals(user.getSettings().getIs_private()))
                 .badges(user.getBadges())
                 .settings(user.getSettings())
                 .created_at(user.getCreated_at())

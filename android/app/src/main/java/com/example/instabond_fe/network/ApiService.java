@@ -60,6 +60,12 @@ public interface ApiService {
     @PUT("api/users/{id}")
     Call<UserProfileResponse> updateProfile(@Path("id") String userId, @Body UpdateProfileRequest request);
 
+    @POST("api/users/me/private")
+    Call<UserProfileResponse> enablePrivateMode();
+
+    @DELETE("api/users/me/private")
+    Call<UserProfileResponse> disablePrivateMode();
+
     @Multipart
     @PUT("api/users/{id}/avatar")
     Call<UserProfileResponse> uploadAvatar(@Path("id") String userId, @Part MultipartBody.Part file);
