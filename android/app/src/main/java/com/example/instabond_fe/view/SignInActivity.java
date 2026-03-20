@@ -3,6 +3,7 @@ package com.example.instabond_fe.view;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.Patterns;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -13,6 +14,8 @@ import com.example.instabond_fe.model.AuthResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+
+import org.json.JSONObject;
 
 import java.io.IOException;
 
@@ -73,8 +76,8 @@ public class SignInActivity extends AppCompatActivity {
         String email = binding.etUsername.getText().toString().trim();
         String password = binding.etPassword.getText().toString();
 
-        if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Vui lòng nhập email và mật khẩu", Toast.LENGTH_SHORT).show();
+        clearFieldErrors();
+        if (!validateInput(email, password)) {
             return;
         }
 
@@ -99,16 +102,52 @@ public class SignInActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<AuthResponse> call, Throwable t) {
                 setLoading(false);
+                String message = t.getMessage() == null || t.getMessage().trim().isEmpty()
+                        ? "Vui lòng thử lại"
+                        : t.getMessage();
                 Toast.makeText(SignInActivity.this,
-                        "Không kết nối được server: " + t.getMessage(),
+                        "Không kết nối được server: " + message,
                         Toast.LENGTH_SHORT).show();
             }
         });
     }
 
+    private boolean validateInput(String email, String password) {
+        if (email.isEmpty()) {
+            binding.etUsername.setError("Vui lòng nhập email");
+            binding.etUsername.requestFocus();
+            return false;
+        }
+
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            binding.etUsername.setError("Email không hợp lệ");
+            binding.etUsername.requestFocus();
+            return false;
+        }
+
+        if (password.isEmpty()) {
+            binding.etPassword.setError("Vui lòng nhập mật khẩu");
+            binding.etPassword.requestFocus();
+            return false;
+        }
+
+        return true;
+    }
+
+    private void clearFieldErrors() {
+        binding.etUsername.setError(null);
+        binding.etPassword.setError(null);
+    }
+
     private void setLoading(boolean loading) {
         binding.btnSignin.setEnabled(!loading);
         binding.btnSignin.setText(loading ? "Đang đăng nhập..." : "Đăng nhập");
+        binding.etUsername.setEnabled(!loading);
+        binding.etPassword.setEnabled(!loading);
+        binding.btnTogglePassword.setEnabled(!loading);
+        binding.tvTabSignup.setEnabled(!loading);
+        binding.tvRegisterNow.setEnabled(!loading);
+        binding.btnGoogle.setEnabled(!loading);
     }
 
     private String extractError(Response<?> response, String fallback) {
@@ -117,8 +156,15 @@ public class SignInActivity extends AppCompatActivity {
         }
         try {
             String raw = response.errorBody().string();
-            return raw == null || raw.isEmpty() ? fallback : raw;
+            if (raw == null || raw.isEmpty()) {
+                return fallback;
+            }
+            JSONObject json = new JSONObject(raw);
+            String message = json.optString("message");
+            return message == null || message.trim().isEmpty() ? fallback : message;
         } catch (IOException e) {
+            return fallback;
+        } catch (Exception e) {
             return fallback;
         }
     }
