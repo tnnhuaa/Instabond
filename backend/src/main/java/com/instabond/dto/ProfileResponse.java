@@ -1,4 +1,5 @@
 package com.instabond.dto;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.instabond.entity.User;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -32,6 +33,7 @@ public class ProfileResponse {
     @Schema(description = "Number of users this account is following", example = "300")
     private long following_count;
     @Schema(description = "Whether this account is private", example = "false")
+    @JsonProperty("is_private")
     private boolean is_private;
     @Schema(description = "Badges earned by this user")
     private List<User.Badge> badges;
