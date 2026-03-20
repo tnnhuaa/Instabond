@@ -52,6 +52,7 @@ public class UserService {
                 .full_name(user.getFull_name())
                 .avatar_url(user.getAvatar_url())
                 .bio(user.getBio())
+                .is_private(user.getSettings() != null && Boolean.TRUE.equals(user.getSettings().getIs_private()))
                 .created_at(user.getCreated_at())
                 .build();
     }

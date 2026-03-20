@@ -1,5 +1,6 @@
 package com.instabond.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,6 +36,11 @@ public class UserMeResponse {
 
     @Schema(description = "Short bio / about me", example = "Coffee lover ☕")
     private String bio;
+
+    @Schema(description = "Private account flag", example = "false")
+    @JsonProperty("is_private")
+    private boolean is_private;
+
 
     @Schema(description = "Account creation timestamp (UTC)", example = "2024-01-15T08:30:00Z")
     private Instant created_at;

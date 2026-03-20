@@ -30,6 +30,17 @@ public class UserProfileResponse {
     @SerializedName("following_count")
     private int followingCount;
 
+    @SerializedName(value = "is_private", alternate = {"_private", "private", "isPrivate"})
+    private boolean isPrivate;
+    
+    public boolean isPrivate() {
+        return isPrivate;
+    }
+
+    public void setPrivate(boolean isPrivate) {
+        this.isPrivate = isPrivate;
+    }
+
     public String getId() {
         return id;
     }
