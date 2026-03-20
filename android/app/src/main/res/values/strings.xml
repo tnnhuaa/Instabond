@@ -131,4 +131,10 @@
     <string name="signup_failed">Sign up failed</string>
     <string name="signup_loading">Signing up...</string>
     <string name="signup_connection_error">Could not reach the server: %1$s</string>
+    <string name="feed_story_your_story">Your Story</string>
+    <string name="feed_story_user_1">elara_designs</string>
+    <string name="feed_story_user_2">marcus_v</string>
+    <string name="feed_story_user_3">sara.ink</string>
+    <string name="feed_story_user_4">lens.craft</string>
+    <string name="feed_messages_coming_soon">Direct messages coming soon</string>
 </resources>
