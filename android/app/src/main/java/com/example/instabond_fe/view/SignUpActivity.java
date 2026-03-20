@@ -1,12 +1,14 @@
 package com.example.instabond_fe.view;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.InputType;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivitySignupBinding;
 import com.example.instabond_fe.model.AuthRequest;
 import com.example.instabond_fe.model.AuthResponse;
@@ -33,17 +35,14 @@ public class SignUpActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivitySignupBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
 
         apiService = ApiClient.getApiService(this);
         sessionManager = new SessionManager(this);
 
-        // Tab: switch to Sign In
-        binding.tvTabSignin.setOnClickListener(v -> {
-            startActivity(new Intent(this, SignInActivity.class));
-            finish();
-        });
+        binding.btnBack.setOnClickListener(v -> navigateToSignIn());
+        binding.tvLoginNow.setOnClickListener(v -> navigateToSignIn());
 
-        // Toggle password visibility
         binding.btnTogglePassword.setOnClickListener(v -> {
             passwordVisible = !passwordVisible;
             if (passwordVisible) {
@@ -56,31 +55,7 @@ public class SignUpActivity extends AppCompatActivity {
             binding.etPassword.setSelection(binding.etPassword.getText().length());
         });
 
-        // Toggle confirm password visibility
-        binding.btnToggleConfirmPassword.setOnClickListener(v -> {
-            confirmPasswordVisible = !confirmPasswordVisible;
-            if (confirmPasswordVisible) {
-                binding.etConfirmPassword.setInputType(
-                        InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
-            } else {
-                binding.etConfirmPassword.setInputType(
-                        InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-            }
-            binding.etConfirmPassword.setSelection(binding.etConfirmPassword.getText().length());
-        });
-
-        // Upload photo (mock)
-        binding.btnUploadPhoto.setOnClickListener(v ->
-                Toast.makeText(this, "Chức năng tải ảnh (mock)", Toast.LENGTH_SHORT).show());
-
-        // Sign Up button
         binding.btnSignup.setOnClickListener(v -> performRegister());
-
-        // "Already have account? Sign In" link
-        binding.tvLoginNow.setOnClickListener(v -> {
-            startActivity(new Intent(this, SignInActivity.class));
-            finish();
-        });
     }
 
     private void performRegister() {
@@ -90,11 +65,11 @@ public class SignUpActivity extends AppCompatActivity {
         String confirm = binding.etConfirmPassword.getText().toString();
 
         if (username.isEmpty() || email.isEmpty() || password.isEmpty() || confirm.isEmpty()) {
-            Toast.makeText(this, "Vui lòng nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.signup_validation_missing), Toast.LENGTH_SHORT).show();
             return;
         }
         if (!password.equals(confirm)) {
-            Toast.makeText(this, "Mật khẩu nhập lại không khớp", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.signup_validation_password_mismatch), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -107,13 +82,13 @@ public class SignUpActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null
                         && response.body().getAccessToken() != null) {
                     sessionManager.saveSession(response.body());
-                    Toast.makeText(SignUpActivity.this, "Đăng ký thành công", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(SignUpActivity.this, getString(R.string.signup_success), Toast.LENGTH_SHORT).show();
                     goToNewsfeed();
                     return;
                 }
 
                 Toast.makeText(SignUpActivity.this,
-                        extractError(response, "Đăng ký thất bại"),
+                        extractError(response, getString(R.string.signup_failed)),
                         Toast.LENGTH_SHORT).show();
             }
 
@@ -121,7 +96,7 @@ public class SignUpActivity extends AppCompatActivity {
             public void onFailure(Call<AuthResponse> call, Throwable t) {
                 setLoading(false);
                 Toast.makeText(SignUpActivity.this,
-                        "Không kết nối được server: " + t.getMessage(),
+                        getString(R.string.signup_connection_error, t.getMessage()),
                         Toast.LENGTH_SHORT).show();
             }
         });
@@ -129,7 +104,9 @@ public class SignUpActivity extends AppCompatActivity {
 
     private void setLoading(boolean loading) {
         binding.btnSignup.setEnabled(!loading);
-        binding.btnSignup.setText(loading ? "Đang đăng ký..." : "Đăng ký");
+        binding.tvSignupCta.setText(loading
+                ? getString(R.string.signup_loading)
+                : getString(R.string.signup_button));
     }
 
     private String extractError(Response<?> response, String fallback) {
@@ -142,6 +119,11 @@ public class SignUpActivity extends AppCompatActivity {
         } catch (IOException e) {
             return fallback;
         }
+    }
+
+    private void navigateToSignIn() {
+        startActivity(new Intent(this, SignInActivity.class));
+        finish();
     }
 
     private void goToNewsfeed() {

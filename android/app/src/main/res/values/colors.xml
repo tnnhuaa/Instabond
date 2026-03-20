@@ -101,4 +101,6 @@
     <color name="login_secondary_end">#D7CFE3</color>
     <color name="login_footer_text">#99FFFFFF</color>
     <color name="login_footer_dot">#66FFFFFF</color>
+    <color name="signup_hint_text">#80787676</color>
+    <color name="signup_icon_tint">#8E8A89</color>
 </resources>

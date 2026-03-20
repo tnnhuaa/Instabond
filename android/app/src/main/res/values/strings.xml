@@ -113,4 +113,22 @@
     <string name="login_failed">Sign in failed</string>
     <string name="login_connection_error">Could not reach the server: %1$s</string>
     <string name="login_forgot_unavailable">Password recovery is not available yet</string>
+    <string name="signup_title">Create your account</string>
+    <string name="signup_subtitle">Join the curated community of vibrant connections.</string>
+    <string name="signup_username_label">USERNAME</string>
+    <string name="signup_username_hint">vivid_curator</string>
+    <string name="signup_username_icon">@</string>
+    <string name="signup_email_label">EMAIL ADDRESS</string>
+    <string name="signup_email_hint">hello@instabond.com</string>
+    <string name="signup_password_label">PASSWORD</string>
+    <string name="signup_confirm_password_label">RE-ENTER PASSWORD</string>
+    <string name="signup_button">Sign Up</string>
+    <string name="signup_already_have_account">Already have an account?</string>
+    <string name="signup_signin_action">Sign In</string>
+    <string name="signup_validation_missing">Please fill in all fields</string>
+    <string name="signup_validation_password_mismatch">Passwords do not match</string>
+    <string name="signup_success">Account created successfully</string>
+    <string name="signup_failed">Sign up failed</string>
+    <string name="signup_loading">Signing up...</string>
+    <string name="signup_connection_error">Could not reach the server: %1$s</string>
 </resources>
