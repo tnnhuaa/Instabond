@@ -29,6 +29,7 @@ public class ConversationDTO {
     public static class ParticipantDTO {
         private String id;
         private String username;
+        private String email;
         private String avatar_url;
     }
 
