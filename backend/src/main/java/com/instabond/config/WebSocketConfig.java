@@ -13,10 +13,10 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 
 /**
  * Configures WebSocket messaging with STOMP protocol.
- * * Note for mobile team:
-    * - Endpoint: ws://<host>/ws
-    * - Send messages to server : prefix with /app (e.g. /app/chat)
-    * - Listen for messages from server : subscribe to /topic/... (group) or /user/queue/... (private)
+ * Note for mobile team:
+ * - Endpoint: ws://<host>/ws
+ * - Send messages to server: prefix with /app (e.g. /app/chat.send)
+ * - Listen for messages from server: subscribe to /user/queue/events
  */
 @Configuration
 @EnableWebSocketMessageBroker
@@ -52,7 +52,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.setApplicationDestinationPrefixes("/app");
 
         // Open a simple in-memory message broker for destinations starting with "/topic" (group) and "/user" (private)
-        registry.enableSimpleBroker("/topic", "/user")
+        registry.enableSimpleBroker("/topic", "/queue")
                 .setHeartbeatValue(new long[]{10000, 10000})
                 .setTaskScheduler(taskScheduler());
 
