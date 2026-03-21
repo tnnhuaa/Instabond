@@ -34,9 +34,18 @@ public class Conversation {
         @SerializedName("avatar_url")
         private String avatarUrl;
 
+        @SerializedName("email")
+        private String email;
+
+        @SerializedName("is_online")
+        private boolean isOnline;
+
         public String getUsername() { return username; }
         public String getAvatarUrl() { return avatarUrl; }
         public String getId() { return id; }
+        public String getEmail() { return email; }
+        public boolean isOnline() { return isOnline; }
+        public void setOnline(boolean online) { isOnline = online; }
     }
 
     public Conversation() {

@@ -3,22 +3,19 @@ package com.example.instabond_fe.model;
 import com.google.gson.annotations.SerializedName;
 
 public class ChatMessageResponse {
-    @SerializedName("id")
+    @SerializedName(value = "id", alternate = {"_id"})
     private String id;
 
-    @SerializedName("conversation_id")
+    @SerializedName(value = "conversation_id", alternate = {"conversationId"})
     private String conversationId;
 
-    @SerializedName("sender_id")
+    @SerializedName(value = "sender_id", alternate = {"senderId"})
     private String senderId;
 
-    @SerializedName("type")
+    private String content;
     private String type;
 
-    @SerializedName("content")
-    private String content;
-
-    @SerializedName("created_at")
+    @SerializedName(value = "created_at", alternate = {"createdAt"})
     private String createdAt;
 
     public ChatMessageResponse() {

@@ -106,15 +106,6 @@
             android:paddingStart="4dp"
             android:paddingEnd="4dp">
 
-            <ImageButton
-                android:id="@+id/btn_attach"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:padding="8dp"
-                android:src="@drawable/baseline_camera_alt_24"
-                app:tint="@color/text_primary" />
-
             <EditText
                 android:id="@+id/et_message"
                 android:layout_width="0dp"

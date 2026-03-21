@@ -18,6 +18,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiListParser;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.repository.ChatRepository;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -55,6 +56,11 @@ public class NewsfeedActivity extends AppCompatActivity {
 
         apiService = ApiClient.getApiService(this);
         sessionManager = new SessionManager(this);
+        if (sessionManager.isLoggedIn()) {
+            ChatRepository repository = ChatRepository.getInstance(this);
+            repository.connectRealtime();
+            repository.subscribeGlobalChannels();
+        }
 
         setSupportActionBar(binding.toolbar);
 

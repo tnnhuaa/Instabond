@@ -87,4 +87,13 @@
     <!-- Settings actions -->
     <color name="logout_button_bg">#000000</color>
 
+    <!-- Chat bubbles -->
+    <color name="chat_bubble_me">#0B3D91</color>
+    <color name="chat_bubble_peer">#E5E7EB</color>
+    <color name="chat_bubble_peer_stroke">#D1D5DB</color>
+    <color name="chat_text_me">#FFFFFF</color>
+    <color name="chat_time_me">#E6FFFFFF</color>
+    <color name="chat_text_peer">#111111</color>
+    <color name="chat_time_peer">#66000000</color>
+
 </resources>

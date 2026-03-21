@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.instabond_fe.databinding.ActivityInboxBinding;
+import com.example.instabond_fe.model.Conversation;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.viewmodel.InboxViewModel;
 
@@ -28,11 +29,31 @@ public class InboxActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         SessionManager sessionManager = new SessionManager(this);
-        String debugCurrentUserId = sessionManager.getUserId();
+        String currentUserId = sessionManager.getUserId();
 
         adapter = new InboxAdapter(this, conversation -> {
             Intent intent = new Intent(InboxActivity.this, ChatActivity.class);
+
+            // Original keys to prevent "Conversation missing" crash
             intent.putExtra("CONVERSATION_ID", conversation.getId());
+            // Fallback key to ensure ChatViewModel receives the data
+            intent.putExtra("conversationId", conversation.getId());
+
+            Conversation.Participant peer = findPeer(conversation, currentUserId);
+            if (peer != null) {
+                // Original keys
+                intent.putExtra("PARTNER_ID", peer.getId());
+                intent.putExtra("PARTNER_NAME", peer.getUsername());
+                intent.putExtra("PARTNER_EMAIL", peer.getEmail());
+                intent.putExtra("PARTNER_AVATAR", peer.getAvatarUrl());
+                // TODO: Refactor Online Status
+                // intent.putExtra("PARTNER_ONLINE", peer.isOnline());
+
+                // Fallback keys for ChatViewModel matching logic
+                intent.putExtra("partnerId", peer.getId());
+                intent.putExtra("partnerEmail", peer.getEmail());
+            }
+
             startActivity(intent);
         });
 
@@ -58,10 +79,32 @@ public class InboxActivity extends AppCompatActivity {
 
         viewModel = new ViewModelProvider(this).get(InboxViewModel.class);
         viewModel.getInboxLiveData().observe(this, conversations -> {
-            adapter.setConversations(conversations);
-            adapter.notifyDataSetChanged();
+            runOnUiThread(() -> {
+                adapter.setConversations(conversations);
+                adapter.notifyDataSetChanged();
+            });
         });
 
         viewModel.loadInbox();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        viewModel.ensureRealtimeConnected();
+    }
+
+    private Conversation.Participant findPeer(Conversation conversation, String currentUserId) {
+        if (conversation == null || conversation.getParticipants() == null) {
+            return null;
+        }
+
+        String safeCurrentUserId = currentUserId == null ? "" : currentUserId;
+        for (Conversation.Participant participant : conversation.getParticipants()) {
+            if (participant.getId() == null || !participant.getId().equals(safeCurrentUserId)) {
+                return participant;
+            }
+        }
+        return null;
     }
 }

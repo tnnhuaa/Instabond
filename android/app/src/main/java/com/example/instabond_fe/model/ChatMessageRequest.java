@@ -3,7 +3,7 @@ package com.example.instabond_fe.model;
 import com.google.gson.annotations.SerializedName;
 
 public class ChatMessageRequest {
-    @SerializedName("conversation_id")
+    @SerializedName(value = "conversation_id", alternate = {"conversationId"})
     private String conversationId;
 
     @SerializedName("content")

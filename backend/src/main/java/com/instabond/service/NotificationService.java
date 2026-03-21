@@ -1,5 +1,6 @@
 package com.instabond.service;
 
+import com.instabond.dto.WsEvent;
 import com.instabond.entity.Notification;
 import com.instabond.entity.User;
 import com.instabond.repository.NotificationRepository;
@@ -23,6 +24,7 @@ public class NotificationService {
 
     private static final int DEFAULT_SIZE = 20;
     private static final int MAX_SIZE = 100;
+    private static final String EVENTS_DESTINATION = "/queue/events";
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
@@ -43,10 +45,12 @@ public class NotificationService {
                         .build()
         );
 
+        WsEvent<Notification> notificationEvent = WsEvent.of(WsEvent.TYPE_NOTIFICATION, savedNotification);
+
         messagingTemplate.convertAndSendToUser(
                 recipientId,
-                "/queue/notifications",
-                savedNotification
+                EVENTS_DESTINATION,
+                notificationEvent
         );
 
         // Current WebSocket principal uses email, so send to email channel as a compatibility path.
@@ -55,8 +59,8 @@ public class NotificationService {
                 .filter(email -> !recipientId.equals(email))
                 .ifPresent(email -> messagingTemplate.convertAndSendToUser(
                         email,
-                        "/queue/notifications",
-                        savedNotification
+                        EVENTS_DESTINATION,
+                        notificationEvent
                 ));
 
         return savedNotification;

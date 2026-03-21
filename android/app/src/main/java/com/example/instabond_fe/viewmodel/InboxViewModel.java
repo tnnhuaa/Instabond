@@ -4,11 +4,16 @@ import android.app.Application;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.example.instabond_fe.model.ChatMessageResponse;
 import com.example.instabond_fe.model.Conversation;
 import com.example.instabond_fe.model.ConversationPageResponse;
+import com.example.instabond_fe.model.LastMessage;
+import com.example.instabond_fe.model.OnlineStatusEvent;
 import com.example.instabond_fe.repository.ChatRepository;
+import com.example.instabond_fe.repository.WebSocketManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +28,9 @@ public class InboxViewModel extends AndroidViewModel {
     private final MutableLiveData<List<Conversation>> inboxLiveData = new MutableLiveData<>(new ArrayList<>());
     private final ChatRepository repository;
     private final List<Conversation> cachedConversations = new ArrayList<>();
+    private final Object inboxLock = new Object();
+    private final WebSocketManager.InboxListener inboxListener = this::applyRealtimeMessage;
+    private final WebSocketManager.OnlineStatusListener onlineStatusListener = this::applyOnlineStatus;
 
     private String nextCursor;
     private boolean hasMore = true;
@@ -30,65 +38,170 @@ public class InboxViewModel extends AndroidViewModel {
 
     public InboxViewModel(@NonNull Application application) {
         super(application);
-        repository = new ChatRepository(application);
-    }
+        repository = ChatRepository.getInstance(application);
 
-    public MutableLiveData<List<Conversation>> getInboxLiveData() {
-        return inboxLiveData;
+        repository.addInboxListener(inboxListener);
+        // TODO: Re-enable or Refactor after deciding on Online Status UI logic
+        repository.addOnlineStatusListener(onlineStatusListener);
+        ensureRealtimeConnected();
     }
 
     public void loadInbox() {
-        if (isLoading) {
-            return;
+        synchronized (inboxLock) {
+            nextCursor = null;
+            hasMore = true;
+            isLoading = false;
+            cachedConversations.clear();
+            inboxLiveData.setValue(new ArrayList<>(cachedConversations));
         }
-        cachedConversations.clear();
-        nextCursor = null;
-        hasMore = true;
-        loadPage(true);
+        loadNextPageIfNeeded();
     }
 
     public void loadNextPageIfNeeded() {
-        if (isLoading || !hasMore) {
-            return;
+        final String requestCursor;
+        synchronized (inboxLock) {
+            if (isLoading || !hasMore) {
+                return;
+            }
+            isLoading = true;
+            requestCursor = nextCursor;
         }
-        loadPage(false);
-    }
 
-    private void loadPage(boolean isFirstPage) {
-        isLoading = true;
-        String cursorToRequest = isFirstPage ? null : nextCursor;
-        repository.fetchInbox(cursorToRequest, PAGE_LIMIT, new Callback<ConversationPageResponse>() {
+        repository.fetchInbox(requestCursor, PAGE_LIMIT, new Callback<>() {
             @Override
-            public void onResponse(Call<ConversationPageResponse> call, Response<ConversationPageResponse> response) {
-                isLoading = false;
-                if (!response.isSuccessful() || response.body() == null) {
-                    if (isFirstPage && cachedConversations.isEmpty()) {
-                        inboxLiveData.setValue(new ArrayList<>());
+            public void onResponse(@NonNull Call<ConversationPageResponse> call, @NonNull Response<ConversationPageResponse> response) {
+                List<Conversation> received = new ArrayList<>();
+                String updatedCursor = null;
+                boolean updatedHasMore = false;
+
+                if (response.isSuccessful() && response.body() != null) {
+                    ConversationPageResponse body = response.body();
+                    if (body.getData() != null) {
+                        received.addAll(body.getData());
                     }
-                    return;
+                    updatedCursor = body.getNextCursor();
+                    updatedHasMore = body.isHasMore();
                 }
 
-                ConversationPageResponse body = response.body();
-                List<Conversation> pageData = body.getData();
-                if (isFirstPage) {
-                    cachedConversations.clear();
+                synchronized (inboxLock) {
+                    if (requestCursor == null) {
+                        cachedConversations.clear();
+                    }
+                    mergeConversations(received);
+                    nextCursor = updatedCursor;
+                    hasMore = updatedHasMore;
+                    isLoading = false;
+                    inboxLiveData.postValue(new ArrayList<>(cachedConversations));
                 }
-                if (pageData != null && !pageData.isEmpty()) {
-                    cachedConversations.addAll(pageData);
-                }
-
-                nextCursor = body.getNextCursor();
-                hasMore = body.isHasMore() && nextCursor != null && !nextCursor.trim().isEmpty();
-                inboxLiveData.setValue(new ArrayList<>(cachedConversations));
             }
 
             @Override
-            public void onFailure(Call<ConversationPageResponse> call, Throwable t) {
-                isLoading = false;
-                if (isFirstPage && cachedConversations.isEmpty()) {
-                    inboxLiveData.setValue(new ArrayList<>());
+            public void onFailure(@NonNull Call<ConversationPageResponse> call, @NonNull Throwable t) {
+                synchronized (inboxLock) {
+                    isLoading = false;
                 }
             }
         });
+    }
+
+    private void mergeConversations(List<Conversation> incoming) {
+        for (Conversation item : incoming) {
+            if (item == null || item.getId() == null) {
+                continue;
+            }
+            int existingIndex = findConversationIndex(item.getId());
+            if (existingIndex >= 0) {
+                cachedConversations.set(existingIndex, item);
+            } else {
+                cachedConversations.add(item);
+            }
+        }
+    }
+
+    private void applyOnlineStatus(OnlineStatusEvent event) {
+        if (event == null) {
+            return;
+        }
+
+        synchronized (inboxLock) {
+            boolean updated = false;
+            for (Conversation conv : cachedConversations) {
+                if (conv.getParticipants() == null) {
+                    continue;
+                }
+                for (Conversation.Participant p : conv.getParticipants()) {
+                    if (event.getEmail() != null && event.getEmail().equalsIgnoreCase(p.getEmail())) {
+                        if (p.isOnline() != event.isOnline()) {
+                            p.setOnline(event.isOnline());
+                            updated = true;
+                        }
+                    }
+                }
+            }
+            if (updated) {
+                inboxLiveData.postValue(new ArrayList<>(cachedConversations));
+            }
+        }
+    }
+
+    private void applyRealtimeMessage(ChatMessageResponse message) {
+        if (message == null || message.getConversationId() == null) {
+            return;
+        }
+
+        boolean shouldReload = false;
+        synchronized (inboxLock) {
+            int index = findConversationIndex(message.getConversationId());
+            if (index >= 0) {
+                Conversation conversation = cachedConversations.remove(index);
+                updateConversationPreview(conversation, message);
+                cachedConversations.add(0, conversation);
+                inboxLiveData.postValue(new ArrayList<>(cachedConversations));
+            } else {
+                shouldReload = true;
+            }
+        }
+
+        // Re-sync inbox when realtime message belongs to a conversation not loaded yet.
+        if (shouldReload) {
+            loadInbox();
+        }
+    }
+
+    private void updateConversationPreview(Conversation conversation, ChatMessageResponse message) {
+        LastMessage last = conversation.getLastMessage();
+        if (last == null) {
+            last = new LastMessage();
+            conversation.setLastMessage(last);
+        }
+        last.setContent(message.getContent());
+        last.setSenderId(message.getSenderId());
+        last.setSentAt(message.getCreatedAt());
+        conversation.setUpdatedAt(message.getCreatedAt());
+    }
+
+    public void ensureRealtimeConnected() {
+        repository.connectRealtime();
+        repository.subscribeGlobalChannels();
+    }
+
+    public LiveData<List<Conversation>> getInboxLiveData() {
+        return inboxLiveData;
+    }
+
+    private int findConversationIndex(String id) {
+        for (int i = 0; i < cachedConversations.size(); i++) {
+            if (id.equals(cachedConversations.get(i).getId())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    @Override
+    protected void onCleared() {
+        repository.removeInboxListener(inboxListener);
+        repository.removeOnlineStatusListener(onlineStatusListener);
+        super.onCleared();
     }
 }

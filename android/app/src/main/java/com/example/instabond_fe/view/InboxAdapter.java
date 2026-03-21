@@ -2,6 +2,7 @@ package com.example.instabond_fe.view;
 
 import android.content.Context;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -69,17 +70,25 @@ public class InboxAdapter extends RecyclerView.Adapter<InboxAdapter.InboxViewHol
             String safeCurrentUserId = currentUserId == null ? "" : currentUserId;
             String title = "Unknown";
             String avatarUrl = null;
+            boolean isPeerOnline = false;
 
-            // Priority: group name -> if null, use participant username (for 2-user chat) -> fallback to Unknown
             if (conversation.getTitle() != null && !conversation.getTitle().isEmpty()) {
                 title = conversation.getTitle();
-            } else if (conversation.getParticipants() != null && conversation.getParticipants().size() == 2) {
-                for (Conversation.Participant p : conversation.getParticipants()) {
-                    if (p.getId() != null && !p.getId().equals(safeCurrentUserId)) {
-                        title = p.getUsername() != null ? p.getUsername() : "Unknown";
-                        avatarUrl = p.getAvatarUrl();
-                        break;
+            }
+
+            if (conversation.getParticipants() != null) {
+                for (Conversation.Participant participant : conversation.getParticipants()) {
+                    boolean isCurrentUser = participant.getId() != null && participant.getId().equals(safeCurrentUserId);
+                    if (isCurrentUser) {
+                        continue;
                     }
+
+                    if (conversation.getTitle() == null || conversation.getTitle().isEmpty()) {
+                        title = participant.getUsername() != null ? participant.getUsername() : title;
+                        avatarUrl = participant.getAvatarUrl();
+                    }
+                    isPeerOnline = participant.isOnline();
+                    break;
                 }
             }
 
@@ -93,6 +102,8 @@ public class InboxAdapter extends RecyclerView.Adapter<InboxAdapter.InboxViewHol
             } else {
                 binding.ivAvatar.setImageResource(com.example.instabond_fe.R.drawable.ic_person);
             }
+
+            binding.viewUnreadBadge.setVisibility(isPeerOnline ? View.VISIBLE : View.GONE);
 
             String preview = "No messages yet";
             if (conversation.getLastMessage() != null) {
@@ -113,7 +124,6 @@ public class InboxAdapter extends RecyclerView.Adapter<InboxAdapter.InboxViewHol
             binding.getRoot().setOnClickListener(v -> clickListener.onConversationClick(conversation));
         }
 
-        // == UTILITY METHODS ==
         private String formatRelativeTime(String isoString) {
             if (isoString == null || isoString.isEmpty()) return "";
             try {

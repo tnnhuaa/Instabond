@@ -6,13 +6,13 @@ public class LastMessage {
     @SerializedName("content")
     private String content;
 
-    @SerializedName("sender_id")
+    @SerializedName(value = "sender_id", alternate = {"senderId"})
     private String senderId;
 
-    @SerializedName("sent_at")
+    @SerializedName(value = "sent_at", alternate = {"sentAt", "created_at", "createdAt"})
     private String sentAt;
 
-    @SerializedName("is_read")
+    @SerializedName(value = "is_read", alternate = {"isRead"})
     private Boolean isRead;
 
     public LastMessage() {
