@@ -2,9 +2,13 @@ package com.instabond.controller;
 
 import com.instabond.dto.ChatMessageRequest;
 import com.instabond.dto.ChatMessageResponse;
+import com.instabond.dto.WsEvent;
 import com.instabond.entity.Message;
-import com.instabond.service.MessageService;
 import com.instabond.service.ConversationService;
+import com.instabond.service.MessageService;
+import com.instabond.service.NotificationService;
+import com.instabond.service.PresenceService;
+import com.instabond.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -21,12 +25,19 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatWebSocketController {
 
+    private static final String EVENTS_DESTINATION = "/queue/events";
+
     private final MessageService messageService;
     private final SimpMessagingTemplate messagingTemplate;
     private final ConversationService conversationService;
+    private final PresenceService presenceService;
+    private final NotificationService notificationService;
+    private final UserService userService;
 
     @MessageMapping("/chat.send")
     public void processMessage(@Payload ChatMessageRequest request, Principal principal) {
+        System.out.println("Received message: " + request + " from user: " + (principal != null ? principal.getName() : "null"));
+
         if (principal == null) {
             throw new RuntimeException("User must be authenticated to send messages");
         }
@@ -34,28 +45,52 @@ public class ChatWebSocketController {
         // Store to DB
         Message saved = messageService.saveTextMessage(request, principal.getName());
         ChatMessageResponse response = messageService.toResponse(saved);
+        WsEvent<ChatMessageResponse> chatEvent = WsEvent.of(WsEvent.TYPE_CHAT, response);
 
         // Get username's list of the conversation and send to each of them
-        List<String> participants = conversationService.getParticipantUsernames(saved.getConversation_id());
+        List<String> participants = conversationService.getParticipantEmail(saved.getConversation_id());
 
         for (String participant : participants) {
             messagingTemplate.convertAndSendToUser(
                     participant,
-                    "/queue/messages",
-                    response
+                    EVENTS_DESTINATION,
+                    chatEvent
             );
-        }
 
-        // @TODO: Handle notification for offline users (Background/Killed app)
-        // Call Notification Service to send push notification to offline users
+            if (principal.getName().equals(participant)) {
+                continue;
+            }
+
+            String recipientId = userService.getUserIdByEmail(participant);
+
+            notificationService.saveAndSendChatNotification(
+                    saved.getSender_id(),
+                    recipientId,
+                    saved.getConversation_id(),
+                    saved.getContent()
+            );
+
+            if (!presenceService.isOnline(participant)) {
+                notificationService.sendPushNotification(
+                        recipientId,
+                        "New message",
+                        saved.getContent()
+                );
+            }
+        }
     }
 
     @MessageExceptionHandler
-    @SendToUser("/queue/errors")
-    public Map<String, String> handleException(RuntimeException ex) {
-        return Map.of(
-                "status", "error",
-                "message", "Failed to send message: " + ex.getMessage()
+    @SendToUser("/queue/events")
+    public WsEvent<Map<String, String>> handleException(RuntimeException ex) {
+        System.out.println("Error: " + ex.getMessage());
+
+        return WsEvent.of(
+                WsEvent.TYPE_ERROR,
+                Map.of(
+                        "status", "error",
+                        "message", "Failed to send message: " + ex.getMessage()
+                )
         );
     }
 }

@@ -2,6 +2,7 @@ package com.instabond.controller;
 
 import com.instabond.dto.ChatMessageRequest;
 import com.instabond.dto.ChatMessageResponse;
+import com.instabond.dto.WsEvent;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
@@ -27,11 +28,11 @@ public class ChatWebSocketDocsController {
     }
 
     @Operation(
-            summary = "SUBSCRIBE: Listen for new messages (Server -> Client)",
-            description = "**Protocol:** STOMP WebSocket\n\n**Topic:** `/topic/conversations/{conversationId}`\n\n*Note: This documents the payload received when a new text/image message arrives.*"
+            summary = "SUBSCRIBE: Listen for websocket events (Server -> Client)",
+            description = "**Protocol:** STOMP WebSocket\n\n**Destination:** `/user/queue/events`\n\n*Note: Payload is wrapped as `WsEvent<T>` where type can be CHAT, NOTIFICATION, PRESENCE or ERROR.*"
     )
-    @GetMapping("/topic/conversations/{conversationId}")
-    public ChatMessageResponse documentReceiveMessage(@PathVariable String conversationId) {
+    @GetMapping("/user/queue/events")
+    public WsEvent<ChatMessageResponse> documentReceiveMessage() {
         throw new UnsupportedOperationException("Virtual endpoint for Swagger docs only.");
     }
 }

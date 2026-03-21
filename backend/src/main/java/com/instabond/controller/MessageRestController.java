@@ -1,9 +1,13 @@
 package com.instabond.controller;
 
 import com.instabond.dto.ChatMessageResponse;
+import com.instabond.dto.WsEvent;
 import com.instabond.entity.Message;
 import com.instabond.service.ConversationService;
 import com.instabond.service.MessageService;
+import com.instabond.service.NotificationService;
+import com.instabond.service.PresenceService;
+import com.instabond.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -36,6 +40,11 @@ public class MessageRestController {
     private final MessageService messageService;
     private final SimpMessagingTemplate messagingTemplate;
     private final ConversationService conversationService;
+    private final NotificationService notificationService;
+    private final PresenceService presenceService;
+    private final UserService userService;
+
+    private static final String EVENTS_DESTINATION = "/queue/events";
 
     @Operation(
             summary = "Get conversation history",
@@ -70,7 +79,7 @@ public class MessageRestController {
 
     @Operation(
             summary = "Upload chat image",
-            description = "Uploads an image file, stores it as a chat message, then broadcasts it to the conversation topic over WebSocket."
+            description = "Uploads an image file, stores it as a chat message, then emits a CHAT event to `/user/queue/events`."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Image message created successfully",
@@ -88,22 +97,38 @@ public class MessageRestController {
             @RequestPart("file") MultipartFile file,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        // Store to DB and create message record
         Message saved = messageService.saveImageMessage(conversationId, file, userDetails.getUsername());
         ChatMessageResponse response = messageService.toResponse(saved);
+        WsEvent<ChatMessageResponse> chatEvent = WsEvent.of(WsEvent.TYPE_CHAT, response);
 
-        // Get username's list of the conversation and send to each of them
-        List<String> participants = conversationService.getParticipantUsernames(saved.getConversation_id());
+        List<String> participants = conversationService.getParticipantEmail(saved.getConversation_id());
         for (String participant : participants) {
             messagingTemplate.convertAndSendToUser(
                     participant,
-                    "/queue/messages",
-                    response
+                    EVENTS_DESTINATION,
+                    chatEvent
             );
-        }
 
-        // @TODO: Handle notification for offline users (Background/Killed app)
-        // Call Notification Service to send push notification to offline users ("User X sent a photo")
+            if (userDetails.getUsername().equals(participant)) {
+                continue;
+            }
+
+            String recipientId = userService.getUserIdByEmail(participant);
+            notificationService.saveAndSendChatNotification(
+                    saved.getSender_id(),
+                    recipientId,
+                    saved.getConversation_id(),
+                    "sent a photo"
+            );
+
+            if (!presenceService.isOnline(participant)) {
+                notificationService.sendPushNotification(
+                        recipientId,
+                        "New message",
+                        "You received a photo"
+                );
+            }
+        }
 
         return ResponseEntity.status(201).body(response);
     }
