@@ -96,4 +96,42 @@
     <color name="chat_text_peer">#111111</color>
     <color name="chat_time_peer">#66000000</color>
 
+    <!-- Login redesign -->
+    <color name="login_bg_start">#8037B1</color>
+    <color name="login_bg_mid">#CB80FE</color>
+    <color name="login_bg_end">#FFC4B7</color>
+    <color name="login_card_surface">#F9F6F5</color>
+    <color name="login_text_primary">#2F2E2E</color>
+    <color name="login_text_secondary">#5C5B5B</color>
+    <color name="login_hint_text">#AFACAC</color>
+    <color name="login_divider">#DFDCDC</color>
+    <color name="login_primary_text">#FDEEFF</color>
+    <color name="login_secondary_start">#E5E2E1</color>
+    <color name="login_secondary_end">#D7CFE3</color>
+    <color name="login_footer_text">#99FFFFFF</color>
+    <color name="login_footer_dot">#66FFFFFF</color>
+    <color name="signup_hint_text">#80787676</color>
+    <color name="signup_icon_tint">#8E8A89</color>
+    <color name="feed_surface">#F3F0EF</color>
+    <color name="feed_story_inactive">#DFDCDC</color>
+    <color name="feed_story_label">#5C5B5B</color>
+    <color name="feed_icon_dark">#2F2E2E</color>
+    <color name="feed_meta">#787676</color>
+    <color name="feed_topbar_overlay">#99F9F6F5</color>
+    <color name="feed_nav_overlay">#99CB80FE</color>
+    <color name="feed_nav_active">#33FFFFFF</color>
+    <color name="feed_counter_bg">#66F9F6F5</color>
+    <color name="create_post_switch_track_on">#D8B4FE</color>
+    <color name="create_post_switch_track_off">#E5E2E1</color>
+    <color name="create_post_switch_thumb_on">#FFFFFF</color>
+    <color name="create_post_switch_thumb_off">#FFFFFF</color>
+    <color name="search_section_muted">#99787676</color>
+    <color name="search_avatar_ring">#BD73EF</color>
+    <color name="search_close_icon">#B8B0B0</color>
+    <color name="search_suggestion_overlay">#0D8037B1</color>
+    <color name="search_preview_fill">#E5E2E1</color>
+    <color name="search_preview_border">#4DCB80FE</color>
+    <color name="search_input_outline">#26AFACAC</color>
+    <color name="search_chip_inactive">#DFDCDC</color>
+    <color name="search_featured_badge">#8C7668</color>
 </resources>

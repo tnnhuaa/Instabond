@@ -41,13 +41,14 @@ public class AuthService {
                 .created_at(Instant.now())
                 .build();
 
-        userRepository.save(user);
+        user = userRepository.save(user);
 
         String accessToken = jwtUtil.generateToken(user.getEmail(), user.getId());
         String refreshToken = jwtUtil.generateRefreshToken(user.getEmail(), user.getId());
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .id(user.getId())
                 .build();
     }
 
@@ -64,6 +65,7 @@ public class AuthService {
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .id(user.getId())
                 .build();
     }
 
@@ -79,6 +81,7 @@ public class AuthService {
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(refreshToken)
+                .id(user.getId())
                 .build();
     }
 }

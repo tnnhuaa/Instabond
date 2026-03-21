@@ -113,8 +113,12 @@ public class UserController {
             @ApiResponse(responseCode = "401", description = "Missing or expired access token")
     })
     @GetMapping
-    public ResponseEntity<List<ProfileResponse>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<ProfileResponse>> getAllUsers(
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page", example = "20")
+            @RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(userService.getAllUsers(page, limit));
     }
 
     //  Get profile by userId
@@ -268,9 +272,10 @@ public class UserController {
     @GetMapping("/{id}/followers")
     public ResponseEntity<List<FollowUserResponse>> getFollowers(
             @Parameter(description = "ID of the user", example = "64f1a2b3c4d5e6f7a8b9c0d1")
-            @PathVariable String id) {
+            @PathVariable String id,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(userService.getFollowers(id));
+        return ResponseEntity.ok(userService.getFollowers(id, userDetails.getUsername()));
     }
 
     // Following
@@ -288,9 +293,31 @@ public class UserController {
     @GetMapping("/{id}/following")
     public ResponseEntity<List<FollowUserResponse>> getFollowing(
             @Parameter(description = "ID of the user", example = "64f1a2b3c4d5e6f7a8b9c0d1")
-            @PathVariable String id) {
+            @PathVariable String id,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(userService.getFollowing(id));
+        return ResponseEntity.ok(userService.getFollowing(id, userDetails.getUsername()));
+    }
+
+    // Friends (Mutual Followers)
+
+    @Operation(
+            summary = "Get friends list",
+            description = "Returns a list of mutual followers (users that follow {id} and are also followed by {id})."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "List of FollowUserResponse returned successfully",
+                    content = @Content(schema = @Schema(implementation = FollowUserResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @GetMapping("/{id}/friends")
+    public ResponseEntity<List<FollowUserResponse>> getFriends(
+            @Parameter(description = "ID of the user", example = "64f1a2b3c4d5e6f7a8b9c0d1")
+            @PathVariable String id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(userService.getFriends(id, userDetails.getUsername()));
     }
 
     // Follow/Unfollow
@@ -306,7 +333,7 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = "Forbidden — cannot follow yourself"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
-    @PostMapping("/{id}/follow")
+    @PostMapping(value = "/{id}/follow", consumes = MediaType.ALL_VALUE)
     public ResponseEntity<FollowUserResponse> followUser(
             @Parameter(description = "ID of user to follow", example = "65b222222222222222222222")
             @PathVariable String id,
@@ -408,9 +435,10 @@ public class UserController {
     @GetMapping("/{id}/close-friends")
     public ResponseEntity<List<FollowUserResponse>> getCloseFriends(
             @Parameter(description = "ID of the user", example = "65b111111111111111111111")
-            @PathVariable String id) {
+            @PathVariable String id,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(userService.getCloseFriends(id));
+        return ResponseEntity.ok(userService.getCloseFriends(id, userDetails.getUsername()));
     }
 
     // Follow requests (private accounts)

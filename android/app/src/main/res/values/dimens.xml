@@ -123,4 +123,17 @@
     <dimen name="search_tile_large">262dp</dimen>
     <dimen name="search_tile_small">129dp</dimen>
 
+    <!-- Login redesign -->
+    <dimen name="login_screen_padding">24dp</dimen>
+    <dimen name="login_screen_top_padding">83dp</dimen>
+    <dimen name="login_card_corner">24dp</dimen>
+    <dimen name="login_card_elevation">12dp</dimen>
+    <dimen name="login_card_padding">32dp</dimen>
+    <dimen name="login_header_icon_size">96dp</dimen>
+    <dimen name="login_input_height">52dp</dimen>
+    <dimen name="login_input_corner">8dp</dimen>
+    <dimen name="login_action_height">58dp</dimen>
+    <dimen name="login_secondary_action_height">44dp</dimen>
+    <dimen name="login_footer_dot_size">4dp</dimen>
+    <dimen name="signup_input_height">56dp</dimen>
 </resources>

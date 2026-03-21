@@ -1,12 +1,15 @@
 package com.example.instabond_fe.view;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.Patterns;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivitySigninBinding;
 import com.example.instabond_fe.model.AuthRequest;
 import com.example.instabond_fe.model.AuthResponse;
@@ -14,6 +17,8 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.ChatRepository;
+
+import org.json.JSONObject;
 
 import java.io.IOException;
 
@@ -33,17 +38,16 @@ public class SignInActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivitySigninBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
 
         apiService = ApiClient.getApiService(this);
         sessionManager = new SessionManager(this);
 
-        // Tab: switch to Sign Up
-        binding.tvTabSignup.setOnClickListener(v -> {
+        binding.btnCreateAccount.setOnClickListener(v -> {
             startActivity(new Intent(this, SignUpActivity.class));
             finish();
         });
 
-        // Toggle password visibility
         binding.btnTogglePassword.setOnClickListener(v -> {
             passwordVisible = !passwordVisible;
             if (passwordVisible) {
@@ -56,26 +60,18 @@ public class SignInActivity extends AppCompatActivity {
             binding.etPassword.setSelection(binding.etPassword.getText().length());
         });
 
-        // Sign In button
         binding.btnSignin.setOnClickListener(v -> performLogin());
 
-        // Google Sign In (mock)
-        binding.btnGoogle.setOnClickListener(v ->
-                Toast.makeText(this, "Đăng nhập Google chưa được tích hợp backend", Toast.LENGTH_SHORT).show());
-
-        // "Register now" link
-        binding.tvRegisterNow.setOnClickListener(v -> {
-            startActivity(new Intent(this, SignUpActivity.class));
-            finish();
-        });
+        binding.tvForgotPassword.setOnClickListener(v ->
+                Toast.makeText(this, getString(R.string.login_forgot_unavailable), Toast.LENGTH_SHORT).show());
     }
 
     private void performLogin() {
-        String email = binding.etUsername.getText().toString().trim();
+        String email = binding.etEmail.getText().toString().trim();
         String password = binding.etPassword.getText().toString();
 
-        if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Vui lòng nhập email và mật khẩu", Toast.LENGTH_SHORT).show();
+        clearFieldErrors();
+        if (!validateInput(email, password)) {
             return;
         }
 
@@ -96,23 +92,60 @@ public class SignInActivity extends AppCompatActivity {
                 }
 
                 Toast.makeText(SignInActivity.this,
-                        extractError(response, "Đăng nhập thất bại"),
+                        extractError(response, getString(R.string.login_failed)),
                         Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onFailure(Call<AuthResponse> call, Throwable t) {
                 setLoading(false);
+                String message = t.getMessage() == null || t.getMessage().trim().isEmpty()
+                        ? "Vui long thu lai"
+                        : t.getMessage();
                 Toast.makeText(SignInActivity.this,
-                        "Không kết nối được server: " + t.getMessage(),
+                        getString(R.string.login_connection_error, message),
                         Toast.LENGTH_SHORT).show();
             }
         });
     }
 
+    private boolean validateInput(String email, String password) {
+        if (email.isEmpty()) {
+            binding.etEmail.setError("Vui long nhap email");
+            binding.etEmail.requestFocus();
+            return false;
+        }
+
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            binding.etEmail.setError("Email khong hop le");
+            binding.etEmail.requestFocus();
+            return false;
+        }
+
+        if (password.isEmpty()) {
+            binding.etPassword.setError("Vui long nhap mat khau");
+            binding.etPassword.requestFocus();
+            return false;
+        }
+
+        return true;
+    }
+
+    private void clearFieldErrors() {
+        binding.etEmail.setError(null);
+        binding.etPassword.setError(null);
+    }
+
     private void setLoading(boolean loading) {
         binding.btnSignin.setEnabled(!loading);
-        binding.btnSignin.setText(loading ? "Đang đăng nhập..." : "Đăng nhập");
+        binding.btnSignin.setText(loading
+                ? getString(R.string.login_loading)
+                : getString(R.string.login_button_signin));
+        binding.etEmail.setEnabled(!loading);
+        binding.etPassword.setEnabled(!loading);
+        binding.btnTogglePassword.setEnabled(!loading);
+        binding.btnCreateAccount.setEnabled(!loading);
+        binding.tvForgotPassword.setEnabled(!loading);
     }
 
     private String extractError(Response<?> response, String fallback) {
@@ -121,8 +154,15 @@ public class SignInActivity extends AppCompatActivity {
         }
         try {
             String raw = response.errorBody().string();
-            return raw == null || raw.isEmpty() ? fallback : raw;
+            if (raw == null || raw.isEmpty()) {
+                return fallback;
+            }
+            JSONObject json = new JSONObject(raw);
+            String message = json.optString("message");
+            return message == null || message.trim().isEmpty() ? fallback : message;
         } catch (IOException e) {
+            return fallback;
+        } catch (Exception e) {
             return fallback;
         }
     }

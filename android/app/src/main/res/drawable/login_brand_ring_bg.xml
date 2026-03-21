@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="32dp" />
+            <gradient
+                android:angle="0"
+                android:startColor="@color/login_bg_start"
+                android:centerColor="@color/login_bg_mid"
+                android:endColor="@color/login_bg_end" />
+        </shape>
+    </item>
+    <item
+        android:bottom="3dp"
+        android:left="3dp"
+        android:right="3dp"
+        android:top="3dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="29dp" />
+            <solid android:color="@color/login_card_surface" />
+        </shape>
+    </item>
+</layer-list>

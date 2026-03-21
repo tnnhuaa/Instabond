@@ -48,11 +48,18 @@ public class PostResponse {
     }
 
     public static class AuthorInfo {
+        @SerializedName("id")
+        private String id;
+
         @SerializedName("username")
         private String username;
 
         @SerializedName(value = "avatar_url", alternate = {"avatarUrl", "avatar"})
         private String avatarUrl;
+
+        public String getId() {
+            return id;
+        }
 
         public String getUsername() {
             return username;
