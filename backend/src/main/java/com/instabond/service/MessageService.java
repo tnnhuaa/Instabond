@@ -34,7 +34,7 @@ public class MessageService {
             throw new RuntimeException("Message payload is not valid");
         }
 
-        String conversationId = trimToNull(request.getConversation_id());
+        String conversationId = trimToNull(request.getConversationId());
         String content = trimToNull(request.getContent());
         String type = normalizeType(request.getType());
 
@@ -109,8 +109,8 @@ public class MessageService {
         User requester = resolveUserByEmail(requesterEmail);
         resolveConversationAndValidateParticipant(conversationId, requester.getId());
 
-        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "created_at"));
-        return messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId, pageable);
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "created_at"));
+        return messageRepository.findByConversationIdOrderByCreatedAtDesc(conversationId, pageable);
     }
 
     public int markMessagesAsRead(String conversationId, String readerEmail) {
@@ -154,11 +154,11 @@ public class MessageService {
     public ChatMessageResponse toResponse(Message message) {
         return ChatMessageResponse.builder()
                 .id(message.getId())
-                .conversation_id(message.getConversation_id())
-                .sender_id(message.getSender_id())
+                .conversationId(message.getConversation_id())
+                .senderId(message.getSender_id())
                 .type(message.getType())
                 .content(message.getContent())
-                .created_at(message.getCreated_at())
+                .createdAt(message.getCreated_at())
                 .build();
     }
 

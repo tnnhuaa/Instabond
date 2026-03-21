@@ -1,6 +1,15 @@
 spring:
   mongodb:
     uri: ${MONGODB_URI}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
+      timeout: 5s
   servlet:
     multipart:
       max-file-size: 10MB
@@ -13,3 +22,9 @@ cloudinary:
 
 jwt:
   secret-key: ${JWT_SECRET_KEY}
+
+app:
+  presence:
+    redis-enabled: ${PRESENCE_REDIS_ENABLED:false}
+    ttl-minutes: ${PRESENCE_TTL_MINUTES:5}
+    retry-backoff-seconds: ${PRESENCE_RETRY_BACKOFF_SECONDS:30}

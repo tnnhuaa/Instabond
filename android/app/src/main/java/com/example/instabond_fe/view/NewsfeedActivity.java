@@ -19,6 +19,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiListParser;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.repository.ChatRepository;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -57,6 +58,11 @@ public class NewsfeedActivity extends AppCompatActivity {
 
         apiService = ApiClient.getApiService(this);
         sessionManager = new SessionManager(this);
+        if (sessionManager.isLoggedIn()) {
+            ChatRepository repository = ChatRepository.getInstance(this);
+            repository.connectRealtime();
+            repository.subscribeGlobalChannels();
+        }
 
         adapter = new PostAdapter(new ArrayList<>());
         adapter.setListener(new PostAdapter.OnPostInteractionListener() {
@@ -145,8 +151,8 @@ public class NewsfeedActivity extends AppCompatActivity {
         binding.bottomNav.bind(this, InstaBottomNavView.Tab.HOME);
         binding.btnCamera.setOnClickListener(v ->
                 startActivity(new Intent(this, CreatePostActivity.class)));
-        binding.btnInbox.setOnClickListener(v ->
-                Toast.makeText(this, getString(R.string.feed_messages_coming_soon), Toast.LENGTH_SHORT).show());
+
+        binding.btnInbox.setOnClickListener(v -> startActivity(new Intent(this, InboxActivity.class)));
 
         binding.swipeRefreshFeed.setRefreshing(true);
         refreshFeed();

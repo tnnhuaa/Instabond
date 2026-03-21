@@ -17,6 +17,12 @@ public interface MessageRepository extends MongoRepository<Message, String> {
     @Query(value = "{ 'conversation_id': ?0 }", sort = "{ 'created_at': 1 }")
     List<Message> findByConversationIdOrderByCreatedAtAsc(String conversationId, Pageable pageable);
 
+    @Query(value = "{ 'conversation_id': ?0 }", sort = "{ 'created_at': -1 }")
+    List<Message> findByConversationIdOrderByCreatedAtDesc(String conversationId);
+
+    @Query(value = "{ 'conversation_id': ?0 }", sort = "{ 'created_at': -1 }")
+    List<Message> findByConversationIdOrderByCreatedAtDesc(String conversationId, Pageable pageable);
+
     @Query(value = "{ 'conversation_id': ?0, 'sender_id': { $ne: ?1 }, 'read_by.user_id': { $ne: ?1 } }")
     List<Message> findUnreadMessages(String conversationId, String readerId);
 }

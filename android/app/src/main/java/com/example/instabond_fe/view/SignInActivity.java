@@ -16,6 +16,7 @@ import com.example.instabond_fe.model.AuthResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.repository.ChatRepository;
 
 import org.json.JSONObject;
 
@@ -83,6 +84,9 @@ public class SignInActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null
                         && response.body().getAccessToken() != null) {
                     sessionManager.saveSession(response.body());
+                    ChatRepository repository = ChatRepository.getInstance(SignInActivity.this);
+                    repository.connectRealtime();
+                    repository.subscribeGlobalChannels();
                     goToNewsfeed();
                     return;
                 }

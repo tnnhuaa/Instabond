@@ -12,6 +12,7 @@ import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.repository.ChatRepository;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -208,6 +209,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void handleUnauthorized() {
+        ChatRepository.getInstance(this).disconnectRealtime();
         sessionManager.clearSession();
         Intent intent = new Intent(this, SignInActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -216,6 +218,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void logout() {
+        ChatRepository.getInstance(this).disconnectRealtime();
         sessionManager.clearSession();
         Intent intent = new Intent(this, SignInActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

@@ -1,5 +1,6 @@
 package com.instabond.controller;
 
+import com.instabond.dto.ConversationPageResponse;
 import com.instabond.entity.Conversation;
 import com.instabond.service.ConversationService;
 import com.instabond.service.UserService;
@@ -11,10 +12,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.Instant;
 
 @RestController
 @RequestMapping("/api/conversations")
@@ -53,5 +58,42 @@ public class ConversationController {
         );
 
         return ResponseEntity.ok(conversation);
+    }
+
+    @Operation(
+            summary = "Get current user conversations",
+            description = "Cursor pagination endpoint for inbox conversations sorted by updated_at descending."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Return paginated conversation list",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ConversationPageResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid cursor format",
+                    content = @Content)
+    })
+    @GetMapping
+    public ResponseEntity<ConversationPageResponse> getUserConversations(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int limit,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        String email = userDetails.getUsername();
+        String currentUserId = userService.getUserIdByEmail(email);
+
+        Instant parsedCursor = parseCursor(cursor);
+        ConversationPageResponse response = conversationService.getUserConversations(currentUserId, parsedCursor, limit);
+
+        return ResponseEntity.ok(response);
+    }
+
+    private Instant parseCursor(String cursor) {
+        if (cursor == null || cursor.isBlank()) {
+            return null;
+        }
+
+        try {
+            return Instant.parse(cursor);
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "cursor must be ISO-8601 datetime", ex);
+        }
     }
 }

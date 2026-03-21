@@ -36,5 +36,6 @@ public class Notification {
         private String new_level;
         private String relationship_id;
         private String post_id;
+        private String conversation_id;
     }
 }

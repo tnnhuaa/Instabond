@@ -1,27 +1,36 @@
 package com.instabond.listener;
 
+import com.instabond.dto.WsEvent;
+import com.instabond.service.PresenceService;
 import com.instabond.service.UserService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.security.Principal;
-import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class WebSocketEventListener {
 
+    private static final String EVENTS_DESTINATION = "/queue/events";
+
     private final UserService userService;
-    private final StringRedisTemplate redisTemplate;
+    private final PresenceService presenceService;
+    private final SimpMessagingTemplate messagingTemplate;
+
+    private final Set<String> connectedUsers = ConcurrentHashMap.newKeySet();
 
     /**
      * Listen event: CONNECT (User is Online)
@@ -32,13 +41,19 @@ public class WebSocketEventListener {
 
         if (userPrincipal != null) {
             String email = userPrincipal.getName();
-
-            // Save to redis with TTL = 5 minutes
-            redisTemplate.opsForValue().set("USER_ONLINE:" + email, "true", Duration.ofMinutes(5));
+            String userId = userService.getUserIdByEmail(email);
+            connectedUsers.add(email);
+            presenceService.markOnline(email);
 
             log.info("User {} connected to WebSocket", email);
 
-            // @TODO: SimpMessagingTemplate can also be used here to notify friends of this user (Green dot online status)
+            broadcastPresenceEvent(
+                    Map.of(
+                            "email", email,
+                            "userId", userId,
+                            "online", true
+                    )
+            );
         }
     }
 
@@ -51,9 +66,9 @@ public class WebSocketEventListener {
 
         if (userPrincipal != null) {
             String email = userPrincipal.getName();
-
-            // Remove from redis
-            redisTemplate.delete("USER_ONLINE:" + email);
+            String userId = userService.getUserIdByEmail(email);
+            connectedUsers.remove(email);
+            presenceService.markOffline(email);
 
             log.info("User {} disconnected from WebSocket", email);
 
@@ -62,7 +77,29 @@ public class WebSocketEventListener {
             String sessionId = headerAccessor.getSessionId();
             log.debug("Session ID is disconnected: {}", sessionId);
 
-            userService.updateLastActive(email, Instant.now());
+            Instant now = Instant.now();
+            userService.updateLastActive(email, now);
+
+            broadcastPresenceEvent(
+                    Map.of(
+                            "email", email,
+                            "userId", userId,
+                            "online", false,
+                            "lastActive", now.toEpochMilli()
+                    )
+            );
+        }
+    }
+
+    private void broadcastPresenceEvent(Map<String, Object> payload) {
+        WsEvent<Map<String, Object>> presenceEvent = WsEvent.of(WsEvent.TYPE_PRESENCE, payload);
+
+        for (String connectedEmail : connectedUsers) {
+            messagingTemplate.convertAndSendToUser(
+                    connectedEmail,
+                    EVENTS_DESTINATION,
+                    presenceEvent
+            );
         }
     }
 }
