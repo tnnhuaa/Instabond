@@ -57,6 +57,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class CreatePostActivity extends AppCompatActivity {
+    private static final String EXTRA_REFRESH_FEED = "refresh_feed";
 
     public enum FilterType {
         NORMAL,
@@ -748,7 +749,7 @@ public class CreatePostActivity extends AppCompatActivity {
                     return;
                 }
                 Toast.makeText(CreatePostActivity.this, R.string.create_post_success, Toast.LENGTH_SHORT).show();
-                finish();
+                openFeedWithRefresh();
             }
 
             @Override
@@ -897,5 +898,13 @@ public class CreatePostActivity extends AppCompatActivity {
         binding.btnPost.setText(loading
                 ? getString(R.string.create_post_posting)
                 : getString(R.string.create_post_post));
+    }
+
+    private void openFeedWithRefresh() {
+        Intent intent = new Intent(this, NewsfeedActivity.class);
+        intent.putExtra(EXTRA_REFRESH_FEED, true);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+        finish();
     }
 }

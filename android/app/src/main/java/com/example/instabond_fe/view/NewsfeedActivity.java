@@ -33,7 +33,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class NewsfeedActivity extends AppCompatActivity {
-
+    private static final String EXTRA_REFRESH_FEED = "refresh_feed";
     private static final int PAGE_SIZE = 5;
     private static final int VISIBLE_THRESHOLD = 2;
 
@@ -150,6 +150,18 @@ public class NewsfeedActivity extends AppCompatActivity {
 
         binding.swipeRefreshFeed.setRefreshing(true);
         refreshFeed();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+
+        if (intent != null && intent.getBooleanExtra(EXTRA_REFRESH_FEED, false)) {
+            binding.swipeRefreshFeed.setRefreshing(true);
+            refreshFeed();
+            intent.removeExtra(EXTRA_REFRESH_FEED);
+        }
     }
 
     private void refreshFeed() {
