@@ -43,7 +43,7 @@ public class ConversationService {
                 });
     }
 
-    public List<String> getParticipantUsernames(String conversationId) {
+    public List<String> getParticipantEmail(String conversationId) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new RuntimeException("Conversation not found: " + conversationId));
 
