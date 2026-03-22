@@ -70,6 +70,103 @@ public class NotificationService {
         log.info("[FCM-MOCK] recipientId={}, title='{}', body='{}'", recipientId, title, body);
     }
 
+    public Notification sendLikeNotification(String senderId, String recipientId, String postId) {
+        User sender = userRepository.findById(senderId).orElse(null);
+        String senderName = sender != null ? sender.getUsername() : "Someone";
+        
+        Notification savedNotification = notificationRepository.save(
+                Notification.builder()
+                        .sender_id(senderId)
+                        .recipient_id(recipientId)
+                        .type("LIKE")
+                        .content(senderName + " liked your post")
+                        .is_read(false)
+                        .metadata(Notification.Metadata.builder()
+                                .post_id(postId)
+                                .build())
+                        .created_at(Instant.now())
+                        .build()
+        );
+
+        sendNotificationViaWebSocket(savedNotification, recipientId);
+        return savedNotification;
+    }
+
+    public Notification sendCommentNotification(String senderId, String recipientId, String postId, String commentContent) {
+        User sender = userRepository.findById(senderId).orElse(null);
+        String senderName = sender != null ? sender.getUsername() : "Someone";
+        String truncatedContent = commentContent != null && commentContent.length() > 50 
+            ? commentContent.substring(0, 50) + "..." 
+            : commentContent;
+        
+        Notification savedNotification = notificationRepository.save(
+                Notification.builder()
+                        .sender_id(senderId)
+                        .recipient_id(recipientId)
+                        .type("COMMENT")
+                        .content(senderName + " commented: " + truncatedContent)
+                        .is_read(false)
+                        .metadata(Notification.Metadata.builder()
+                                .post_id(postId)
+                                .build())
+                        .created_at(Instant.now())
+                        .build()
+        );
+
+        sendNotificationViaWebSocket(savedNotification, recipientId);
+        return savedNotification;
+    }
+
+    public Notification sendFollowNotification(String senderId, String recipientId, String status) {
+        User sender = userRepository.findById(senderId).orElse(null);
+        String senderName = sender != null ? sender.getUsername() : "Someone";
+        String normalizedStatus = status == null ? "" : status.trim().toLowerCase();
+        String content = "";
+        if ("pending".equals(normalizedStatus)) {
+            content = senderName + " sent you a follow request";
+        } else if ("accepted".equals(normalizedStatus)) {
+            content = senderName + " accepted your follow request";
+        } else if ("followed".equals(normalizedStatus)) {
+            content = senderName + " started following you";
+        }
+        
+        Notification savedNotification = notificationRepository.save(
+                Notification.builder()
+                        .sender_id(senderId)
+                        .recipient_id(recipientId)
+                        .type("FOLLOW")
+                        .content(content)
+                        .is_read(false)
+                        .metadata(Notification.Metadata.builder()
+                                .build())
+                        .created_at(Instant.now())
+                        .build()
+        );
+
+        sendNotificationViaWebSocket(savedNotification, recipientId);
+        return savedNotification;
+    }
+
+    private void sendNotificationViaWebSocket(Notification notification, String recipientId) {
+        WsEvent<Notification> notificationEvent = WsEvent.of(WsEvent.TYPE_NOTIFICATION, notification);
+
+        messagingTemplate.convertAndSendToUser(
+                recipientId,
+                EVENTS_DESTINATION,
+                notificationEvent
+        );
+
+        // Current WebSocket principal uses email, so send to email channel as a compatibility path.
+        userRepository.findById(recipientId)
+                .map(User::getEmail)
+                .filter(email -> !recipientId.equals(email))
+                .ifPresent(email -> messagingTemplate.convertAndSendToUser(
+                        email,
+                        EVENTS_DESTINATION,
+                        notificationEvent
+                ));
+    }
+
     public NotificationPage getUserNotifications(String recipientId, int page, int size) {
         int safePage = Math.max(page, 0);
         int safeSize = normalizeSize(size);

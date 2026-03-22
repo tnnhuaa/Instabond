@@ -40,6 +40,7 @@ public class PostService {
     private final FileService fileService;
     private final MongoTemplate mongoTemplate;
     private final InteractionRepository interactionRepository;
+    private final NotificationService notificationService;
 
     private User resolveUserFromPrincipal(String principal) {
         if (principal == null || principal.isBlank()) {
@@ -285,7 +286,7 @@ public class PostService {
     }
 
     public PostResponse likePost(String postId, String callerPrincipal) {
-        postRepository.findById(postId)
+        Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
 
         User caller = resolveUserFromPrincipal(callerPrincipal);
@@ -303,6 +304,12 @@ public class PostService {
                     .build();
             interactionRepository.save(interaction);
             incrementPostStat(postId, "stats.likes", 1);
+
+            // Send notification to post author
+            String postAuthorId = post.getAuthor_id();
+            if (postAuthorId != null && !postAuthorId.equals(caller.getId())) {
+                notificationService.sendLikeNotification(caller.getId(), postAuthorId, postId);
+            }
         }
 
         return getPostById(postId, callerPrincipal);
@@ -364,7 +371,7 @@ public class PostService {
     }
 
     public CommentResponse addComment(String postId, String callerPrincipal, CreateCommentRequest request) {
-        postRepository.findById(postId)
+        Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
 
         if (request == null || request.getContent() == null || request.getContent().trim().isEmpty()) {
@@ -384,6 +391,13 @@ public class PostService {
 
         Interaction saved = interactionRepository.save(interaction);
         incrementPostStat(postId, "stats.comments", 1);
+
+        // Send notification to post author
+        String postAuthorId = post.getAuthor_id();
+        if (postAuthorId != null && !postAuthorId.equals(caller.getId())) {
+            notificationService.sendCommentNotification(caller.getId(), postAuthorId, postId, request.getContent());
+        }
+
         return toCommentResponse(saved, caller);
     }
 

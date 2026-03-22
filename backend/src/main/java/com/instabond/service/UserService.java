@@ -31,6 +31,7 @@ public class UserService {
     private final RelationshipRepository relationshipRepository;
     private final FileService fileService;
     private final MongoTemplate mongoTemplate;
+    private final NotificationService notificationService;
 
     // GET id
     public String getUserIdByEmail(String email) {
@@ -311,6 +312,11 @@ public class UserService {
         }
 
         relationshipRepository.save(relationship);
+
+        // Public follow is immediate; private follow creates a pending request.
+        String notificationStatus = "pending".equals(nextStatus) ? "pending" : "followed";
+        notificationService.sendFollowNotification(caller.getId(), target.getId(), notificationStatus);
+
         return toFollowUserResponse(target, nextStatus);
     }
 
@@ -414,6 +420,9 @@ public class UserService {
         relationship.setStatus("accepted");
         relationship.setUpdated_at(Instant.now());
         relationshipRepository.save(relationship);
+
+        // Send notification to requester that their follow request was accepted
+        notificationService.sendFollowNotification(caller.getId(), requester.getId(), "accepted");
 
         return toFollowUserResponse(requester, "accepted");
     }
