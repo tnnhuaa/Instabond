@@ -1,5 +1,6 @@
 package com.instabond.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -23,6 +24,7 @@ public class Notification {
 
     private String content;
 
+    @JsonProperty("is_read")
     private boolean is_read;
 
     private Metadata metadata;
@@ -36,6 +38,8 @@ public class Notification {
         private String new_level;
         private String relationship_id;
         private String post_id;
+        private String sender_image_url;
+        private String post_image_url;
         private String conversation_id;
     }
 }

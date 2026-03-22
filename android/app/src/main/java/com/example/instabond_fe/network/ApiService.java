@@ -3,6 +3,8 @@ package com.example.instabond_fe.network;
 import com.example.instabond_fe.model.AuthRequest;
 import com.example.instabond_fe.model.AuthResponse;
 import com.example.instabond_fe.model.CreatePostRequest;
+import com.example.instabond_fe.model.Notification;
+import com.example.instabond_fe.model.NotificationPageResponse;
 import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.model.UpdateProfileRequest;
 import com.example.instabond_fe.model.UserProfileResponse;
@@ -140,4 +142,13 @@ public interface ApiService {
             @Path("id") String userId,
             @Query("isCloseFriend") boolean isCloseFriend
     );
+
+    @GET("api/notifications")
+    Call<NotificationPageResponse> getNotifications(
+            @Query("page") int page,
+            @Query("size") int size
+    );
+
+    @PUT("api/notifications/{id}/read")
+    Call<Notification> markNotificationAsRead(@Path("id") String notificationId);
 }

@@ -7,126 +7,221 @@ import android.os.Bundle;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.StyleSpan;
+import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.ImageView;
+import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityNotificationsBinding;
+import com.example.instabond_fe.databinding.ItemNotificationBinding;
+import com.example.instabond_fe.model.Notification;
+import com.example.instabond_fe.model.NotificationPageResponse;
+import com.example.instabond_fe.network.ApiClient;
+import com.example.instabond_fe.network.ApiService;
+import com.example.instabond_fe.repository.WebSocketManager;
+import com.example.instabond_fe.utils.TimeUtils;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
+import com.google.gson.Gson;
+import java.util.ArrayList;
+import java.util.List;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class NotificationsActivity extends AppCompatActivity {
-
-    private static final String NEW_LIKE_AVATAR =
-            "https://www.figma.com/api/mcp/asset/fa36e179-3b7e-468e-82ab-1f455121149a";
-    private static final String NEW_LIKE_PREVIEW =
-            "https://www.figma.com/api/mcp/asset/fa734d94-c880-4d08-acc0-909ddc31ca11";
-    private static final String NEW_FOLLOW_AVATAR =
-            "https://www.figma.com/api/mcp/asset/c2c7a2b9-6188-426f-b7c1-9c64d9580810";
-    private static final String TODAY_COMMENT_AVATAR =
-            "https://www.figma.com/api/mcp/asset/d796641f-3100-4c8e-9c34-d50c20d18016";
-    private static final String TODAY_COMMENT_PREVIEW =
-            "https://www.figma.com/api/mcp/asset/dfc9e369-09db-45f4-a9fa-b8cff2fc5b26";
-    private static final String TODAY_LIKE_AVATAR_ONE =
-            "https://www.figma.com/api/mcp/asset/905cf66c-eb33-4e0a-b8eb-cf9650db7f81";
-    private static final String TODAY_LIKE_AVATAR_TWO =
-            "https://www.figma.com/api/mcp/asset/c5b15415-470c-4744-90fe-7b8ed08e1eb7";
-    private static final String WEEK_AVATAR =
-            "https://www.figma.com/api/mcp/asset/d4076afe-20f5-41b9-a29a-540a61113d40";
-    private static final String WEEK_GALLERY_ONE =
-            "https://www.figma.com/api/mcp/asset/4c020598-4f6b-4d8d-a617-84ee0123c4f3";
-    private static final String WEEK_GALLERY_TWO =
-            "https://www.figma.com/api/mcp/asset/f452447c-130a-4887-af4a-fd9558d2aead";
-    private static final String WEEK_GALLERY_THREE =
-            "https://www.figma.com/api/mcp/asset/3d0e9edd-d768-4c71-a257-44ca74046886";
-    private static final String WEEK_TAG_AVATAR =
-            "https://www.figma.com/api/mcp/asset/a190988e-4c13-4058-aa9d-7d29a25dba55";
-    private static final String WEEK_TAG_PREVIEW =
-            "https://www.figma.com/api/mcp/asset/4bab3e16-8d0e-4eff-b9d1-c87f089ba969";
-
+    private static final String TAG = "NotificationsActivity";
     private ActivityNotificationsBinding binding;
+    private ApiService apiService;
+    private NotificationAdapter adapter;
+    private final List<Notification> notificationList = new ArrayList<>();
+    private WebSocketManager webSocketManager;
+    private boolean isLoading = false;
+    private boolean hasNextPage = true;
+    private int currentPage = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityNotificationsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        getWindow().setStatusBarColor(Color.TRANSPARENT);
+        getWindow().setStatusBarColor(Color.WHITE);
+
+        apiService = ApiClient.getApiService(this);
+        webSocketManager = WebSocketManager.getInstance(this);
+
+        setupRecyclerView();
+        setupSwipeRefresh();
+        bindActions();
 
         binding.bottomNav.bind(this, InstaBottomNavView.Tab.NOTIFICATIONS);
-        bindStaticCopy();
-        bindImages();
-        bindActions();
+
+        loadNotifications(0);
     }
 
-    private void bindStaticCopy() {
-        setStyledText(binding.tvNewLikeMessage, "marcus_v", " liked your photo");
-        binding.tvNewLikeTime.setText("2m ago");
-
-        setStyledText(binding.tvNewFollowMessage, "sara.ink", " started following\nyou");
-        binding.tvNewFollowTime.setText("15m ago");
-
-        setStyledText(binding.tvTodayCommentTitle, "julian_art", " commented:");
-        binding.tvTodayCommentBody.setText("\"This edit is fire!\"");
-        binding.tvTodayCommentTime.setText("4h ago");
-
-        setStyledText(binding.tvTodayLikeTitle, "clara_d and 12 others", " liked");
-        binding.tvTodayLikeBody.setText("your story");
-        binding.tvTodayLikeTime.setText("8h ago");
-
-        binding.tvWeekProfileName.setText("elena_vision");
-        binding.tvWeekProfileMeta.setText("Followed by julian_art + 4 others");
-
-        setStyledText(binding.tvWeekTagTitle, "maya_pixels", " tagged you in a\nphoto");
-        binding.tvWeekTagTime.setText("3d ago");
+    @Override
+    protected void onResume() {
+        super.onResume();
+        webSocketManager.addNotificationListener(notificationListener);
     }
 
-    private void bindImages() {
-        loadImage(binding.ivNewLikeAvatar, NEW_LIKE_AVATAR);
-        loadImage(binding.ivNewLikePreview, NEW_LIKE_PREVIEW);
-        loadImage(binding.ivNewFollowAvatar, NEW_FOLLOW_AVATAR);
-        loadImage(binding.ivTodayCommentAvatar, TODAY_COMMENT_AVATAR);
-        loadImage(binding.ivTodayCommentPreview, TODAY_COMMENT_PREVIEW);
-        loadImage(binding.ivTodayLikeAvatarOne, TODAY_LIKE_AVATAR_ONE);
-        loadImage(binding.ivTodayLikeAvatarTwo, TODAY_LIKE_AVATAR_TWO);
-        loadImage(binding.ivWeekAvatar, WEEK_AVATAR);
-        loadImage(binding.ivWeekGalleryOne, WEEK_GALLERY_ONE);
-        loadImage(binding.ivWeekGalleryTwo, WEEK_GALLERY_TWO);
-        loadImage(binding.ivWeekGalleryThree, WEEK_GALLERY_THREE);
-        loadImage(binding.ivWeekTagAvatar, WEEK_TAG_AVATAR);
-        loadImage(binding.ivWeekTagPreview, WEEK_TAG_PREVIEW);
+    @Override
+    protected void onPause() {
+        super.onPause();
+        webSocketManager.removeNotificationListener(notificationListener);
     }
+    private final WebSocketManager.NotificationListener notificationListener = payload -> {
+        runOnUiThread(() -> {
+            try {
+                Notification notification = new Gson().fromJson(payload, Notification.class);
+                if (notification != null) {
+                    addOrUpdateNotification(notification);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error parsing websocket notification", e);
+            }
+        });
+    };
+    private void setupRecyclerView() {
+        adapter = new NotificationAdapter(notificationList, notification -> {
+            markAsRead(notification);
+            handleNotificationClick(notification);
+        });
+        binding.rvNotifications.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvNotifications.setAdapter(adapter);
+        binding.rvNotifications.addOnScrollListener(new RecyclerView.OnScrollListener() {
 
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                if (!recyclerView.canScrollVertically(1) && hasNextPage && !isLoading) {
+                    loadNotifications(currentPage + 1);
+                }
+            }
+        });
+    }
+    private void setupSwipeRefresh() {
+        binding.swipeRefresh.setOnRefreshListener(() -> loadNotifications(0));
+    }
+    private void loadNotifications(int page) {
+        if (isLoading) return;
+        isLoading = true;
+        if (page == 0) {
+            binding.swipeRefresh.setRefreshing(true);
+        }
+
+        apiService.getNotifications(page, 20).enqueue(new Callback<NotificationPageResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<NotificationPageResponse> call, @NonNull Response<NotificationPageResponse> response) {
+                isLoading = false;
+                binding.swipeRefresh.setRefreshing(false);
+
+                if (response.isSuccessful() && response.body() != null) {
+                    NotificationPageResponse pageData = response.body();
+                    if (page == 0) {
+                        notificationList.clear();
+                        adapter.notifyDataSetChanged();
+                    }
+
+                    for (Notification n : pageData.getData()) {
+                        addOrUpdateNotification(n);
+                    }
+
+                    currentPage = pageData.getPage();
+                    hasNextPage = pageData.isHasNext();
+                    updateEmptyState();
+                } else {
+                    Toast.makeText(NotificationsActivity.this, "Failed to load notifications", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<NotificationPageResponse> call, @NonNull Throwable t) {
+                isLoading = false;
+                binding.swipeRefresh.setRefreshing(false);
+                Toast.makeText(NotificationsActivity.this, "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    private synchronized void addOrUpdateNotification(Notification notification) {
+        int existingIndex = -1;
+        for (int i = 0; i < notificationList.size(); i++) {
+            if (notificationList.get(i).getId().equals(notification.getId())) {
+                existingIndex = i;
+                break;
+            }
+        }
+
+        if (existingIndex != -1) {
+            notificationList.set(existingIndex, notification);
+            adapter.notifyItemChanged(existingIndex);
+        } else {
+            int insertAt = 0;
+            boolean inserted = false;
+            for (int i = 0; i < notificationList.size(); i++) {
+                if (notification.getCreatedAt().compareTo(notificationList.get(i).getCreatedAt()) >= 0) {
+                    insertAt = i;
+                    inserted = true;
+                    break;
+                }
+            }
+
+            if (!inserted) {
+                insertAt = notificationList.size();
+            }
+            notificationList.add(insertAt, notification);
+            adapter.notifyItemInserted(insertAt);
+
+            if (insertAt == 0) {
+                binding.rvNotifications.smoothScrollToPosition(0);
+            }
+        }
+    }
+    private void updateEmptyState() {
+        binding.tvEmpty.setVisibility(notificationList.isEmpty() ? View.VISIBLE : View.GONE);
+    }
+    private void markAsRead(Notification notification) {
+        if (notification.isRead()) return;
+
+        notification.setRead(true);
+        addOrUpdateNotification(notification);
+
+        apiService.markNotificationAsRead(notification.getId()).enqueue(new Callback<Notification>() {
+            @Override
+            public void onResponse(@NonNull Call<Notification> call, @NonNull Response<Notification> response) {
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<Notification> call, @NonNull Throwable t) {
+            }
+        });
+    }
+    private void handleNotificationClick(Notification notification) {
+        String type = notification.getType();
+
+        if ("LIKE".equals(type) || "COMMENT".equals(type)) {
+            String postId = notification.getPostId();
+            if (postId != null) {
+                Toast.makeText(this, "Opening post " + postId, Toast.LENGTH_SHORT).show();
+            }
+        } else if ("FOLLOW".equals(type)) {
+            Intent intent = new Intent(this, ProfileActivity.class);
+            intent.putExtra("userId", notification.getSenderId());
+            startActivity(intent);
+        }
+    }
     private void bindActions() {
         binding.btnCamera.setOnClickListener(v ->
                 startActivity(new Intent(this, CreatePostActivity.class)));
         binding.btnInbox.setOnClickListener(v ->
                 Toast.makeText(this, getString(R.string.feed_messages_coming_soon), Toast.LENGTH_SHORT).show());
-
-        binding.btnFollow.setOnClickListener(v -> {
-            binding.btnFollow.setText(getString(R.string.search_action_following));
-            binding.btnFollow.setAlpha(0.82f);
-        });
-
-        binding.btnFollowBack.setOnClickListener(v -> {
-            binding.btnFollowBack.setText(getString(R.string.search_action_following));
-            binding.btnFollowBack.setAlpha(0.82f);
-        });
-
-        binding.btnDismissSuggestion.setOnClickListener(v -> binding.cardWeekSuggestion.setVisibility(View.GONE));
     }
-
-    private void loadImage(ImageView target, String url) {
-        Glide.with(this)
-                .load(url)
-                .centerCrop()
-                .into(target);
-    }
-
     private void setStyledText(TextView view, String boldPart, String regularPart) {
         SpannableStringBuilder builder = new SpannableStringBuilder();
         int start = 0;
@@ -135,4 +230,132 @@ public class NotificationsActivity extends AppCompatActivity {
         builder.append(regularPart);
         view.setText(builder);
     }
+    class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapter.ViewHolder> {
+        private final List<Notification> items;
+        private final OnNotificationClickListener listener;
+        NotificationAdapter(List<Notification> items, OnNotificationClickListener listener) {
+            this.items = items;
+            this.listener = listener;
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            return new ViewHolder(ItemNotificationBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false));
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            Notification item = items.get(position);
+            holder.bind(item, listener);
+        }
+
+        @Override
+        public int getItemCount() {
+            return items.size();
+        }
+        class ViewHolder extends RecyclerView.ViewHolder {
+            private final ItemNotificationBinding binding;
+            ViewHolder(ItemNotificationBinding binding) {
+                super(binding.getRoot());
+                this.binding = binding;
+            }
+            void bind(Notification item, OnNotificationClickListener listener) {
+                String content = item.getContent();
+                if (content != null && content.contains(" ")) {
+                    int firstSpace = content.indexOf(" ");
+                    String sender = content.substring(0, firstSpace);
+                    String action = content.substring(firstSpace);
+                    setStyledText(binding.tvMessage, sender, action);
+                } else {
+                    binding.tvMessage.setText(content);
+                }
+
+                binding.tvTime.setText(TimeUtils.getRelativeTime(item.getCreatedAt()));
+                if (item.isRead()) {
+                    binding.getRoot().setBackgroundColor(Color.parseColor("#FFFFFF"));
+                } else {
+                    binding.getRoot().setBackgroundColor(Color.parseColor("#F2F2F2"));
+                }
+
+                String type = item.getType();
+
+                if ("LIKE".equals(type)) {
+                    binding.smallChip.setVisibility(View.VISIBLE);
+                    binding.ivSmallIcon.setImageResource(R.drawable.ic_heart);
+                    binding.largeChip.setVisibility(View.GONE);
+                    binding.ivPreview.setVisibility(View.VISIBLE);
+
+                    String postImageUrl = null;
+                    if (item.getMetadata() != null && item.getMetadata().containsKey("post_image_url")) {
+                        postImageUrl = item.getMetadata().get("post_image_url");
+                    }
+
+                    if (postImageUrl != null && !postImageUrl.isEmpty()) {
+                        Glide.with(binding.getRoot().getContext())
+                                .load(postImageUrl)
+                                .placeholder(R.drawable.notification_preview_placeholder)
+                                .error(R.drawable.notification_preview_placeholder)
+                                .into(binding.ivPreview);
+                    } else {
+                        binding.ivPreview.setImageResource(R.drawable.notification_preview_placeholder);
+                    }
+                } else if ("COMMENT".equals(type)) {
+                    binding.smallChip.setVisibility(View.VISIBLE);
+                    binding.ivSmallIcon.setImageResource(R.drawable.ic_message_circle);
+                    binding.largeChip.setVisibility(View.GONE);
+                    binding.ivPreview.setVisibility(View.VISIBLE);
+                    binding.ivPreview.setImageResource(R.drawable.notification_preview_placeholder);
+
+                    binding.ivPreview.setVisibility(View.VISIBLE);
+
+                    String postImageUrl = null;
+                    if (item.getMetadata() != null && item.getMetadata().containsKey("post_image_url")) {
+                        postImageUrl = item.getMetadata().get("post_image_url");
+                    }
+
+                    if (postImageUrl != null && !postImageUrl.isEmpty()) {
+                        Glide.with(binding.getRoot().getContext())
+                                .load(postImageUrl)
+                                .placeholder(R.drawable.notification_preview_placeholder)
+                                .error(R.drawable.notification_preview_placeholder)
+                                .into(binding.ivPreview);
+                    } else {
+                        binding.ivPreview.setImageResource(R.drawable.notification_preview_placeholder);
+                    }
+                } else if ("FOLLOW".equals(type)) {
+                    binding.smallChip.setVisibility(View.VISIBLE);
+                    binding.ivSmallIcon.setImageResource(R.drawable.ic_person);
+                    binding.largeChip.setVisibility(View.VISIBLE);
+                    binding.ivLargeIcon.setImageResource(R.drawable.ic_user_plus);
+                    binding.ivPreview.setVisibility(View.GONE);
+                } else {
+                    binding.smallChip.setVisibility(View.GONE);
+                    binding.largeChip.setVisibility(View.GONE);
+                    binding.ivPreview.setVisibility(View.GONE);
+                }
+
+                String avatarUrl = null;
+                if (item.getMetadata() != null && item.getMetadata().containsKey("sender_image_url")) {
+                    avatarUrl = item.getMetadata().get("sender_image_url");
+                }
+
+                if (avatarUrl != null && !avatarUrl.isEmpty()) {
+                    Glide.with(binding.getRoot().getContext())
+                            .load(avatarUrl)
+                            .placeholder(R.drawable.ic_person)
+                            .error(R.drawable.ic_person)
+                            .circleCrop()
+                            .into(binding.ivAvatar);
+                } else {
+                    binding.ivAvatar.setImageResource(R.drawable.ic_person);
+                }
+                binding.getRoot().setOnClickListener(v -> listener.onNotificationClick(item));
+            }
+        }
+    }
+    interface OnNotificationClickListener {
+        void onNotificationClick(Notification notification);
+    }
+
 }

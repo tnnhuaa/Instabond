@@ -2,8 +2,10 @@ package com.instabond.service;
 
 import com.instabond.dto.WsEvent;
 import com.instabond.entity.Notification;
+import com.instabond.entity.Post;
 import com.instabond.entity.User;
 import com.instabond.repository.NotificationRepository;
+import com.instabond.repository.PostRepository;
 import com.instabond.repository.UserRepository;
 import lombok.Builder;
 import lombok.Getter;
@@ -28,6 +30,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final PostRepository postRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     public Notification saveAndSendChatNotification(String senderId, String recipientId, String conversationId, String content) {
@@ -83,6 +86,22 @@ public class NotificationService {
                         .is_read(false)
                         .metadata(Notification.Metadata.builder()
                                 .post_id(postId)
+                                .sender_image_url(
+                                        userRepository.findById(senderId)
+                                                .map(User::getAvatar_url)
+                                                .orElse("")
+                                )
+                                .post_image_url(
+                                        postRepository.findById(postId)
+                                                .map(post -> {
+                                                    List<Post.Media> mediaList = post.getMedia();
+                                                    if (mediaList != null && !mediaList.isEmpty()) {
+                                                        return mediaList.get(0).getUrl();
+                                                    }
+                                                    return "";
+                                                })
+                                                .orElse("")
+                                )
                                 .build())
                         .created_at(Instant.now())
                         .build()
@@ -104,10 +123,26 @@ public class NotificationService {
                         .sender_id(senderId)
                         .recipient_id(recipientId)
                         .type("COMMENT")
-                        .content(senderName + " commented: " + truncatedContent)
+                        .content(senderName + " commented on your post: " + truncatedContent)
                         .is_read(false)
                         .metadata(Notification.Metadata.builder()
                                 .post_id(postId)
+                                .sender_image_url(
+                                        userRepository.findById(senderId)
+                                                .map(User::getAvatar_url)
+                                                .orElse("")
+                                )
+                                .post_image_url(
+                                        postRepository.findById(postId)
+                                                .map(post -> {
+                                                    List<Post.Media> mediaList = post.getMedia();
+                                                    if (mediaList != null && !mediaList.isEmpty()) {
+                                                        return mediaList.get(0).getUrl();
+                                                    }
+                                                    return "";
+                                                })
+                                                .orElse("")
+                                )
                                 .build())
                         .created_at(Instant.now())
                         .build()
@@ -138,6 +173,11 @@ public class NotificationService {
                         .content(content)
                         .is_read(false)
                         .metadata(Notification.Metadata.builder()
+                                .sender_image_url(
+                                        userRepository.findById(senderId)
+                                                .map(User::getAvatar_url)
+                                                .orElse("")
+                                )
                                 .build())
                         .created_at(Instant.now())
                         .build()

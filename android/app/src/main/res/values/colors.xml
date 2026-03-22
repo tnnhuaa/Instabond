@@ -36,7 +36,7 @@
     <!-- Music badge background rgba(0,0,0,0.6) -->
     <color name="overlay_60">#99000000</color>
     <color name="notification_divider">#14262626</color>
-    <color name="notification_chip_surface">#141419</color>
+    <color name="notification_chip_surface">#D8B4FE</color>
     <color name="notification_large_chip_start">#33D7EDFB</color>
     <color name="notification_large_chip_mid">#264A4A35</color>
     <color name="notification_large_chip_end">#33D5AD41</color>
