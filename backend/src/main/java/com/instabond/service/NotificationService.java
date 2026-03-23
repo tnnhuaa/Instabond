@@ -2,8 +2,10 @@ package com.instabond.service;
 
 import com.instabond.dto.WsEvent;
 import com.instabond.entity.Notification;
+import com.instabond.entity.Post;
 import com.instabond.entity.User;
 import com.instabond.repository.NotificationRepository;
+import com.instabond.repository.PostRepository;
 import com.instabond.repository.UserRepository;
 import lombok.Builder;
 import lombok.Getter;
@@ -28,6 +30,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final PostRepository postRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     public Notification saveAndSendChatNotification(String senderId, String recipientId, String conversationId, String content) {
@@ -68,6 +71,140 @@ public class NotificationService {
 
     public void sendPushNotification(String recipientId, String title, String body) {
         log.info("[FCM-MOCK] recipientId={}, title='{}', body='{}'", recipientId, title, body);
+    }
+
+    public Notification sendLikeNotification(String senderId, String recipientId, String postId) {
+        User sender = userRepository.findById(senderId).orElse(null);
+        String senderName = sender != null ? sender.getUsername() : "Someone";
+        
+        Notification savedNotification = notificationRepository.save(
+                Notification.builder()
+                        .sender_id(senderId)
+                        .recipient_id(recipientId)
+                        .type("LIKE")
+                        .content(senderName + " liked your post")
+                        .is_read(false)
+                        .metadata(Notification.Metadata.builder()
+                                .post_id(postId)
+                                .sender_image_url(
+                                        userRepository.findById(senderId)
+                                                .map(User::getAvatar_url)
+                                                .orElse("")
+                                )
+                                .post_image_url(
+                                        postRepository.findById(postId)
+                                                .map(post -> {
+                                                    List<Post.Media> mediaList = post.getMedia();
+                                                    if (mediaList != null && !mediaList.isEmpty()) {
+                                                        return mediaList.get(0).getUrl();
+                                                    }
+                                                    return "";
+                                                })
+                                                .orElse("")
+                                )
+                                .build())
+                        .created_at(Instant.now())
+                        .build()
+        );
+
+        sendNotificationViaWebSocket(savedNotification, recipientId);
+        return savedNotification;
+    }
+
+    public Notification sendCommentNotification(String senderId, String recipientId, String postId, String commentContent) {
+        User sender = userRepository.findById(senderId).orElse(null);
+        String senderName = sender != null ? sender.getUsername() : "Someone";
+        String truncatedContent = commentContent != null && commentContent.length() > 50 
+            ? commentContent.substring(0, 50) + "..." 
+            : commentContent;
+        
+        Notification savedNotification = notificationRepository.save(
+                Notification.builder()
+                        .sender_id(senderId)
+                        .recipient_id(recipientId)
+                        .type("COMMENT")
+                        .content(senderName + " commented on your post: " + truncatedContent)
+                        .is_read(false)
+                        .metadata(Notification.Metadata.builder()
+                                .post_id(postId)
+                                .sender_image_url(
+                                        userRepository.findById(senderId)
+                                                .map(User::getAvatar_url)
+                                                .orElse("")
+                                )
+                                .post_image_url(
+                                        postRepository.findById(postId)
+                                                .map(post -> {
+                                                    List<Post.Media> mediaList = post.getMedia();
+                                                    if (mediaList != null && !mediaList.isEmpty()) {
+                                                        return mediaList.get(0).getUrl();
+                                                    }
+                                                    return "";
+                                                })
+                                                .orElse("")
+                                )
+                                .build())
+                        .created_at(Instant.now())
+                        .build()
+        );
+
+        sendNotificationViaWebSocket(savedNotification, recipientId);
+        return savedNotification;
+    }
+
+    public Notification sendFollowNotification(String senderId, String recipientId, String status) {
+        User sender = userRepository.findById(senderId).orElse(null);
+        String senderName = sender != null ? sender.getUsername() : "Someone";
+        String normalizedStatus = status == null ? "" : status.trim().toLowerCase();
+        String content = "";
+        if ("pending".equals(normalizedStatus)) {
+            content = senderName + " sent you a follow request";
+        } else if ("accepted".equals(normalizedStatus)) {
+            content = senderName + " accepted your follow request";
+        } else if ("followed".equals(normalizedStatus)) {
+            content = senderName + " started following you";
+        }
+        
+        Notification savedNotification = notificationRepository.save(
+                Notification.builder()
+                        .sender_id(senderId)
+                        .recipient_id(recipientId)
+                        .type("FOLLOW")
+                        .content(content)
+                        .is_read(false)
+                        .metadata(Notification.Metadata.builder()
+                                .sender_image_url(
+                                        userRepository.findById(senderId)
+                                                .map(User::getAvatar_url)
+                                                .orElse("")
+                                )
+                                .build())
+                        .created_at(Instant.now())
+                        .build()
+        );
+
+        sendNotificationViaWebSocket(savedNotification, recipientId);
+        return savedNotification;
+    }
+
+    private void sendNotificationViaWebSocket(Notification notification, String recipientId) {
+        WsEvent<Notification> notificationEvent = WsEvent.of(WsEvent.TYPE_NOTIFICATION, notification);
+
+        messagingTemplate.convertAndSendToUser(
+                recipientId,
+                EVENTS_DESTINATION,
+                notificationEvent
+        );
+
+        // Current WebSocket principal uses email, so send to email channel as a compatibility path.
+        userRepository.findById(recipientId)
+                .map(User::getEmail)
+                .filter(email -> !recipientId.equals(email))
+                .ifPresent(email -> messagingTemplate.convertAndSendToUser(
+                        email,
+                        EVENTS_DESTINATION,
+                        notificationEvent
+                ));
     }
 
     public NotificationPage getUserNotifications(String recipientId, int page, int size) {

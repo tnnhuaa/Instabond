@@ -11,6 +11,8 @@ public class NotificationItem {
     private final String time;
     private final boolean emphasizeActor;
     @Nullable
+    private final String avatarUrl;
+    @Nullable
     private final String previewUrl;
     @DrawableRes
     private final int iconRes;
@@ -23,6 +25,7 @@ public class NotificationItem {
             String message,
             String time,
             boolean emphasizeActor,
+            @Nullable String avatarUrl,
             @Nullable String previewUrl,
             @DrawableRes int iconRes,
             @ColorRes int iconTintRes,
@@ -32,6 +35,7 @@ public class NotificationItem {
         this.message = message;
         this.time = time;
         this.emphasizeActor = emphasizeActor;
+        this.avatarUrl = avatarUrl;
         this.previewUrl = previewUrl;
         this.iconRes = iconRes;
         this.iconTintRes = iconTintRes;
@@ -52,6 +56,11 @@ public class NotificationItem {
 
     public boolean isEmphasizeActor() {
         return emphasizeActor;
+    }
+
+    @Nullable
+    public String getAvatarUrl() {
+        return avatarUrl;
     }
 
     @Nullable
