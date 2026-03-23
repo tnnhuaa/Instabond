@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Data
 @Builder
@@ -16,6 +17,8 @@ import java.util.List;
 @AllArgsConstructor
 @Schema(description = "Full post details returned to the client")
 public class PostResponse {
+    @JsonProperty("is_liked")
+    private boolean isLiked;
 
     @Schema(description = "Post ID", example = "64f1a2b3c4d5e6f7a8b9c0d1")
     private String id;

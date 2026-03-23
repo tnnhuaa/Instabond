@@ -153,7 +153,7 @@ public class PostService {
                 .created_at(Instant.now())
                 .build();
 
-        return toPostResponse(postRepository.save(post), author);
+        return toPostResponse(postRepository.save(post), author, author);
     }
 
     // Get a single post by ID
@@ -161,8 +161,9 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
         User author = resolveAuthorById(post.getAuthor_id());
+        User caller = resolveUserFromPrincipal(callerPrincipal);
         assertCanViewAuthorContent(author, callerPrincipal);
-        return toPostResponse(post, author);
+        return toPostResponse(post, author, caller);
     }
 
     // Get all posts sorted by newest first
@@ -204,7 +205,7 @@ public class PostService {
         return mongoTemplate.find(postQuery, Post.class).stream()
                 .map(post -> {
                     User author = resolveAuthorById(post.getAuthor_id());
-                    return toPostResponse(post, author);
+                    return toPostResponse(post, author, caller);
                 }).toList();
     }
 
@@ -212,9 +213,10 @@ public class PostService {
     public List<PostResponse> getPostsByUserId(String userId, String callerPrincipal) {
         User author = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        User caller = resolveUserFromPrincipal(callerPrincipal);
         assertCanViewAuthorContent(author, callerPrincipal);
         return findPostsByAuthorId(author.getId()).stream()
-                .map(post -> toPostResponse(post, author))
+                .map(post -> toPostResponse(post, author, caller))
                 .toList();
     }
 
@@ -222,9 +224,10 @@ public class PostService {
     public List<PostResponse> getPostsByUsername(String username, String callerPrincipal) {
         User author = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+        User caller = resolveUserFromPrincipal(callerPrincipal);
         assertCanViewAuthorContent(author, callerPrincipal);
         return findPostsByAuthorId(author.getId()).stream()
-                .map(post -> toPostResponse(post, author))
+                .map(post -> toPostResponse(post, author, caller))
                 .toList();
     }
 
@@ -232,9 +235,10 @@ public class PostService {
     public List<PostResponse> getPostsByEmail(String email, String callerPrincipal) {
         User author = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+        User caller = resolveUserFromPrincipal(callerPrincipal);
         assertCanViewAuthorContent(author, callerPrincipal);
         return findPostsByAuthorId(author.getId()).stream()
-                .map(post -> toPostResponse(post, author))
+                .map(post -> toPostResponse(post, author, caller))
                 .toList();
     }
 
@@ -266,7 +270,7 @@ public class PostService {
                     .toList());
         }
 
-        return toPostResponse(postRepository.save(post), caller);
+        return toPostResponse(postRepository.save(post), caller, caller);
     }
 
     // Delete a post (only the author is allowed)
@@ -466,7 +470,7 @@ public class PostService {
     }
 
     // Map Post entity to PostResponse DTO
-    private PostResponse toPostResponse(Post post, User author) {
+    private PostResponse toPostResponse(Post post, User author, User caller) {
         PostResponse.AuthorInfo authorInfo = null;
         if (author != null) {
             authorInfo = PostResponse.AuthorInfo.builder()
@@ -475,6 +479,13 @@ public class PostService {
                     .full_name(author.getFull_name())
                     .avatar_url(author.getAvatar_url())
                     .build();
+        }
+
+        boolean isLiked = false;
+        if (caller != null && post.getId() != null) {
+            isLiked = interactionRepository
+                    .findOne(caller.getId(), post.getId(), "post", "like")
+                    .isPresent();
         }
 
         return PostResponse.builder()
@@ -487,6 +498,7 @@ public class PostService {
                 .tagged_users(post.getTagged_users())
                 .stats(post.getStats())
                 .created_at(post.getCreated_at())
+                .isLiked(isLiked)
                 .build();
     }
 
