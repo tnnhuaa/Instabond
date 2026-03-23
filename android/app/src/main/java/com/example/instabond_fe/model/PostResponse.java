@@ -7,6 +7,12 @@ import java.util.List;
 public class PostResponse {
     @SerializedName("id")
     private String id;
+    @SerializedName("is_liked")
+    private boolean isLiked;
+
+    public boolean isLiked() {
+        return isLiked;
+    }
 
     @SerializedName("author")
     private AuthorInfo author;

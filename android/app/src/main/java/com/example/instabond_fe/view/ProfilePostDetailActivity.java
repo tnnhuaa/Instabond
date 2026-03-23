@@ -50,6 +50,68 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
         if (userId != null) {
             loadPosts(userId, startPosition);
         }
+        adapter.setListener(new PostAdapter.OnPostInteractionListener() {
+            @Override
+            public void onLikeClicked(Post post, int position) {
+                boolean isCurrentlyLiked = post.isLiked();
+                post.setLiked(!isCurrentlyLiked);
+                post.setLikesCount(post.getLikesCount() + (isCurrentlyLiked ? -1 : 1));
+                adapter.notifyItemChanged(position);
+
+                Callback<PostResponse> cb = new Callback<PostResponse>() {
+                    @Override
+                    public void onResponse(Call<PostResponse> call, Response<PostResponse> response) {
+                        if (!response.isSuccessful()) {
+                            // Revert on failure
+                            post.setLiked(isCurrentlyLiked);
+                            post.setLikesCount(post.getLikesCount() + (isCurrentlyLiked ? 1 : -1));
+                            adapter.notifyItemChanged(position);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<PostResponse> call, Throwable t) {
+                        // Revert on failure
+                        post.setLiked(isCurrentlyLiked);
+                        post.setLikesCount(post.getLikesCount() + (isCurrentlyLiked ? 1 : -1));
+                        adapter.notifyItemChanged(position);
+                    }
+                };
+
+                if (isCurrentlyLiked) {
+                    apiService.unlikePost(post.getId()).enqueue(cb);
+                } else {
+                    apiService.likePost(post.getId()).enqueue(cb);
+                }
+            }
+
+            @Override
+            public void onCommentClicked(Post post, int position) {
+                android.content.Intent intent = new android.content.Intent(ProfilePostDetailActivity.this, CommentActivity.class);
+                intent.putExtra("postId", post.getId());
+                startActivity(intent);
+            }
+
+            @Override
+            public void onShareClicked(Post post, int position) {
+                apiService.sharePost(post.getId()).enqueue(new Callback<PostResponse>() {
+                    @Override
+                    public void onResponse(Call<PostResponse> call, Response<PostResponse> response) {}
+                    @Override
+                    public void onFailure(Call<PostResponse> call, Throwable t) {}
+                });
+
+                android.content.Intent shareIntent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+                shareIntent.setType("text/plain");
+                shareIntent.putExtra(android.content.Intent.EXTRA_TEXT, "Xem bài viết của " + post.getUsername() + " trên InstaBond!");
+                startActivity(android.content.Intent.createChooser(shareIntent, "Chia sẻ bài viết"));
+            }
+
+            @Override
+            public void onUserClicked(Post post, int position) {
+                finish();
+            }
+        });
     }
 
     private void loadPosts(String userId, int startPosition) {
@@ -94,7 +156,7 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
             }
 
             boolean hasMusic = r.hasMusicSuggestion();
-            boolean isLiked = false;
+            boolean isLiked = r.isLiked();
 
             Post p = new Post(
                     id, authorId, username, caption,
@@ -106,4 +168,5 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
         }
         return list;
     }
+
 }

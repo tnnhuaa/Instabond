@@ -310,7 +310,7 @@ public class NewsfeedActivity extends AppCompatActivity {
                     avatarUrl,
                     imageUrl,
                     postResponse.hasMusicSuggestion(),
-                    false // Assuming default false until we get state from server
+                    postResponse.isLiked()
             ));
         }
         return result;
