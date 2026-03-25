@@ -4,40 +4,46 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingStart="12dp"
     android:paddingTop="2dp"
-    android:paddingEnd="12dp"
-    android:paddingBottom="2dp">
+    android:paddingBottom="10dp">
 
     <LinearLayout
         android:id="@+id/bubble_card"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_chat_bubble_peer"
+        android:background="@drawable/bg_chat_message_incoming"
         android:orientation="vertical"
-        android:paddingStart="12dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="12dp"
-        android:paddingBottom="6dp">
+        android:paddingStart="16dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="14dp">
+
+        <ImageView
+            android:id="@+id/iv_message_image"
+            android:layout_width="240dp"
+            android:layout_height="240dp"
+            android:adjustViewBounds="true"
+            android:clipToOutline="true"
+            android:scaleType="centerCrop"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/tv_message_content"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:maxWidth="280dp"
-            android:minWidth="60dp"
-            android:textColor="@color/chat_text_peer"
-            android:textSize="15sp" />
-
-        <TextView
-            android:id="@+id/tv_message_time"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:minWidth="60dp"
-            android:textColor="@color/chat_time_peer"
-            android:textSize="11sp" />
+            android:maxWidth="265dp"
+            android:minWidth="72dp"
+            android:textColor="@color/login_text_primary"
+            android:textSize="14sp" />
 
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_message_time"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/feed_meta"
+        android:textSize="10sp" />
 
 </LinearLayout>

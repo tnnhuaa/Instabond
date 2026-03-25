@@ -6,11 +6,16 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ItemInboxConversationBinding;
 import com.example.instabond_fe.model.Conversation;
+import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.TimeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,8 +54,7 @@ public class InboxAdapter extends RecyclerView.Adapter<InboxAdapter.InboxViewHol
 
     @Override
     public void onBindViewHolder(@NonNull InboxViewHolder holder, int position) {
-        Conversation conversation = conversations.get(position);
-        holder.bind(conversation, currentUserId, clickListener);
+        holder.bind(conversations.get(position), currentUserId, clickListener, position);
     }
 
     @Override
@@ -66,80 +70,95 @@ public class InboxAdapter extends RecyclerView.Adapter<InboxAdapter.InboxViewHol
             this.binding = binding;
         }
 
-        void bind(Conversation conversation, String currentUserId, OnConversationClickListener clickListener) {
+        void bind(Conversation conversation,
+                  String currentUserId,
+                  OnConversationClickListener clickListener,
+                  int position) {
             String safeCurrentUserId = currentUserId == null ? "" : currentUserId;
-            String title = "Unknown";
-            String avatarUrl = null;
-            boolean isPeerOnline = false;
+            Conversation.Participant peer = findPeer(conversation, safeCurrentUserId);
 
-            if (conversation.getTitle() != null && !conversation.getTitle().isEmpty()) {
-                title = conversation.getTitle();
-            }
+            String title = peer != null && peer.getUsername() != null
+                    ? peer.getUsername()
+                    : (conversation.getTitle() == null ? "Unknown" : conversation.getTitle());
+            String avatarUrl = peer != null ? peer.getAvatarUrl() : "";
 
-            if (conversation.getParticipants() != null) {
-                for (Conversation.Participant participant : conversation.getParticipants()) {
-                    boolean isCurrentUser = participant.getId() != null && participant.getId().equals(safeCurrentUserId);
-                    if (isCurrentUser) {
-                        continue;
-                    }
+            boolean isUnread = conversation.getLastMessage() != null
+                    && !safeCurrentUserId.equals(conversation.getLastMessage().getSenderId())
+                    && !Boolean.TRUE.equals(conversation.getLastMessage().getIsRead());
 
-                    if (conversation.getTitle() == null || conversation.getTitle().isEmpty()) {
-                        title = participant.getUsername() != null ? participant.getUsername() : title;
-                        avatarUrl = participant.getAvatarUrl();
-                    }
-                    isPeerOnline = participant.isOnline();
-                    break;
-                }
-            }
-
-            if (avatarUrl != null && !avatarUrl.isEmpty()) {
-                com.bumptech.glide.Glide.with(binding.ivAvatar.getContext())
-                        .load(avatarUrl)
-                        .circleCrop()
-                        .placeholder(com.example.instabond_fe.R.drawable.ic_person)
-                        .error(com.example.instabond_fe.R.drawable.ic_person)
-                        .into(binding.ivAvatar);
-            } else {
-                binding.ivAvatar.setImageResource(com.example.instabond_fe.R.drawable.ic_person);
-            }
-
-            binding.viewUnreadBadge.setVisibility(isPeerOnline ? View.VISIBLE : View.GONE);
-
-            String preview = "No messages yet";
+            String preview = itemView.getContext().getString(R.string.inbox_empty_preview);
             if (conversation.getLastMessage() != null) {
                 String content = conversation.getLastMessage().getContent();
                 String safeContent = content == null ? "" : content;
                 if (safeCurrentUserId.equals(conversation.getLastMessage().getSenderId())) {
-                    preview = "You: " + safeContent;
+                    preview = safeContent.isEmpty() ? preview : "You: " + safeContent;
                 } else {
-                    preview = safeContent.isEmpty() ? "No messages yet" : safeContent;
+                    preview = safeContent.isEmpty() ? preview : safeContent;
                 }
             }
 
-            String updatedAt = formatRelativeTime(conversation.getUpdatedAt());
+            Glide.with(binding.ivAvatar.getContext())
+                    .load(normalizeUrl(avatarUrl))
+                    .circleCrop()
+                    .placeholder(R.drawable.profile_placeholder_bg)
+                    .error(R.drawable.profile_placeholder_bg)
+                    .into(binding.ivAvatar);
 
             binding.tvConversationTitle.setText(title);
             binding.tvConversationPreview.setText(preview);
-            binding.tvConversationTime.setText(updatedAt);
+            binding.tvConversationTime.setText(TimeUtils.getConversationTimeLabel(conversation.getUpdatedAt()));
+
+            int primarySurface = ContextCompat.getColor(itemView.getContext(), android.R.color.white);
+            int secondarySurface = ContextCompat.getColor(itemView.getContext(), R.color.feed_surface);
+            int titleColor = ContextCompat.getColor(itemView.getContext(), R.color.login_text_primary);
+            int previewColor = ContextCompat.getColor(itemView.getContext(), isUnread ? R.color.login_text_primary : R.color.login_text_secondary);
+            int timeColor = ContextCompat.getColor(itemView.getContext(), isUnread ? R.color.login_bg_start : R.color.login_text_secondary);
+
+            binding.cardConversation.setCardBackgroundColor(isUnread || position == 0 ? primarySurface : secondarySurface);
+            binding.cardConversation.setCardElevation(isUnread || position == 0 ? dp(8f) : 0f);
+            binding.tvConversationTitle.setTextColor(titleColor);
+            binding.tvConversationPreview.setTextColor(previewColor);
+            binding.tvConversationTime.setTextColor(timeColor);
+
+            binding.viewUnreadBadge.setVisibility(isUnread ? View.VISIBLE : View.GONE);
+            binding.viewUnreadBadge.setText("1");
+
             binding.getRoot().setOnClickListener(v -> clickListener.onConversationClick(conversation));
         }
 
-        private String formatRelativeTime(String isoString) {
-            if (isoString == null || isoString.isEmpty()) return "";
-            try {
-                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault());
-                sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
-                java.util.Date date = sdf.parse(isoString);
-                if (date != null) {
-                    return android.text.format.DateUtils.getRelativeTimeSpanString(
-                            date.getTime(), System.currentTimeMillis(),
-                            android.text.format.DateUtils.MINUTE_IN_MILLIS,
-                            android.text.format.DateUtils.FORMAT_ABBREV_RELATIVE).toString();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+        private Conversation.Participant findPeer(Conversation conversation, String safeCurrentUserId) {
+            if (conversation == null || conversation.getParticipants() == null) {
+                return null;
             }
-            return isoString;
+            for (Conversation.Participant participant : conversation.getParticipants()) {
+                if (participant.getId() == null || !participant.getId().equals(safeCurrentUserId)) {
+                    return participant;
+                }
+            }
+            return null;
+        }
+
+        private String normalizeUrl(String rawUrl) {
+            if (rawUrl == null || rawUrl.trim().isEmpty()) {
+                return "";
+            }
+
+            android.net.Uri uri = android.net.Uri.parse(rawUrl);
+            if (uri.getScheme() != null) {
+                return rawUrl;
+            }
+
+            String baseUrl = ApiClient.getBaseUrl();
+            if (rawUrl.startsWith("/")) {
+                return baseUrl.endsWith("/")
+                        ? baseUrl.substring(0, baseUrl.length() - 1) + rawUrl
+                        : baseUrl + rawUrl;
+            }
+            return baseUrl.endsWith("/") ? baseUrl + rawUrl : baseUrl + "/" + rawUrl;
+        }
+
+        private float dp(float value) {
+            return value * itemView.getResources().getDisplayMetrics().density;
         }
     }
 }

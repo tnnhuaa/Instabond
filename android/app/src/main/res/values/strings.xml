@@ -214,4 +214,22 @@
     <string name="create_post_tags_summary">%1$s</string>
     <string name="create_post_rotation_value">Current rotation: %1$d°</string>
     <string name="create_post_loading_user">Loading profile...</string>
+    <string name="comment_title">Comments</string>
+    <string name="comment_input_hint">Add a comment...</string>
+    <string name="comment_post_action">Post</string>
+    <string name="comment_reply_action">Reply</string>
+    <string name="comment_author_badge">Author</string>
+    <string name="comment_missing_post">Kh&#244;ng t&#236;m th&#7845;y b&#224;i vi&#7871;t</string>
+    <string name="comment_load_failed">Kh&#244;ng t&#7843;i &#273;&#432;&#7907;c b&#236;nh lu&#7853;n</string>
+    <string name="comment_post_failed">G&#7917;i b&#236;nh lu&#7853;n th&#7845;t b&#7841;i</string>
+    <string name="inbox_search_hint">Search friends or messages...</string>
+    <string name="inbox_active_now">Active Now</string>
+    <string name="inbox_recent_messages">Recent Messages</string>
+    <string name="inbox_empty_preview">No messages yet</string>
+    <string name="chat_online_now">ONLINE NOW</string>
+    <string name="chat_offline_now">OFFLINE</string>
+    <string name="chat_today">TODAY</string>
+    <string name="chat_type_message">Type a message...</string>
+    <string name="chat_reconnecting">Reconnecting...</string>
+    <string name="chat_missing_conversation">Missing conversation</string>
 </resources>

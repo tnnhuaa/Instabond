@@ -25,19 +25,19 @@ public class Conversation {
 
     // INNER CLASS FOR PARTICIPANTS
     public static class Participant {
-        @SerializedName("id")
+        @SerializedName(value = "id", alternate = {"user_id", "userId"})
         private String id;
 
-        @SerializedName("username")
+        @SerializedName(value = "username", alternate = {"user_name", "userName", "full_name", "fullName"})
         private String username;
 
-        @SerializedName("avatar_url")
+        @SerializedName(value = "avatar_url", alternate = {"avatarUrl", "avatar", "profile_picture", "profilePicture"})
         private String avatarUrl;
 
-        @SerializedName("email")
+        @SerializedName(value = "email", alternate = {"mail"})
         private String email;
 
-        @SerializedName("is_online")
+        @SerializedName(value = "is_online", alternate = {"isOnline", "online"})
         private boolean isOnline;
 
         public String getUsername() { return username; }
@@ -45,6 +45,9 @@ public class Conversation {
         public String getId() { return id; }
         public String getEmail() { return email; }
         public boolean isOnline() { return isOnline; }
+        public void setUsername(String username) { this.username = username; }
+        public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+        public void setEmail(String email) { this.email = email; }
         public void setOnline(boolean online) { isOnline = online; }
     }
 

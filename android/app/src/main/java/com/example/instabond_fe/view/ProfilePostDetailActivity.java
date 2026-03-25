@@ -89,6 +89,10 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
             public void onCommentClicked(Post post, int position) {
                 android.content.Intent intent = new android.content.Intent(ProfilePostDetailActivity.this, CommentActivity.class);
                 intent.putExtra("postId", post.getId());
+                intent.putExtra("postUsername", post.getUsername());
+                intent.putExtra("postCaption", post.getCaption());
+                intent.putExtra("postAvatarUrl", post.getAvatarUrl());
+                intent.putExtra("postCreatedAt", post.getCreatedAt());
                 startActivity(intent);
             }
 
@@ -160,6 +164,7 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
 
             Post p = new Post(
                     id, authorId, username, caption,
+                    r.getCreatedAt(),
                     likes, comments, shares,
                     avatar, image, hasMusic, isLiked
             );

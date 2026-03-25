@@ -29,6 +29,9 @@ public class PostResponse {
     @SerializedName("stats")
     private Stats stats;
 
+    @SerializedName(value = "created_at", alternate = {"createdAt"})
+    private String createdAt;
+
     public String getId() {
         return id;
     }
@@ -51,6 +54,10 @@ public class PostResponse {
 
     public Stats getStats() {
         return stats;
+    }
+
+    public String getCreatedAt() {
+        return createdAt;
     }
 
     public static class AuthorInfo {
