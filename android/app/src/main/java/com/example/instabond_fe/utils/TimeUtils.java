@@ -55,6 +55,40 @@ public class TimeUtils {
         return outFormat.format(date).toUpperCase(Locale.getDefault());
     }
 
+    public static String getConversationTimeLabel(String createdAt) {
+        Date date = parseInstant(createdAt);
+        if (date == null) {
+            return "";
+        }
+
+        long diff = safeDiffFromNow(date);
+        if (diff < 60000) {
+            return "now";
+        } else if (diff < 3600000) {
+            long minutes = Math.max(1, diff / 60000);
+            return minutes + "m ago";
+        } else if (diff < 86400000) {
+            long hours = Math.max(1, diff / 3600000);
+            return hours + "h ago";
+        } else if (diff < 172800000L) {
+            long days = Math.max(1, diff / 86400000);
+            return days + "d ago";
+        }
+
+        SimpleDateFormat outFormat = new SimpleDateFormat("dd/MM", Locale.getDefault());
+        return outFormat.format(date);
+    }
+
+    public static String getChatClockLabel(String createdAt) {
+        Date date = parseInstant(createdAt);
+        if (date == null) {
+            return "";
+        }
+
+        SimpleDateFormat outFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+        return outFormat.format(date).toUpperCase(Locale.getDefault());
+    }
+
     private static Date parseInstant(String createdAt) {
         if (createdAt == null || createdAt.isEmpty()) {
             return null;

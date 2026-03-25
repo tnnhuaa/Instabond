@@ -18,7 +18,7 @@ public class UserProfileResponse {
     @SerializedName(value = "phone_number")
     private String phoneNumber;
 
-    @SerializedName("avatar_url")
+    @SerializedName(value = "avatar_url", alternate = {"avatarUrl", "avatar", "profile_picture", "profilePicture"})
     private String avatarUrl;
 
     @SerializedName("posts_count")
