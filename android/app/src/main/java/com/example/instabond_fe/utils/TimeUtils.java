@@ -8,51 +8,77 @@ import java.util.TimeZone;
 
 public class TimeUtils {
     public static String getRelativeTime(String createdAt) {
-        if (createdAt == null || createdAt.isEmpty()) {
-            return "Gần đây";
+        Date date = parseInstant(createdAt);
+        if (date == null) {
+            return "Gan day";
         }
+
+        long diff = safeDiffFromNow(date);
+        if (diff < 60000) {
+            return "Vua xong";
+        } else if (diff < 3600000) {
+            long minutes = Math.max(1, diff / 60000);
+            return minutes + " phut truoc";
+        } else if (diff < 86400000) {
+            long hours = Math.max(1, diff / 3600000);
+            return hours + " gio truoc";
+        } else if (diff < 2592000000L) {
+            long days = Math.max(1, diff / 86400000);
+            return days + " ngay truoc";
+        }
+
+        SimpleDateFormat outFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        return outFormat.format(date);
+    }
+
+    public static String getCompactRelativeTime(String createdAt) {
+        Date date = parseInstant(createdAt);
+        if (date == null) {
+            return "JUST NOW";
+        }
+
+        long diff = safeDiffFromNow(date);
+        if (diff < 60000) {
+            return "JUST NOW";
+        } else if (diff < 3600000) {
+            long minutes = Math.max(1, diff / 60000);
+            return minutes + "M AGO";
+        } else if (diff < 86400000) {
+            long hours = Math.max(1, diff / 3600000);
+            return hours + "H AGO";
+        } else if (diff < 2592000000L) {
+            long days = Math.max(1, diff / 86400000);
+            return days + "D AGO";
+        }
+
+        SimpleDateFormat outFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        return outFormat.format(date).toUpperCase(Locale.getDefault());
+    }
+
+    private static Date parseInstant(String createdAt) {
+        if (createdAt == null || createdAt.isEmpty()) {
+            return null;
+        }
+
         try {
-            // Spring Boot Instant default serialization format
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault());
             sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
             String timeStr = createdAt;
             if (timeStr.contains(".")) {
                 timeStr = timeStr.substring(0, timeStr.indexOf("."));
-            } else if (timeStr.endsWith("Z")) {
+            }
+            if (timeStr.endsWith("Z")) {
                 timeStr = timeStr.substring(0, timeStr.length() - 1);
             }
 
-            Date date = sdf.parse(timeStr);
-            if (date == null)
-                return "Gần đây";
-
-            long time = date.getTime();
-            long now = System.currentTimeMillis();
-            long diff = now - time;
-
-            if (diff < 0) {
-                diff = 0; // Fix clock skew
-            }
-
-            if (diff < 60000) { // < 1 min
-                return "Vừa xong";
-            } else if (diff < 3600000) { // < 1 hour
-                long minutes = diff / 60000;
-                return minutes + " phút trước";
-            } else if (diff < 86400000) { // < 1 day
-                long hours = diff / 3600000;
-                return hours + " giờ trước";
-            } else if (diff < 2592000000L) { // < 30 days
-                long days = diff / 86400000;
-                return days + " ngày trước";
-            } else {
-                SimpleDateFormat outFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-                return outFormat.format(date);
-            }
+            return sdf.parse(timeStr);
         } catch (ParseException e) {
-            e.printStackTrace();
-            return "Gần đây";
+            return null;
         }
+    }
+
+    private static long safeDiffFromNow(Date date) {
+        return Math.max(System.currentTimeMillis() - date.getTime(), 0L);
     }
 }

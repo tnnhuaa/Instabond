@@ -8,6 +8,7 @@ public class Post {
     private final String authorId;
     private final String username;
     private final String caption;
+    private final String createdAt;
     private int likesCount;
     private final int commentsCount;
     private final int sharesCount;
@@ -18,10 +19,16 @@ public class Post {
 
     public Post(String id, String authorId, String username, String caption, int likesCount, int commentsCount, int sharesCount,
                 String avatarUrl, String imageUrl, boolean hasMusicBadge, boolean isLiked) {
+        this(id, authorId, username, caption, null, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, hasMusicBadge, isLiked);
+    }
+
+    public Post(String id, String authorId, String username, String caption, String createdAt, int likesCount, int commentsCount, int sharesCount,
+                String avatarUrl, String imageUrl, boolean hasMusicBadge, boolean isLiked) {
         this.id = id;
         this.authorId = authorId;
         this.username = username;
         this.caption = caption;
+        this.createdAt = createdAt;
         this.likesCount = likesCount;
         this.commentsCount = commentsCount;
         this.sharesCount = sharesCount;
@@ -45,6 +52,10 @@ public class Post {
 
     public String getCaption() {
         return caption;
+    }
+
+    public String getCreatedAt() {
+        return createdAt;
     }
 
     public int getLikesCount() {
