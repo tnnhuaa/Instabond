@@ -106,6 +106,7 @@ public class CreatePostActivity extends AppCompatActivity {
 
     private ActivityResultLauncher<String> pickImageLauncher;
     private ActivityResultLauncher<Void> takePhotoLauncher;
+    private ActivityResultLauncher<Intent> editImageLauncher;
 
     private Uri selectedImageUri;
     private Bitmap sourceBitmap;
@@ -193,10 +194,10 @@ public class CreatePostActivity extends AppCompatActivity {
             if (sourceBitmap == null) {
                 showImageSourceDialog();
             } else {
-                showEditToolsDialog();
+                openImageEditorWithCurrentPreview();
             }
         });
-        binding.btnEditImage.setOnClickListener(v -> showEditToolsDialog());
+        binding.btnEditImage.setOnClickListener(v -> openImageEditorWithCurrentPreview());
         binding.cardLocation.setOnClickListener(v -> showTextInputDialog(
                 getString(R.string.create_post_dialog_location),
                 getString(R.string.create_post_dialog_hint_location),
@@ -225,6 +226,7 @@ public class CreatePostActivity extends AppCompatActivity {
                 sourceBitmap = decodeBitmap(uri);
                 resetEdits(false);
                 renderEditorState();
+                openImageEditor(uri);
             } catch (IOException e) {
                 Toast.makeText(this, R.string.create_post_image_read_error, Toast.LENGTH_SHORT).show();
             }
@@ -238,7 +240,32 @@ public class CreatePostActivity extends AppCompatActivity {
             sourceBitmap = limitBitmapSize(bitmap, MAX_SOURCE_EDGE);
             resetEdits(false);
             renderEditorState();
+            if (selectedImageUri != null) {
+                openImageEditor(selectedImageUri);
+            }
         });
+
+        editImageLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() != RESULT_OK || result.getData() == null) {
+                        return;
+                    }
+
+                    String outputUri = result.getData().getStringExtra(ImageEditorActivity.EXTRA_OUTPUT_URI);
+                    if (outputUri == null || outputUri.trim().isEmpty()) {
+                        return;
+                    }
+
+                    selectedImageUri = Uri.parse(outputUri);
+                    try {
+                        sourceBitmap = decodeBitmap(selectedImageUri);
+                        resetEdits(false);
+                        renderEditorState();
+                    } catch (IOException e) {
+                        Toast.makeText(this, R.string.create_post_image_read_error, Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     private void loadCurrentUser() {
@@ -297,32 +324,29 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private void showEditToolsDialog() {
+        openImageEditorWithCurrentPreview();
+    }
+
+    private void openImageEditorWithCurrentPreview() {
         if (sourceBitmap == null) {
             showImageSourceDialog();
             return;
         }
 
-        String[] options = new String[]{
-                getString(R.string.create_post_choose_gallery),
-                getString(R.string.create_post_take_photo),
-                getString(R.string.create_post_crop_resize),
-                getString(R.string.create_post_reset_edits)
-        };
-        new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.create_post_dialog_photo)
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
-                        pickImageLauncher.launch("image/*");
-                    } else if (which == 1) {
-                        takePhotoLauncher.launch(null);
-                    } else if (which == 2) {
-                        showEditPhotoDialog();
-                    } else {
-                        resetEdits(true);
-                    }
-                })
-                .setNegativeButton(R.string.create_post_cancel, null)
-                .show();
+        Uri editorSource = renderedBitmap != null
+                ? saveBitmapToCacheUri(renderedBitmap)
+                : selectedImageUri;
+        if (editorSource == null) {
+            Toast.makeText(this, R.string.create_post_image_read_error, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        openImageEditor(editorSource);
+    }
+
+    private void openImageEditor(Uri sourceUri) {
+        Intent intent = new Intent(this, ImageEditorActivity.class);
+        intent.putExtra(ImageEditorActivity.EXTRA_INPUT_URI, sourceUri.toString());
+        editImageLauncher.launch(intent);
     }
 
     private void showEditPhotoDialog() {

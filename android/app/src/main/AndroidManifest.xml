@@ -39,6 +39,9 @@
         <activity
             android:name=".view.CreatePostActivity"
             android:exported="false" />
+        <activity
+            android:name=".view.ImageEditorActivity"
+            android:exported="false" />
 
         <activity
             android:name=".view.NewsfeedActivity"
