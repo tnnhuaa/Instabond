@@ -156,18 +156,4 @@ public class MessageRestController {
                 "updated_count", updated
         ));
     }
-
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
-        String msg = ex.getMessage() == null ? "Bad request" : ex.getMessage();
-
-        if (msg.startsWith("Forbidden")) {
-            return ResponseEntity.status(403).body(Map.of("error", msg));
-        }
-        if (msg.contains("not found") || msg.contains("required")) {
-            return ResponseEntity.status(404).body(Map.of("error", msg));
-        }
-
-        return ResponseEntity.badRequest().body(Map.of("error", msg));
-    }
 }

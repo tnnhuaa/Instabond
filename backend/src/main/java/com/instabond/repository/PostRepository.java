@@ -2,6 +2,7 @@ package com.instabond.repository;
 
 import com.instabond.entity.Post;
 import org.bson.types.ObjectId;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -16,4 +17,8 @@ public interface PostRepository extends MongoRepository<Post, String> {
 
     @Query(value = "{}", sort = "{ 'created_at': -1 }")
     List<Post> findAllByOrderByCreatedAtDesc();
+
+    // Logic search
+    @Query("{ '$or': [ { 'caption': { $regex: ?0, $options: 'i' } }, { 'location.name': { $regex: ?0, $options: 'i' } } ] }")
+    List<Post> searchPosts(String keyword, Pageable pageable);
 }

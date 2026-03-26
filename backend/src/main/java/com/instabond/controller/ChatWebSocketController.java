@@ -9,6 +9,7 @@ import com.instabond.service.MessageService;
 import com.instabond.service.NotificationService;
 import com.instabond.service.PresenceService;
 import com.instabond.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -35,7 +36,7 @@ public class ChatWebSocketController {
     private final UserService userService;
 
     @MessageMapping("/chat.send")
-    public void processMessage(@Payload ChatMessageRequest request, Principal principal) {
+    public void processMessage(@Payload @Valid ChatMessageRequest request, Principal principal) {
         System.out.println("Received message: " + request + " from user: " + (principal != null ? principal.getName() : "null"));
 
         if (principal == null) {

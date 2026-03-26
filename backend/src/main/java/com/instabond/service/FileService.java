@@ -3,6 +3,7 @@ package com.instabond.service;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.instabond.dto.UploadResponse;
+import com.instabond.exception.FileStorageException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -62,7 +63,7 @@ public class FileService {
                     .build();
 
         } catch (IOException e) {
-            throw new RuntimeException("Failed to upload image to Cloudinary: " + e.getMessage());
+            throw new FileStorageException("Failed to upload image to Cloudinary", e);
         }
     }
 
@@ -74,19 +75,19 @@ public class FileService {
 
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new RuntimeException("File is required and must not be empty");
+            throw new IllegalArgumentException("File is required and must not be empty");
         }
 
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
                     "Invalid file type: " + contentType +
                     ". Allowed types: jpeg, png, webp, gif, heic, heif"
             );
         }
 
         if (file.getSize() > MAX_SIZE_BYTES) {
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
                     "File too large: " + (file.getSize() / 1024 / 1024) + " MB. Maximum allowed size is 10 MB"
             );
         }

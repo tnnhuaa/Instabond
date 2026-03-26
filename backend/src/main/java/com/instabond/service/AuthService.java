@@ -23,6 +23,8 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     public AuthResponse register(AuthRequest request) {
+        validateRegisterRequest(request);
+
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("The email address has already been used!");
         }
@@ -53,12 +55,14 @@ public class AuthService {
     }
 
     public AuthResponse login(AuthRequest request) {
-        // Check pass, if incorrect => throw err
+        validateLoginRequest(request);
+
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
-        User user = userRepository.findByEmail(request.getEmail()).orElseThrow();
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new com.instabond.exception.ResourceNotFoundException("User not found: " + request.getEmail()));
 
         String accessToken = jwtUtil.generateToken(user.getEmail(), user.getId());
         String refreshToken = jwtUtil.generateRefreshToken(user.getEmail(), user.getId());
@@ -70,12 +74,15 @@ public class AuthService {
     }
 
     public AuthResponse refresh(String refreshToken) {
+        validateRefreshTokenInput(refreshToken);
+
         String email = jwtUtil.extractEmail(refreshToken);
         if (email == null || !jwtUtil.isTokenValid(refreshToken, email)) {
             throw new IllegalArgumentException("Invalid or expired refresh token!");
         }
 
-        User user = userRepository.findByEmail(email).orElseThrow();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new com.instabond.exception.ResourceNotFoundException("User not found: " + email));
 
         String newAccessToken = jwtUtil.generateToken(user.getEmail(), user.getId());
         return AuthResponse.builder()
@@ -83,5 +90,41 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .id(user.getId())
                 .build();
+    }
+
+    private void validateRegisterRequest(AuthRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Request body is required");
+        }
+        if (request.getUsername() == null || request.getUsername().isBlank()) {
+            throw new IllegalArgumentException("Username is required!");
+        }
+        if (!request.getUsername().matches("^[a-zA-Z0-9_.]{4,20}$")) {
+            throw new IllegalArgumentException("Username must be 4-20 characters and only contain letters, numbers, '_' or '.'");
+        }
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new IllegalArgumentException("Email is required!");
+        }
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new IllegalArgumentException("Password is required!");
+        }
+    }
+
+    private void validateLoginRequest(AuthRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Request body is required");
+        }
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new IllegalArgumentException("Email is required!");
+        }
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new IllegalArgumentException("Password is required!");
+        }
+    }
+
+    private void validateRefreshTokenInput(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new IllegalArgumentException("Refresh token is missing!");
+        }
     }
 }
