@@ -20,7 +20,11 @@ public class NotificationItem {
     private final int iconTintRes;
     private final boolean largeChip;
 
+    private final String type;
+    private final String senderId;
     public NotificationItem(
+            String type,
+            String senderId,
             String actor,
             String message,
             String time,
@@ -31,6 +35,8 @@ public class NotificationItem {
             @ColorRes int iconTintRes,
             boolean largeChip
     ) {
+        this.type = type;
+        this.senderId = senderId;
         this.actor = actor;
         this.message = message;
         this.time = time;
@@ -79,4 +85,8 @@ public class NotificationItem {
     public boolean isLargeChip() {
         return largeChip;
     }
+
+    public String getType() { return type; }
+
+    public String getSenderId() { return senderId; }
 }

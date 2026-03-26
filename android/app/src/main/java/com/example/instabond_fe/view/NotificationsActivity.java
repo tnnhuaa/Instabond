@@ -26,6 +26,7 @@ import com.example.instabond_fe.model.Notification;
 import com.example.instabond_fe.model.NotificationPageResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
+import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.WebSocketManager;
 import com.example.instabond_fe.utils.TimeUtils;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
@@ -211,9 +212,18 @@ public class NotificationsActivity extends AppCompatActivity {
                 Toast.makeText(this, "Opening post " + postId, Toast.LENGTH_SHORT).show();
             }
         } else if ("FOLLOW".equals(type)) {
-            Intent intent = new Intent(this, ProfileActivity.class);
-            intent.putExtra("userId", notification.getSenderId());
-            startActivity(intent);
+            String content = notification.getContent();
+            if (content != null && content.contains("sent you a follow request")) {
+                Intent intent = new Intent(this, FollowListActivity.class);
+                intent.putExtra(FollowListActivity.EXTRA_MODE, "requests");
+                SessionManager sessionManager = new SessionManager(this);
+                intent.putExtra(FollowListActivity.EXTRA_USER_ID, sessionManager.getUserId());
+                startActivity(intent);
+            } else {
+                Intent intent = new Intent(this, ProfileActivity.class);
+                intent.putExtra("targetUserId", notification.getSenderId());
+                startActivity(intent);
+            }
         }
     }
     private void bindActions() {

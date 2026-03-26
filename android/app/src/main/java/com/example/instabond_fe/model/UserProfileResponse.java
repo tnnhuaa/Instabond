@@ -32,6 +32,9 @@ public class UserProfileResponse {
 
     @SerializedName(value = "is_private", alternate = {"_private", "private", "isPrivate"})
     private boolean isPrivate;
+
+    @SerializedName("relationship_status")
+    private String relationshipStatus;
     
     public boolean isPrivate() {
         return isPrivate;
@@ -74,6 +77,14 @@ public class UserProfileResponse {
 
     public int getFollowingCount() {
         return followingCount;
+    }
+
+    public String getRelationshipStatus() {
+        return relationshipStatus;
+    }
+
+    public void setRelationshipStatus(String relationshipStatus) {
+        this.relationshipStatus = relationshipStatus;
     }
 }
 

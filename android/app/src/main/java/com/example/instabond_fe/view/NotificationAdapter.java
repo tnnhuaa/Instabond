@@ -25,6 +25,15 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
 
     private final List<NotificationItem> items;
 
+    public interface OnNotificationClickListener {
+        void onClick(NotificationItem item);
+    }
+
+    private OnNotificationClickListener listener;
+
+    public void setListener(OnNotificationClickListener listener) {
+        this.listener = listener;
+    }
     public NotificationAdapter(List<NotificationItem> items) {
         this.items = items;
     }
@@ -40,6 +49,11 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
     @Override
     public void onBindViewHolder(@NonNull NotificationViewHolder holder, int position) {
         holder.bind(items.get(position));
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onClick(items.get(position));
+            }
+        });
     }
 
     @Override

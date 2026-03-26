@@ -151,4 +151,12 @@ public interface ApiService {
 
     @PUT("api/notifications/{id}/read")
     Call<Notification> markNotificationAsRead(@Path("id") String notificationId);
+    @GET("api/users/follow-requests/incoming")
+    Call<List<FollowUserResponse>> getIncomingFollowRequests();
+
+    @POST("api/users/follow-requests/{id}/accept")
+    Call<FollowUserResponse> acceptFollowRequest(@Path("id") String requesterId);
+
+    @POST("api/users/follow-requests/{id}/reject")
+    Call<Void> rejectFollowRequest(@Path("id") String requesterId);
 }

@@ -83,33 +83,17 @@ public class UserService {
         return mongoTemplate.exists(query, Relationship.class);
     }
 
-    private void assertCanViewProfile(User target, String callerPrincipal) {
-        if (!isPrivateAccount(target)) {
-            return;
-        }
-
-        User caller = resolveUserFromPrincipal(callerPrincipal);
-        if (caller.getId().equals(target.getId())) {
-            return;
-        }
-
-        if (!hasAcceptedFollow(caller.getId(), target.getId())) {
-            throw new ForbiddenOperationException("Forbidden - this profile is private");
-        }
-    }
 
     public ProfileResponse getProfile(String userId, String callerPrincipal) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
-        assertCanViewProfile(user, callerPrincipal);
-        return toProfileResponse(user);
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        return toProfileResponseWithStatus(user, callerPrincipal);
     }
 
     public ProfileResponse getProfileByUsername(String username, String callerPrincipal) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
-        assertCanViewProfile(user, callerPrincipal);
-        return toProfileResponse(user);
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+        return toProfileResponseWithStatus(user, callerPrincipal);
     }
 
     // Profile updates
@@ -635,5 +619,32 @@ public class UserService {
         }
 
         return toProfileResponse(savedUser);
+    }
+    private ProfileResponse toProfileResponseWithStatus(User target, String callerPrincipal) {
+        ProfileResponse response = toProfileResponse(target);
+
+        if (callerPrincipal == null || callerPrincipal.isBlank()) {
+            response.setRelationship_status("none");
+            return response;
+        }
+
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+
+        if (caller.getId().equals(target.getId())) {
+            response.setRelationship_status("self");
+            return response;
+        }
+
+        Relationship relationship = mongoTemplate.findOne(
+                relationshipQuery(caller.getId(), target.getId()),
+                Relationship.class);
+
+        if (relationship != null) {
+            response.setRelationship_status(relationship.getStatus());
+        } else {
+            response.setRelationship_status("none");
+        }
+
+        return response;
     }
 }
