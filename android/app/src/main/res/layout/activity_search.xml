@@ -105,6 +105,7 @@
         android:paddingEnd="16dp"
         android:overScrollMode="never"
         android:scrollbars="none"
+        android:visibility="gone"
         app:layout_constraintTop_toBottomOf="@id/search_container">
 
         <LinearLayout
@@ -113,7 +114,7 @@
             android:orientation="horizontal">
 
             <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/chip_for_you"
+                android:id="@+id/chip_posts"
                 android:layout_width="wrap_content"
                 android:layout_height="32dp"
                 android:background="@drawable/search_filter_chip_active_bg"
@@ -121,35 +122,22 @@
                 android:minWidth="80dp"
                 android:paddingStart="20dp"
                 android:paddingEnd="20dp"
-                android:text="@string/search_chip_for_you"
+                android:text="Posts"
                 android:textColor="@color/login_primary_text"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
             <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/chip_users"
                 android:layout_width="wrap_content"
                 android:layout_height="32dp"
                 android:layout_marginStart="8dp"
                 android:background="@drawable/search_filter_chip_inactive_bg"
                 android:gravity="center"
-                android:minWidth="88dp"
+                android:minWidth="80dp"
                 android:paddingStart="20dp"
                 android:paddingEnd="20dp"
-                android:text="@string/search_chip_trending_en"
-                android:textColor="@color/login_text_primary"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="wrap_content"
-                android:layout_height="32dp"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/search_filter_chip_inactive_bg"
-                android:gravity="center"
-                android:minWidth="68dp"
-                android:paddingStart="20dp"
-                android:paddingEnd="20dp"
-                android:text="@string/search_chip_shop"
+                android:text="Users"
                 android:textColor="@color/login_text_primary"
                 android:textSize="14sp"
                 android:textStyle="bold" />

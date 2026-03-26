@@ -6,7 +6,6 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -14,16 +13,25 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivitySearchBinding;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.example.instabond_fe.viewmodel.SearchViewModel;
 
+import java.util.ArrayList;
+
 public class SearchActivity extends AppCompatActivity {
 
     private ActivitySearchBinding binding;
     private SearchViewModel searchViewModel;
+    private SearchPostAdapter searchPostAdapter;
+    private SearchUserAdapter searchUserAdapter;
+
+    private String currentSearchQuery = "";
+    private String currentTab = "POST";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,32 +40,100 @@ public class SearchActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
         getWindow().setStatusBarColor(Color.TRANSPARENT);
 
-        // Initialize ViewModel
         searchViewModel = new ViewModelProvider(this).get(SearchViewModel.class);
-
         binding.bottomNav.bind(this, InstaBottomNavView.Tab.SEARCH);
 
         bindActions();
+        setupRecyclerViews();
+        setupTabs();
         setupSearchInput();
         observeViewModel();
+
+        resetToDefaultExploreState();
     }
 
+    /**
+     * Displaying search results and real-time user suggestions.
+     */
+    private void setupRecyclerViews() {
+        searchPostAdapter = new SearchPostAdapter();
+        searchUserAdapter = new SearchUserAdapter();
+
+        binding.rvSearchResults.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
+        binding.rvSearchResults.setAdapter(searchPostAdapter);
+
+        binding.rvSearchSuggestions.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvSearchSuggestions.setAdapter(searchUserAdapter);
+    }
+
+    /**
+     * Switching between different layouts and data sets seamlessly.
+     */
+    private void setupTabs() {
+        // Click to Tab Posts
+        binding.chipPosts.setOnClickListener(v -> {
+            if (!currentTab.equals("POST")) {
+                currentTab = "POST";
+                updateTabUI();
+
+                binding.rvSearchResults.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
+                binding.rvSearchResults.setAdapter(searchPostAdapter);
+
+                // Fetch API
+                searchViewModel.fetchResults(currentSearchQuery, "POST", 0);
+            }
+        });
+
+        // Click to Tab Users
+        binding.chipUsers.setOnClickListener(v -> {
+            if (!currentTab.equals("USER")) {
+                currentTab = "USER";
+                updateTabUI();
+
+                binding.rvSearchResults.setLayoutManager(new LinearLayoutManager(this));
+                binding.rvSearchResults.setAdapter(searchUserAdapter);
+
+                // Fetch API
+                searchViewModel.fetchResults(currentSearchQuery, "USER", 0);
+            }
+        });
+    }
+
+    /**
+     * Updates the visual state of the filter tabs (background colors) to indicate which tab is currently active.
+     */
+    private void updateTabUI() {
+        if (currentTab.equals("POST")) {
+            binding.chipPosts.setBackgroundResource(R.drawable.search_filter_chip_active_bg);
+            binding.chipUsers.setBackgroundResource(R.drawable.search_filter_chip_inactive_bg);
+        } else {
+            binding.chipPosts.setBackgroundResource(R.drawable.search_filter_chip_inactive_bg);
+            binding.chipUsers.setBackgroundResource(R.drawable.search_filter_chip_active_bg);
+        }
+    }
+
+    /**
+     * Configures the search input field, including real-time typing detection for
+     * suggestions (debounce) and keyboard action handling for submitting the search.
+     */
     private void setupSearchInput() {
-        // Listen to text changes for real-time search suggestions
         binding.etSearch.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // Pass the query to ViewModel to handle debounce
+                String query = s.toString().trim();
                 searchViewModel.onSearchQueryChanged(s.toString());
 
-                // Show suggestion list when typing, hide when empty
-                if (s.length() > 0) {
+                // Hide tabs while typing
+                binding.chipsScroll.setVisibility(View.GONE);
+
+                if (query.length() > 0) {
+                    binding.rvSearchResults.setVisibility(View.GONE);
                     binding.rvSearchSuggestions.setVisibility(View.VISIBLE);
                 } else {
-                    binding.rvSearchSuggestions.setVisibility(View.GONE);
+                    resetToDefaultExploreState();
                 }
             }
 
@@ -65,45 +141,78 @@ public class SearchActivity extends AppCompatActivity {
             public void afterTextChanged(Editable s) {}
         });
 
-        // Listen to the ENTER (Search) action on the soft keyboard
         binding.etSearch.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                String query = binding.etSearch.getText().toString();
-
-                // Trigger POST search by default when hitting Enter
-                searchViewModel.fetchResults(query, "POST", 0);
-
-                // Hide suggestion list to show results
-                binding.rvSearchSuggestions.setVisibility(View.GONE);
-
-                // Hide the soft keyboard for better UX
+                currentSearchQuery = binding.etSearch.getText().toString().trim();
                 hideKeyboard();
+
+                if (currentSearchQuery.isEmpty()) {
+                    resetToDefaultExploreState();
+                    return true;
+                }
+
+                // Enter => Visible Tab, Show Results, Hide Suggestions
+                binding.chipsScroll.setVisibility(View.VISIBLE);
+                binding.rvSearchSuggestions.setVisibility(View.GONE);
+                binding.rvSearchResults.setVisibility(View.VISIBLE);
+
+                updateTabUI();
+
+                if (currentTab.equals("POST")) {
+                    binding.rvSearchResults.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
+                    binding.rvSearchResults.setAdapter(searchPostAdapter);
+                } else {
+                    binding.rvSearchResults.setLayoutManager(new LinearLayoutManager(this));
+                    binding.rvSearchResults.setAdapter(searchUserAdapter);
+                }
+
+                // Fetch API based on current tab
+                searchViewModel.fetchResults(currentSearchQuery, currentTab, 0);
+
                 return true;
             }
             return false;
         });
     }
 
+    /**
+     * Resets the UI to the default Explore state (empty search query), hiding suggestions and tabs while showing the default post grid.
+     */
+    private void resetToDefaultExploreState() {
+        binding.chipsScroll.setVisibility(View.GONE);
+        binding.rvSearchSuggestions.setVisibility(View.GONE);
+        binding.rvSearchResults.setVisibility(View.VISIBLE);
+
+        binding.rvSearchResults.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
+        binding.rvSearchResults.setAdapter(searchPostAdapter);
+
+        // Reset list
+        searchPostAdapter.setPosts(new ArrayList<>());
+
+        // TODO: Explore API
+        // e.g. searchViewModel.fetchExplorePosts();
+    }
+
+    /**
+     * Subscribes to LiveData emitted by the ViewModel to automatically update the RecyclerView adapters when new search suggestions or results arrive.
+     */
     private void observeViewModel() {
-        // Observe Search Suggestions (As the user types)
         searchViewModel.getSuggestionsLiveData().observe(this, users -> {
             if (users != null) {
-                Log.d("SEARCH_TEST", "Received " + users.size() + " user suggestions!");
-                for (int i = 0; i < users.size(); i++) {
-                    Log.d("SEARCH_TEST", "Suggested user: " + users.get(i).getUsername());
-                }
+                searchUserAdapter.setUsers(users);
             }
         });
 
-        // Observe Search Results (After the user presses Enter)
         searchViewModel.getPostResultsLiveData().observe(this, posts -> {
             if (posts != null) {
-                Log.d("SEARCH_TEST", "Received " + posts.size() + " post results!");
-                Toast.makeText(this, "Found " + posts.size() + " posts!", Toast.LENGTH_SHORT).show();
+                searchPostAdapter.setPosts(posts);
             }
         });
     }
 
+    /**
+     * Binds click events to the top toolbar actions.
+     */
     private void bindActions() {
         binding.btnCamera.setOnClickListener(v ->
                 startActivity(new Intent(this, CreatePostActivity.class)));
@@ -112,7 +221,7 @@ public class SearchActivity extends AppCompatActivity {
     }
 
     /**
-     * Helper method to hide the soft keyboard after executing a search.
+     * Utility method to forcibly hide the software keyboard after a search is submitted or when the user navigates away.
      */
     private void hideKeyboard() {
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
