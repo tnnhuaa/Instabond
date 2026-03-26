@@ -55,4 +55,24 @@ public class SearchController {
 
         return ResponseEntity.ok(searchContext.executeSuggest(type, q));
     }
+
+    @GetMapping("/explore")
+    @Operation(
+            summary = "Get explore posts",
+            description = "Returns a randomized, paginated list of posts for the explore feed. Uses a seed to maintain consistent pagination without duplicates."
+    )
+    public ResponseEntity<?> getExplorePosts(
+            @Parameter(description = "Seed for randomizing the feed consistently", example = "1711234567890")
+            @RequestParam(defaultValue = "0") long seed,
+
+            @Parameter(description = "Zero-based page index")
+            @RequestParam(defaultValue = "0") int page,
+
+            @Parameter(description = "Number of items per page")
+            @RequestParam(defaultValue = "20") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        return ResponseEntity.ok(searchContext.executeExplore(seed, pageable));
+    }
 }

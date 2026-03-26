@@ -11,13 +11,15 @@ import java.util.stream.Collectors;
 @Component
 public class SearchContext {
     private final Map<String, SearchStrategy> strategies;
+    private final PostSearchStrategy postSearchStrategy;
 
-    public SearchContext(List<SearchStrategy> strategyList) {
+    public SearchContext(List<SearchStrategy> strategyList, PostSearchStrategy postSearchStrategy) {
         this.strategies = strategyList.stream()
                 .collect(Collectors.toMap(
                         strategy -> strategy.getType().toUpperCase(),
                         Function.identity()
                 ));
+        this.postSearchStrategy = postSearchStrategy;
     }
 
     public List<?> executeSearch(String type, String keyword, Pageable pageable) {
@@ -38,5 +40,9 @@ public class SearchContext {
         }
 
         return strategy.suggest(keyword);
+    }
+
+    public List<?> executeExplore(long seed, Pageable pageable) {
+        return postSearchStrategy.explore(seed, pageable);
     }
 }

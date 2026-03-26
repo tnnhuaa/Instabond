@@ -175,4 +175,11 @@ public interface ApiService {
             @Query("page") int page,
             @Query("size") int size
     );
+
+    @GET("api/v1/search/explore")
+    Call<JsonElement> getExplorePosts(
+            @Query("seed") long seed,
+            @Query("page") int page,
+            @Query("size") int size
+    );
 }

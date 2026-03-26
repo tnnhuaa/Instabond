@@ -61,4 +61,23 @@ public class SearchRepository {
             }
         });
     }
+
+    public void fetchExplorePosts(long seed, int page, MutableLiveData<List<PostSearchDTO>> liveData) {
+        apiService.getExplorePosts(seed, page, 20).enqueue(new Callback<JsonElement>() {
+            @Override
+            public void onResponse(Call<JsonElement> call, Response<JsonElement> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    Gson gson = new Gson();
+                    List<PostSearchDTO> posts = gson.fromJson(response.body(), new TypeToken<List<PostSearchDTO>>(){}.getType());
+                    liveData.postValue(posts);
+                } else {
+                    liveData.postValue(null);
+                }
+            }
+            @Override
+            public void onFailure(Call<JsonElement> call, Throwable t) {
+                liveData.postValue(null);
+            }
+        });
+    }
 }

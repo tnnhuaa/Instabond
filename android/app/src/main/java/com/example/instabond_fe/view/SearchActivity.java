@@ -59,8 +59,28 @@ public class SearchActivity extends AppCompatActivity {
         searchPostAdapter = new SearchPostAdapter();
         searchUserAdapter = new SearchUserAdapter();
 
-        binding.rvSearchResults.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
+        StaggeredGridLayoutManager gridLayoutManager = new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL);
+        binding.rvSearchResults.setLayoutManager(gridLayoutManager);
         binding.rvSearchResults.setAdapter(searchPostAdapter);
+
+        binding.rvSearchResults.addOnScrollListener(new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@androidx.annotation.NonNull androidx.recyclerview.widget.RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+
+                // scroll down
+                if (dy > 0 && currentSearchQuery.isEmpty()) {
+                    // Load Explore only when search query is empty
+                    int[] lastVisibleItemPositions = gridLayoutManager.findLastVisibleItemPositions(null);
+                    int lastVisibleItemPosition = Math.max(lastVisibleItemPositions[0], lastVisibleItemPositions[1]);
+                    int totalItemCount = gridLayoutManager.getItemCount();
+
+                    if (lastVisibleItemPosition + 4 >= totalItemCount) {
+                        searchViewModel.loadMoreExplorePosts();
+                    }
+                }
+            }
+        });
 
         binding.rvSearchSuggestions.setLayoutManager(new LinearLayoutManager(this));
         binding.rvSearchSuggestions.setAdapter(searchUserAdapter);
@@ -189,8 +209,8 @@ public class SearchActivity extends AppCompatActivity {
         // Reset list
         searchPostAdapter.setPosts(new ArrayList<>());
 
-        // TODO: Explore API
-        // e.g. searchViewModel.fetchExplorePosts();
+        // Fetch initial explore posts with new random seed
+        searchViewModel.fetchInitialExplorePosts();
     }
 
     /**
@@ -205,6 +225,12 @@ public class SearchActivity extends AppCompatActivity {
 
         searchViewModel.getPostResultsLiveData().observe(this, posts -> {
             if (posts != null) {
+                searchPostAdapter.setPosts(posts);
+            }
+        });
+
+        searchViewModel.getExploreResultsLiveData().observe(this, posts -> {
+            if (posts != null && currentSearchQuery.isEmpty()) {
                 searchPostAdapter.setPosts(posts);
             }
         });

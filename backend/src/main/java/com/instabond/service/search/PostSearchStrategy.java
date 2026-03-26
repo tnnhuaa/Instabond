@@ -4,11 +4,16 @@ import com.instabond.dto.PostSearchDTO;
 import com.instabond.entity.Post;
 import com.instabond.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +34,37 @@ public class PostSearchStrategy implements SearchStrategy {
     @Override
     public List<?> suggest(String keyword) {
         throw new UnsupportedOperationException("Search suggestions are only supported for USER type");
+    }
+
+    public List<PostSearchDTO> explore(long seed, Pageable pageable) {
+        List<String> shuffledIds = postRepository.findAllPostIds().stream()
+                .map(PostRepository.PostIdProjection::getId)
+                .filter(id -> id != null && !id.isBlank())
+                .collect(Collectors.toList());
+
+        if (shuffledIds.isEmpty()) {
+            return List.of();
+        }
+
+        Collections.shuffle(shuffledIds, new Random(seed));
+
+        int fromIndex = (int) pageable.getOffset();
+        if (fromIndex >= shuffledIds.size()) {
+            return List.of();
+        }
+
+        int toIndex = Math.min(fromIndex + pageable.getPageSize(), shuffledIds.size());
+        List<String> pagedIds = shuffledIds.subList(fromIndex, toIndex);
+
+        List<Post> posts = postRepository.findByIdIn(pagedIds);
+
+        Map<String, Integer> orderIndex = IntStream.range(0, pagedIds.size())
+                .boxed()
+                .collect(Collectors.toMap(pagedIds::get, i -> i));
+
+        posts.sort(Comparator.comparingInt(post -> orderIndex.getOrDefault(post.getId(), Integer.MAX_VALUE)));
+
+        return posts.stream().map(this::mapToDTO).collect(Collectors.toList());
     }
 
     private PostSearchDTO mapToDTO(Post post) {
