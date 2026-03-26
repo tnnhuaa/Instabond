@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +24,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -53,7 +53,7 @@ public class PostController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PostResponse> createPost(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestPart(value = "request", required = false) CreatePostRequest request,
+            @Valid @RequestPart(value = "request", required = false) CreatePostRequest request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files) {
 
         String callerEmail = getUserId(userDetails);
@@ -188,7 +188,7 @@ public class PostController {
             @Parameter(description = "ID of the post to update", example = "64f1a2b3c4d5e6f7a8b9c0d1")
             @PathVariable String postId,
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody UpdatePostRequest request) {
+            @Valid @RequestBody UpdatePostRequest request) {
 
         String userId = getUserId(userDetails);
         return ResponseEntity.ok(postService.updatePost(postId, userId, request));
@@ -313,7 +313,7 @@ public class PostController {
     public ResponseEntity<CommentResponse> addComment(
             @Parameter(description = "ID of the target post", example = "65b444444444444444444441")
             @PathVariable String postId,
-            @RequestBody CreateCommentRequest request,
+            @Valid @RequestBody CreateCommentRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
 
         return ResponseEntity.status(201).body(postService.addComment(postId, getUserId(userDetails), request));
@@ -364,18 +364,5 @@ public class PostController {
     // Returns the email (username) of the currently authenticated user
     private String getUserId(UserDetails userDetails) {
         return userDetails.getUsername();
-    }
-
-    // Global exception handler
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
-        String msg = ex.getMessage();
-        if (msg != null && msg.startsWith("Forbidden")) {
-            return ResponseEntity.status(403).body(Map.of("error", msg));
-        }
-        if (msg != null && (msg.contains("not found") || msg.contains("Not found"))) {
-            return ResponseEntity.status(404).body(Map.of("error", msg));
-        }
-        return ResponseEntity.status(400).body(Map.of("error", msg != null ? msg : "Bad request"));
     }
 }

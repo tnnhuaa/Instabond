@@ -4,6 +4,7 @@ import com.instabond.dto.ConversationDTO;
 import com.instabond.dto.ConversationPageResponse;
 import com.instabond.entity.Conversation;
 import com.instabond.entity.User;
+import com.instabond.exception.ResourceNotFoundException;
 import com.instabond.repository.ConversationRepository;
 import com.instabond.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +46,7 @@ public class ConversationService {
 
     public List<String> getParticipantEmail(String conversationId) {
         Conversation conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new RuntimeException("Conversation not found: " + conversationId));
+                .orElseThrow(() -> new ResourceNotFoundException("Conversation not found: " + conversationId));
 
         List<String> participantIds = conversation.getParticipants();
 

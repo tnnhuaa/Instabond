@@ -4,6 +4,8 @@ import com.instabond.dto.WsEvent;
 import com.instabond.entity.Notification;
 import com.instabond.entity.Post;
 import com.instabond.entity.User;
+import com.instabond.exception.ForbiddenOperationException;
+import com.instabond.exception.ResourceNotFoundException;
 import com.instabond.repository.NotificationRepository;
 import com.instabond.repository.PostRepository;
 import com.instabond.repository.UserRepository;
@@ -228,10 +230,10 @@ public class NotificationService {
 
     public Notification markAsRead(String notificationId, String recipientId) {
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new RuntimeException("Notification not found: " + notificationId));
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found: " + notificationId));
 
         if (!recipientId.equals(notification.getRecipient_id())) {
-            throw new RuntimeException("Forbidden: this notification does not belong to current user");
+            throw new ForbiddenOperationException("This notification does not belong to current user");
         }
 
         if (notification.is_read()) {

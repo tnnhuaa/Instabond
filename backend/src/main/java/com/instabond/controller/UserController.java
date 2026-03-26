@@ -4,6 +4,7 @@ import com.instabond.dto.FollowUserResponse;
 import com.instabond.dto.ProfileResponse;
 import com.instabond.dto.UpdatePrivacyRequest;
 import com.instabond.dto.UpdateProfileRequest;
+import com.instabond.exception.ForbiddenOperationException;
 import com.instabond.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +24,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -64,7 +65,7 @@ public class UserController {
     @PatchMapping("/me/privacy")
     public ResponseEntity<ProfileResponse> updateMyPrivacy(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody UpdatePrivacyRequest request) {
+            @Valid @RequestBody UpdatePrivacyRequest request) {
 
         return ResponseEntity.ok(userService.updateMyPrivacy(userDetails.getUsername(), request.getIs_private()));
     }
@@ -192,11 +193,11 @@ public class UserController {
             @Parameter(description = "ID of the user to update", example = "64f1a2b3c4d5e6f7a8b9c0d1")
             @PathVariable String id,
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody UpdateProfileRequest request) {
+            @Valid @RequestBody UpdateProfileRequest request) {
 
         String callerId = userService.getMe(userDetails.getUsername()).getId();
         if (!id.equals(callerId)) {
-            return ResponseEntity.status(403).body("Forbidden — you cannot update another user's profile.");
+            throw new ForbiddenOperationException("Forbidden - you cannot update another user's profile.");
         }
 
         return ResponseEntity.ok(userService.updateProfile(id, request));
@@ -232,7 +233,7 @@ public class UserController {
 
         String callerId = userService.getMe(userDetails.getUsername()).getId();
         if (!id.equals(callerId)) {
-            return ResponseEntity.status(403).body("Forbidden — you cannot update another user's avatar.");
+            throw new ForbiddenOperationException("Forbidden - you cannot update another user's avatar.");
         }
 
         return ResponseEntity.ok(userService.updateAvatar(id, file));
@@ -530,17 +531,5 @@ public class UserController {
 
         userService.cancelSentFollowRequest(recipientId, userDetails.getUsername());
         return ResponseEntity.noContent().build();
-    }
-
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
-        String msg = ex.getMessage();
-        if (msg != null && msg.startsWith("Forbidden")) {
-            return ResponseEntity.status(403).body(Map.of("error", msg));
-        }
-        if (msg != null && (msg.contains("not found") || msg.contains("Not found"))) {
-            return ResponseEntity.status(404).body(Map.of("error", msg));
-        }
-        return ResponseEntity.status(400).body(Map.of("error", msg != null ? msg : "Bad request"));
     }
 }

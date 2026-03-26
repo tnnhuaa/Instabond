@@ -5,6 +5,7 @@ import com.instabond.dto.ChatMessageResponse;
 import com.instabond.dto.WsEvent;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -23,7 +24,7 @@ public class ChatWebSocketDocsController {
             description = "**Protocol:** STOMP WebSocket\n\n**Destination:** `/app/chat.send`\n\n*Note: This is a virtual endpoint to expose the request body for the Mobile team.*"
     )
     @PostMapping("/app/chat.send")
-    public void documentSendMessage(@RequestBody ChatMessageRequest request) {
+    public void documentSendMessage(@Valid @RequestBody ChatMessageRequest request) {
         throw new UnsupportedOperationException("Virtual endpoint for Swagger docs only.");
     }
 
