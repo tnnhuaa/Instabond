@@ -2,6 +2,8 @@ package com.instabond.controller;
 
 import com.instabond.dto.AuthRequest;
 import com.instabond.dto.AuthResponse;
+import com.instabond.dto.ForgotPasswordRequest;
+import com.instabond.dto.ResetPasswordRequest;
 import com.instabond.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -68,5 +70,35 @@ public class AuthController {
 
         AuthResponse response = authService.refresh(authHeader.substring(7));
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Forgot Password",
+            description = "Send a 6-digit OTP to the user's email if it exists in the system."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OTP sent successfully"),
+            @ApiResponse(responseCode = "404", description = "Email not found")
+    })
+    @SecurityRequirements
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok("OTP has been sent to your email.");
+    }
+
+    @Operation(
+            summary = "Reset Password",
+            description = "Verify the OTP and set a new password for the user."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Password has been reset successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid or expired OTP")
+    })
+    @SecurityRequirements
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok("Password has been reset successfully.");
     }
 }

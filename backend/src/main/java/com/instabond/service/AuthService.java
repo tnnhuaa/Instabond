@@ -2,6 +2,8 @@ package com.instabond.service;
 
 import com.instabond.dto.AuthRequest;
 import com.instabond.dto.AuthResponse;
+import com.instabond.dto.ForgotPasswordRequest;
+import com.instabond.dto.ResetPasswordRequest;
 import com.instabond.entity.User;
 import com.instabond.repository.UserRepository;
 import com.instabond.security.JwtUtil;
@@ -21,6 +23,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
+    private final OtpService otpService;
+    private final EmailService emailService;
 
     public AuthResponse register(AuthRequest request) {
         validateRegisterRequest(request);
@@ -90,6 +94,30 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .id(user.getId())
                 .build();
+    }
+
+    // FORGOT PASSWORD FLOW: Check mail -> Send OTP
+    public void forgotPassword(ForgotPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new com.instabond.exception.ResourceNotFoundException("Email not found: " + request.getEmail()));
+
+        // Save OTP to Redis and send email
+        String otpCode = otpService.generateAndSaveOtp(user.getEmail());
+        emailService.sendOtpEmail(user.getEmail(), otpCode);
+    }
+
+    // RESET PASSWORD FLOW: Verify OTP -> Update password
+    public void resetPassword(ResetPasswordRequest request) {
+        boolean isValidOtp = otpService.verifyOtp(request.getEmail(), request.getOtp());
+        if (!isValidOtp) {
+            throw new IllegalArgumentException("Invalid or expired OTP!");
+        }
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new com.instabond.exception.ResourceNotFoundException("User not found!"));
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 
     private void validateRegisterRequest(AuthRequest request) {
