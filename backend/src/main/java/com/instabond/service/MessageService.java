@@ -5,6 +5,8 @@ import com.instabond.dto.ChatMessageResponse;
 import com.instabond.entity.Conversation;
 import com.instabond.entity.Message;
 import com.instabond.entity.User;
+import com.instabond.exception.ForbiddenOperationException;
+import com.instabond.exception.ResourceNotFoundException;
 import com.instabond.repository.ConversationRepository;
 import com.instabond.repository.MessageRepository;
 import com.instabond.repository.UserRepository;
@@ -31,7 +33,7 @@ public class MessageService {
 
     public Message saveTextMessage(ChatMessageRequest request, String senderEmail) {
         if (request == null) {
-            throw new RuntimeException("Message payload is not valid");
+            throw new IllegalArgumentException("Message payload is not valid");
         }
 
         String conversationId = trimToNull(request.getConversationId());
@@ -39,13 +41,13 @@ public class MessageService {
         String type = normalizeType(request.getType());
 
         if (conversationId == null) {
-            throw new RuntimeException("conversation_id is required");
+            throw new IllegalArgumentException("conversation_id is required");
         }
         if (content == null) {
-            throw new RuntimeException("Content is required");
+            throw new IllegalArgumentException("Content is required");
         }
         if (!"text".equals(type)) {
-            throw new RuntimeException("saveTextMessage only support type = 'text'");
+            throw new IllegalArgumentException("saveTextMessage only support type = 'text'");
         }
 
         User sender = resolveUserByEmail(senderEmail);
@@ -70,10 +72,10 @@ public class MessageService {
 
     public Message saveImageMessage(String conversationId, MultipartFile file, String senderEmail) {
         if (trimToNull(conversationId) == null) {
-            throw new RuntimeException("conversation_id is required");
+            throw new IllegalArgumentException("conversation_id is required");
         }
         if (file == null || file.isEmpty()) {
-            throw new RuntimeException("File image is not valid");
+            throw new IllegalArgumentException("File image is not valid");
         }
 
         User sender = resolveUserByEmail(senderEmail);
@@ -99,7 +101,7 @@ public class MessageService {
 
     public List<Message> getConversationHistory(String conversationId, String requesterEmail, int page, int size) {
         if (trimToNull(conversationId) == null) {
-            throw new RuntimeException("conversation_id is required");
+            throw new IllegalArgumentException("conversation_id is required");
         }
 
         // Limit size to prevent users from requesting too many messages at once
@@ -115,7 +117,7 @@ public class MessageService {
 
     public int markMessagesAsRead(String conversationId, String readerEmail) {
         if (trimToNull(conversationId) == null) {
-            throw new RuntimeException("conversation_id is required");
+            throw new IllegalArgumentException("conversation_id is required");
         }
 
         User reader = resolveUserByEmail(readerEmail);
@@ -164,16 +166,16 @@ public class MessageService {
 
     private User resolveUserByEmail(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Email not found: " + email));
+                .orElseThrow(() -> new ResourceNotFoundException("Email not found: " + email));
     }
 
     private Conversation resolveConversationAndValidateParticipant(String conversationId, String userId) {
         Conversation conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new RuntimeException("Conservation not found: " + conversationId));
+                .orElseThrow(() -> new ResourceNotFoundException("Conversation not found: " + conversationId));
 
         // Ensure the user is a participant of the conversation before allowing them to send messages or view history
         if (conversation.getParticipants() == null || !conversation.getParticipants().contains(userId)) {
-            throw new RuntimeException("Forbidden: User is not a participant of this conversation");
+            throw new ForbiddenOperationException("User is not a participant of this conversation");
         }
 
         return conversation;

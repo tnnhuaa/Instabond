@@ -7,6 +7,8 @@ import com.instabond.dto.UpdateProfileRequest;
 import com.instabond.entity.Post;
 import com.instabond.entity.Relationship;
 import com.instabond.entity.User;
+import com.instabond.exception.ForbiddenOperationException;
+import com.instabond.exception.ResourceNotFoundException;
 import com.instabond.repository.RelationshipRepository;
 import com.instabond.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +38,7 @@ public class UserService {
     // GET id
     public String getUserIdByEmail(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"))
                 .getId();
     }
 
@@ -85,20 +87,20 @@ public class UserService {
     public ProfileResponse getProfile(String userId, String callerPrincipal) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
-        return toProfileResponseWithStatus(user, callerPrincipal); // Sửa dòng này
+        return toProfileResponseWithStatus(user, callerPrincipal);
     }
 
     public ProfileResponse getProfileByUsername(String username, String callerPrincipal) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found: " + username));
-        return toProfileResponseWithStatus(user, callerPrincipal); // Sửa dòng này
+        return toProfileResponseWithStatus(user, callerPrincipal);
     }
 
     // Profile updates
 
     public ProfileResponse updateProfile(String userId, UpdateProfileRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         if (request.getFull_name() != null)
             user.setFull_name(request.getFull_name());
@@ -123,7 +125,7 @@ public class UserService {
 
     public ProfileResponse updateAvatar(String userId, MultipartFile file) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         user.setAvatar_url(fileService.uploadImageUrl(file));
         return toProfileResponse(userRepository.save(user));
@@ -199,7 +201,7 @@ public class UserService {
 
     public List<FollowUserResponse> getFollowers(String userId, String callerPrincipal) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
-        userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         Query query = new Query(new Criteria().andOperator(
                 idCriteria("recipient_id", userId),
@@ -217,7 +219,7 @@ public class UserService {
 
     public List<FollowUserResponse> getFollowing(String userId, String callerPrincipal) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
-        userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         Query query = new Query(new Criteria().andOperator(
                 idCriteria("requester_id", userId),
@@ -235,7 +237,7 @@ public class UserService {
 
     public List<FollowUserResponse> getFriends(String userId, String callerPrincipal) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
-        userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         Query followingQuery = new Query(new Criteria().andOperator(
                 idCriteria("requester_id", userId),
@@ -262,10 +264,10 @@ public class UserService {
     public FollowUserResponse followUser(String targetUserId, String callerPrincipal) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
         User target = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + targetUserId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + targetUserId));
 
         if (caller.getId().equals(target.getId())) {
-            throw new RuntimeException("Forbidden — you cannot follow yourself");
+            throw new ForbiddenOperationException("Forbidden - you cannot follow yourself");
         }
 
         Relationship relationship = mongoTemplate.findOne(
@@ -307,10 +309,10 @@ public class UserService {
     public void unfollowUser(String targetUserId, String callerPrincipal) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
         userRepository.findById(targetUserId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + targetUserId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + targetUserId));
 
         if (caller.getId().equals(targetUserId)) {
-            throw new RuntimeException("Forbidden — you cannot unfollow yourself");
+            throw new ForbiddenOperationException("Forbidden - you cannot unfollow yourself");
         }
 
         Relationship relationship = mongoTemplate.findOne(
@@ -318,7 +320,7 @@ public class UserService {
                 Relationship.class);
 
         if (relationship == null) {
-            throw new RuntimeException("Relationship not found");
+            throw new ResourceNotFoundException("Relationship not found");
         }
 
         relationshipRepository.deleteById(relationship.getId());
@@ -327,10 +329,10 @@ public class UserService {
     public void removeFollower(String followerUserId, String callerPrincipal) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
         userRepository.findById(followerUserId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + followerUserId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + followerUserId));
 
         if (caller.getId().equals(followerUserId)) {
-            throw new RuntimeException("Forbidden — you cannot remove yourself");
+            throw new ForbiddenOperationException("Forbidden - you cannot remove yourself");
         }
 
         Relationship relationship = mongoTemplate.findOne(
@@ -338,7 +340,7 @@ public class UserService {
                 Relationship.class);
 
         if (relationship == null) {
-            throw new RuntimeException("Relationship not found");
+            throw new ResourceNotFoundException("Relationship not found");
         }
 
         relationshipRepository.deleteById(relationship.getId());
@@ -375,14 +377,14 @@ public class UserService {
     public void cancelSentFollowRequest(String recipientId, String callerPrincipal) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
         userRepository.findById(recipientId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + recipientId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + recipientId));
 
         Relationship relationship = mongoTemplate.findOne(
                 relationshipQuery(caller.getId(), recipientId),
                 Relationship.class);
 
         if (relationship == null || !"pending".equalsIgnoreCase(relationship.getStatus())) {
-            throw new RuntimeException("Pending follow request not found");
+            throw new ResourceNotFoundException("Pending follow request not found");
         }
 
         relationshipRepository.deleteById(relationship.getId());
@@ -391,14 +393,14 @@ public class UserService {
     public FollowUserResponse acceptFollowRequest(String requesterId, String callerPrincipal) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
         User requester = userRepository.findById(requesterId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + requesterId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + requesterId));
 
         Relationship relationship = mongoTemplate.findOne(
                 relationshipQuery(requester.getId(), caller.getId()),
                 Relationship.class);
 
         if (relationship == null || !"pending".equalsIgnoreCase(relationship.getStatus())) {
-            throw new RuntimeException("Follow request not found");
+            throw new ResourceNotFoundException("Follow request not found");
         }
 
         relationship.setStatus("accepted");
@@ -414,14 +416,14 @@ public class UserService {
     public void rejectFollowRequest(String requesterId, String callerPrincipal) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
         userRepository.findById(requesterId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + requesterId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + requesterId));
 
         Relationship relationship = mongoTemplate.findOne(
                 relationshipQuery(requesterId, caller.getId()),
                 Relationship.class);
 
         if (relationship == null || !"pending".equalsIgnoreCase(relationship.getStatus())) {
-            throw new RuntimeException("Follow request not found");
+            throw new ResourceNotFoundException("Follow request not found");
         }
 
         relationship.setStatus("rejected");
@@ -434,14 +436,14 @@ public class UserService {
     public FollowUserResponse setCloseFriend(String targetUserId, String callerPrincipal, boolean isCloseFriend) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
         User target = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + targetUserId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + targetUserId));
 
         Relationship relationship = mongoTemplate.findOne(
                 relationshipQuery(caller.getId(), target.getId()),
                 Relationship.class);
 
         if (relationship == null || !"accepted".equalsIgnoreCase(relationship.getStatus())) {
-            throw new RuntimeException("Relationship not found");
+            throw new ResourceNotFoundException("Relationship not found");
         }
 
         relationship.setType(isCloseFriend ? "close_friend" : "follow");
@@ -455,7 +457,7 @@ public class UserService {
     public List<FollowUserResponse> getCloseFriends(String userId, String callerPrincipal) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
         userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         Query query = new Query(new Criteria().andOperator(
                 idCriteria("requester_id", userId),
@@ -479,12 +481,12 @@ public class UserService {
 
     private User resolveUserFromPrincipal(String principal) {
         if (principal == null || principal.isBlank()) {
-            throw new RuntimeException("Invalid user principal");
+            throw new IllegalArgumentException("Invalid user principal");
         }
         return userRepository.findByEmail(principal)
                 .or(() -> userRepository.findByUsername(principal))
                 .or(() -> userRepository.findById(principal))
-                .orElseThrow(() -> new RuntimeException("User not found: " + principal));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + principal));
     }
 
     private Criteria idCriteria(String field, String id) {
@@ -582,7 +584,7 @@ public class UserService {
 
     public ProfileResponse updateMyPrivacy(String callerPrincipal, Boolean isPrivate) {
         if (isPrivate == null) {
-            throw new RuntimeException("is_private is required");
+            throw new IllegalArgumentException("is_private is required");
         }
 
         User user = resolveUserFromPrincipal(callerPrincipal);

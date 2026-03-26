@@ -102,6 +102,10 @@ public class NewsfeedActivity extends AppCompatActivity {
             public void onCommentClicked(Post post, int position) {
                 Intent intent = new Intent(NewsfeedActivity.this, CommentActivity.class);
                 intent.putExtra("postId", post.getId());
+                intent.putExtra("postUsername", post.getUsername());
+                intent.putExtra("postCaption", post.getCaption());
+                intent.putExtra("postAvatarUrl", post.getAvatarUrl());
+                intent.putExtra("postCreatedAt", post.getCreatedAt());
                 startActivity(intent);
             }
 
@@ -304,6 +308,7 @@ public class NewsfeedActivity extends AppCompatActivity {
                     authorId,
                     username,
                     postResponse.getCaption() == null ? "" : postResponse.getCaption(),
+                    postResponse.getCreatedAt(),
                     likes,
                     comments,
                     shares,

@@ -1,20 +1,25 @@
 package com.instabond.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
-@Schema(description = "Request body to update an existing post — only include fields you want to change")
+@Schema(description = "Request body to update an existing post - only include fields you want to change")
 public class UpdatePostRequest {
 
+    @Size(max = 2200, message = "caption must be at most 2200 characters")
     @Schema(description = "Updated caption", example = "Updated caption")
     private String caption;
 
+    @Valid
     @Schema(description = "Updated location tag")
     private LocationRequest location;
 
+    @Valid
     @Schema(description = "Updated list of tagged users")
     private List<TaggedUserRequest> tagged_users;
 

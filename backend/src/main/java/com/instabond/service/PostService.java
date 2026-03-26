@@ -9,6 +9,8 @@ import com.instabond.dto.UploadResponse;
 import com.instabond.entity.Interaction;
 import com.instabond.entity.Post;
 import com.instabond.entity.User;
+import com.instabond.exception.ForbiddenOperationException;
+import com.instabond.exception.ResourceNotFoundException;
 import com.instabond.repository.InteractionRepository;
 import com.instabond.repository.PostRepository;
 import com.instabond.repository.UserRepository;
@@ -44,13 +46,13 @@ public class PostService {
 
     private User resolveUserFromPrincipal(String principal) {
         if (principal == null || principal.isBlank()) {
-            throw new RuntimeException("Invalid user principal");
+            throw new IllegalArgumentException("Invalid user principal");
         }
 
         return userRepository.findByEmail(principal)
                 .or(() -> userRepository.findByUsername(principal))
                 .or(() -> userRepository.findById(principal))
-                .orElseThrow(() -> new RuntimeException("User not found: " + principal));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + principal));
     }
 
     private User resolveAuthorById(String authorId) {
@@ -87,7 +89,7 @@ public class PostService {
         List<Post.Media> mediaList = new ArrayList<>();
         if (files != null && !files.isEmpty()) {
             if (files.size() > 10) {
-                throw new RuntimeException("A post can contain at most 10 images");
+                throw new IllegalArgumentException("A post can contain at most 10 images");
             }
             for (MultipartFile file : files) {
                 if (file == null || file.isEmpty()) {
@@ -101,15 +103,15 @@ public class PostService {
                         .build());
             }
             if (mediaList.isEmpty()) {
-                throw new RuntimeException("At least 1 valid image is required when `files` is provided");
+                throw new IllegalArgumentException("At least 1 valid image is required when `files` is provided");
             }
         } else if (payload.getMedia() != null && !payload.getMedia().isEmpty()) {
             if (payload.getMedia().size() > 10) {
-                throw new RuntimeException("A post can contain at most 10 media items");
+                throw new IllegalArgumentException("A post can contain at most 10 media items");
             }
             for (CreatePostRequest.MediaRequest m : payload.getMedia()) {
                 if (m.getUrl() == null || m.getUrl().isBlank()) {
-                    throw new RuntimeException("Each media item must have a non-empty url");
+                    throw new IllegalArgumentException("Each media item must have a non-empty url");
                 }
                 mediaList.add(Post.Media.builder()
                         .url(m.getUrl().trim())
@@ -160,7 +162,7 @@ public class PostService {
     // Get a single post by ID
     public PostResponse getPostById(String postId, String callerPrincipal) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
         User author = resolveAuthorById(post.getAuthor_id());
         User caller = resolveUserFromPrincipal(callerPrincipal);
         assertCanViewAuthorContent(author, callerPrincipal);
@@ -213,7 +215,7 @@ public class PostService {
     // Get all posts by userId
     public List<PostResponse> getPostsByUserId(String userId, String callerPrincipal) {
         User author = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
         User caller = resolveUserFromPrincipal(callerPrincipal);
         assertCanViewAuthorContent(author, callerPrincipal);
         return findPostsByAuthorId(author.getId()).stream()
@@ -224,7 +226,7 @@ public class PostService {
     // Get all posts by username
     public List<PostResponse> getPostsByUsername(String username, String callerPrincipal) {
         User author = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
         User caller = resolveUserFromPrincipal(callerPrincipal);
         assertCanViewAuthorContent(author, callerPrincipal);
         return findPostsByAuthorId(author.getId()).stream()
@@ -235,7 +237,7 @@ public class PostService {
     // Get all posts by email
     public List<PostResponse> getPostsByEmail(String email, String callerPrincipal) {
         User author = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
         User caller = resolveUserFromPrincipal(callerPrincipal);
         assertCanViewAuthorContent(author, callerPrincipal);
         return findPostsByAuthorId(author.getId()).stream()
@@ -246,7 +248,7 @@ public class PostService {
     // Update post fields (only the author is allowed)
     public PostResponse updatePost(String postId, String callerEmail, UpdatePostRequest request) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
 
         User caller = resolveUserFromPrincipal(callerEmail);
 
@@ -254,7 +256,7 @@ public class PostService {
         String postAuthorId = post.getAuthor_id();
         String callerId = caller.getId();
         if (!normalizeId(postAuthorId).equals(normalizeId(callerId))) {
-            throw new RuntimeException("Forbidden — you are not the author of this post");
+            throw new ForbiddenOperationException("Forbidden - you are not the author of this post");
         }
 
         if (request.getCaption() != null)
@@ -277,13 +279,13 @@ public class PostService {
     // Delete a post (only the author is allowed)
     public void deletePost(String postId, String callerEmail) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
 
         User caller = resolveUserFromPrincipal(callerEmail);
 
         // Compare using normalized string IDs
         if (!normalizeId(post.getAuthor_id()).equals(normalizeId(caller.getId()))) {
-            throw new RuntimeException("Forbidden — you are not the author of this post");
+            throw new ForbiddenOperationException("Forbidden - you are not the author of this post");
         }
 
         postRepository.deleteById(postId);
@@ -291,7 +293,7 @@ public class PostService {
 
     public PostResponse likePost(String postId, String callerPrincipal) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
 
         User caller = resolveUserFromPrincipal(callerPrincipal);
         boolean alreadyLiked = interactionRepository
@@ -321,7 +323,7 @@ public class PostService {
 
     public PostResponse sharePost(String postId, String callerPrincipal) {
         postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
 
         User caller = resolveUserFromPrincipal(callerPrincipal);
 
@@ -341,7 +343,7 @@ public class PostService {
 
     public PostResponse unsharePost(String postId, String callerPrincipal) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
 
         User caller = resolveUserFromPrincipal(callerPrincipal);
 
@@ -359,7 +361,7 @@ public class PostService {
 
     public PostResponse unlikePost(String postId, String callerPrincipal) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
 
         User caller = resolveUserFromPrincipal(callerPrincipal);
         interactionRepository.findOne(caller.getId(), postId, "post", "like")
@@ -376,10 +378,10 @@ public class PostService {
 
     public CommentResponse addComment(String postId, String callerPrincipal, CreateCommentRequest request) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
 
         if (request == null || request.getContent() == null || request.getContent().trim().isEmpty()) {
-            throw new RuntimeException("Comment content is required");
+            throw new IllegalArgumentException("Comment content is required");
         }
 
         User caller = resolveUserFromPrincipal(callerPrincipal);
@@ -407,7 +409,7 @@ public class PostService {
 
     public List<CommentResponse> getComments(String postId) {
         postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
 
         List<Interaction> comments = interactionRepository.findByTargetAndType(postId, "post", "comment");
         Set<String> userIds = comments.stream()
@@ -427,19 +429,19 @@ public class PostService {
 
     public void deleteComment(String postId, String commentId, String callerPrincipal) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
 
         Interaction comment = interactionRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comment not found: " + commentId));
+                .orElseThrow(() -> new ResourceNotFoundException("Comment not found: " + commentId));
 
         if (!postId.equals(comment.getTarget_id()) || !"post".equals(comment.getTarget_type())
                 || !"comment".equals(comment.getType())) {
-            throw new RuntimeException("Comment not found: " + commentId);
+            throw new ResourceNotFoundException("Comment not found: " + commentId);
         }
 
         User caller = resolveUserFromPrincipal(callerPrincipal);
         if (!caller.getId().equals(comment.getUser_id())) {
-            throw new RuntimeException("Forbidden — you are not the author of this comment");
+            throw new ForbiddenOperationException("Forbidden - you are not the author of this comment");
         }
 
         interactionRepository.deleteById(commentId);
@@ -551,7 +553,7 @@ public class PostService {
         }
 
         if (!hasAcceptedFollow(caller.getId(), author.getId())) {
-            throw new RuntimeException("Forbidden — this account is private");
+            throw new ForbiddenOperationException("Forbidden - this account is private");
         }
     }
 }
