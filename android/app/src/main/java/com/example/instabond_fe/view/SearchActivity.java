@@ -1,38 +1,29 @@
 package com.example.instabond_fe.view;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.widget.ImageView;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.util.Log;
+import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 
-import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivitySearchBinding;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
+import com.example.instabond_fe.viewmodel.SearchViewModel;
 
 public class SearchActivity extends AppCompatActivity {
 
-    private static final String FEATURED_LEFT =
-            "https://www.figma.com/api/mcp/asset/6b410331-ffd2-4d80-81e8-d7e87f10b00b";
-    private static final String TOP_RIGHT =
-            "https://www.figma.com/api/mcp/asset/793ab595-8a0f-43d6-837b-d2175dd49f07";
-    private static final String MID_RIGHT =
-            "https://www.figma.com/api/mcp/asset/cf7fb7a4-3e52-47a0-b6ac-5288c73170da";
-    private static final String ROW_THREE_LEFT =
-            "https://www.figma.com/api/mcp/asset/afba4829-ff0b-4812-b672-e25279fe1ee8";
-    private static final String ROW_THREE_RIGHT =
-            "https://www.figma.com/api/mcp/asset/01239621-fa36-4420-899c-1f77417d677e";
-    private static final String ROW_FOUR_LEFT =
-            "https://www.figma.com/api/mcp/asset/a6e2c84e-ae2b-4f31-a8e5-0915ee6edca5";
-    private static final String ROW_FOUR_RIGHT =
-            "https://www.figma.com/api/mcp/asset/c0f072dc-b246-49de-9e73-3ab4771e95ae";
-    private static final String BOTTOM_LEFT =
-            "https://www.figma.com/api/mcp/asset/bd933190-a8ce-4f6a-83f9-8ef3e1ba1206";
-
     private ActivitySearchBinding binding;
+    private SearchViewModel searchViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,20 +32,76 @@ public class SearchActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
         getWindow().setStatusBarColor(Color.TRANSPARENT);
 
+        // Initialize ViewModel
+        searchViewModel = new ViewModelProvider(this).get(SearchViewModel.class);
+
         binding.bottomNav.bind(this, InstaBottomNavView.Tab.SEARCH);
-        bindImages();
+
         bindActions();
+        setupSearchInput();
+        observeViewModel();
     }
 
-    private void bindImages() {
-        loadImage(binding.ivFeaturedLeft, FEATURED_LEFT);
-        loadImage(binding.ivTopRight, TOP_RIGHT);
-        loadImage(binding.ivMidRight, MID_RIGHT);
-        loadImage(binding.ivRowThreeLeft, ROW_THREE_LEFT);
-        loadImage(binding.ivRowThreeRight, ROW_THREE_RIGHT);
-        loadImage(binding.ivRowFourLeft, ROW_FOUR_LEFT);
-        loadImage(binding.ivRowFourRight, ROW_FOUR_RIGHT);
-        loadImage(binding.ivBottomLeft, BOTTOM_LEFT);
+    private void setupSearchInput() {
+        // Listen to text changes for real-time search suggestions
+        binding.etSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Pass the query to ViewModel to handle debounce
+                searchViewModel.onSearchQueryChanged(s.toString());
+
+                // Show suggestion list when typing, hide when empty
+                if (s.length() > 0) {
+                    binding.rvSearchSuggestions.setVisibility(View.VISIBLE);
+                } else {
+                    binding.rvSearchSuggestions.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        // Listen to the ENTER (Search) action on the soft keyboard
+        binding.etSearch.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                String query = binding.etSearch.getText().toString();
+
+                // Trigger POST search by default when hitting Enter
+                searchViewModel.fetchResults(query, "POST", 0);
+
+                // Hide suggestion list to show results
+                binding.rvSearchSuggestions.setVisibility(View.GONE);
+
+                // Hide the soft keyboard for better UX
+                hideKeyboard();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private void observeViewModel() {
+        // Observe Search Suggestions (As the user types)
+        searchViewModel.getSuggestionsLiveData().observe(this, users -> {
+            if (users != null) {
+                Log.d("SEARCH_TEST", "Received " + users.size() + " user suggestions!");
+                for (int i = 0; i < users.size(); i++) {
+                    Log.d("SEARCH_TEST", "Suggested user: " + users.get(i).getUsername());
+                }
+            }
+        });
+
+        // Observe Search Results (After the user presses Enter)
+        searchViewModel.getPostResultsLiveData().observe(this, posts -> {
+            if (posts != null) {
+                Log.d("SEARCH_TEST", "Received " + posts.size() + " post results!");
+                Toast.makeText(this, "Found " + posts.size() + " posts!", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void bindActions() {
@@ -64,10 +111,13 @@ public class SearchActivity extends AppCompatActivity {
                 Toast.makeText(this, getString(R.string.feed_messages_coming_soon), Toast.LENGTH_SHORT).show());
     }
 
-    private void loadImage(ImageView target, String url) {
-        Glide.with(this)
-                .load(url)
-                .centerCrop()
-                .into(target);
+    /**
+     * Helper method to hide the soft keyboard after executing a search.
+     */
+    private void hideKeyboard() {
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null && getCurrentFocus() != null) {
+            imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
+        }
     }
 }
