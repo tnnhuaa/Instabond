@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_primary"
+    android:background="@color/login_card_surface"
     android:padding="16dp">
 
     <LinearLayout
@@ -24,7 +24,8 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/cd_back"
                 android:padding="8dp"
-                android:src="@drawable/ic_arrow_back" />
+                android:src="@drawable/ic_arrow_back"
+                app:tint="@color/login_text_primary" />
 
             <TextView
                 android:id="@+id/tv_settings_title"
@@ -32,7 +33,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:text="@string/title_settings"
-                android:textColor="@color/text_primary"
+                android:textColor="@color/login_text_primary"
                 android:textSize="22sp"
                 android:textStyle="bold" />
 
@@ -43,7 +44,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:text="@string/settings_edit_profile"
-            android:textColor="@color/text_primary"
+            android:textColor="@color/login_text_primary"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -54,17 +55,17 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:hint="@string/hint_full_name"
-            app:boxBackgroundColor="@color/signin_surface"
-            app:boxStrokeColor="@color/signin_border"
-            app:hintTextColor="@color/text_secondary">
+            app:boxBackgroundColor="@color/feed_surface"
+            app:boxStrokeColor="@color/login_bg_start"
+            app:hintTextColor="@color/login_text_secondary">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_full_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textPersonName"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary" />
+                android:textColor="@color/login_text_primary"
+                android:textColorHint="@color/login_text_secondary" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -75,9 +76,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:hint="@string/hint_bio"
-            app:boxBackgroundColor="@color/signin_surface"
-            app:boxStrokeColor="@color/signin_border"
-            app:hintTextColor="@color/text_secondary">
+            app:boxBackgroundColor="@color/feed_surface"
+            app:boxStrokeColor="@color/login_bg_start"
+            app:hintTextColor="@color/login_text_secondary">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_bio"
@@ -85,8 +86,8 @@
                 android:layout_height="wrap_content"
                 android:inputType="textCapSentences|textMultiLine"
                 android:maxLines="3"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary" />
+                android:textColor="@color/login_text_primary"
+                android:textColorHint="@color/login_text_secondary" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -97,17 +98,17 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:hint="@string/hint_phone_number"
-            app:boxBackgroundColor="@color/signin_surface"
-            app:boxStrokeColor="@color/signin_border"
-            app:hintTextColor="@color/text_secondary">
+            app:boxBackgroundColor="@color/feed_surface"
+            app:boxStrokeColor="@color/login_bg_start"
+            app:hintTextColor="@color/login_text_secondary">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_phone_number"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="phone"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary" />
+                android:textColor="@color/login_text_primary"
+                android:textColorHint="@color/login_text_secondary" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -116,24 +117,24 @@
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="14dp"
-            android:background="@drawable/signin_btn_primary_bg"
+            android:background="@drawable/search_follow_button_bg"
             android:text="@string/btn_save_profile"
             android:textAllCaps="false"
-            android:textColor="@color/bg_primary"
+            android:textColor="@color/login_primary_text"
             android:textStyle="bold" />
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="22dp"
-            android:background="@color/divider" />
+            android:background="@color/feed_topbar_overlay" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="@string/settings_privacy"
-            android:textColor="@color/text_primary"
+            android:textColor="@color/login_text_primary"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -150,14 +151,14 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/privacy_label"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/login_text_primary"
                 android:textSize="14sp" />
 
             <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/sw_private_account"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/text_primary" />
+                android:textColor="@color/login_text_primary" />
         </LinearLayout>
 
         <LinearLayout
@@ -173,14 +174,14 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/allow_tagging_label"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/login_text_primary"
                 android:textSize="14sp" />
 
             <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/sw_allow_tagging"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/text_primary" />
+                android:textColor="@color/login_text_primary" />
         </LinearLayout>
 
         <LinearLayout
@@ -189,19 +190,21 @@
             android:layout_marginTop="10dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
+
             <TextView
                 android:id="@+id/tv_theme_label"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/theme_label"
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp" /> 
+                android:textColor="@color/login_text_primary"
+                android:textSize="14sp" />
+
             <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/sw_theme"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/text_primary" />
+                android:textColor="@color/login_text_primary" />
         </LinearLayout>
 
         <Button
@@ -209,10 +212,10 @@
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="200dp"
-            android:background="@drawable/settings_logout_btn_bg"
+            android:background="@drawable/search_follow_back_button_bg"
             android:text="@string/btn_logout"
             android:textAllCaps="false"
-            android:textColor="@color/divider"
+            android:textColor="@color/login_text_primary"
             android:textStyle="bold" />
 
     </LinearLayout>

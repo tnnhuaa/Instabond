@@ -59,6 +59,9 @@ public class ProfileActivity extends AppCompatActivity {
     private ActivityResultLauncher<String> imagePickerLauncher;
 
     private String currentUserId;
+    private String currentAvatarUrl = "";
+    private String currentUsername = "";
+    private ActivityResultLauncher<com.journeyapps.barcodescanner.ScanOptions> barcodeLauncher;
     private boolean isFollowing;
     private boolean isOwnProfileView;
     private ProfileGridAdapter gridAdapter;
@@ -92,7 +95,16 @@ public class ProfileActivity extends AppCompatActivity {
 
         bindHighlightImages();
 
+        Uri data = getIntent().getData();
+        if (data != null && "instabond".equals(data.getScheme())) {
+            String deepLinkUserId = data.getLastPathSegment();
+            if (deepLinkUserId != null) {
+                getIntent().putExtra("targetUserId", deepLinkUserId);
+            }
+        }
+
         String targetUserId = getIntent().getStringExtra("targetUserId");
+        android.util.Log.d("PROFILE_DEBUG", "Nhận được targetUserId từ Intent: " + targetUserId);
         isOwnProfileView = targetUserId == null || targetUserId.equals(sessionManager.getUserId());
 
         if (isOwnProfileView) {
@@ -102,6 +114,42 @@ public class ProfileActivity extends AppCompatActivity {
             configureExternalProfileView(targetUserId);
             loadUserProfile(targetUserId);
         }
+        barcodeLauncher = registerForActivityResult(
+                new com.journeyapps.barcodescanner.ScanContract(),
+                result -> {
+                    if (result.getContents() != null) {
+                        String scannedData = result.getContents();
+                        if (scannedData.startsWith("instabond://user/")) {
+                            String targetId = scannedData.replace("instabond://user/", "").trim();
+                            Intent intent = new Intent(this, ProfileActivity.class);
+                            intent.putExtra("targetUserId", targetId);
+                            startActivity(intent);
+                        }
+                    }
+                });
+
+        binding.btnScanQr.setOnClickListener(v -> {
+            com.journeyapps.barcodescanner.ScanOptions options = new com.journeyapps.barcodescanner.ScanOptions();
+            options.setPrompt("Quét mã QR");
+            options.setBeepEnabled(true);
+            options.setOrientationLocked(true);
+            options.setCaptureActivity(com.journeyapps.barcodescanner.CaptureActivity.class);
+            barcodeLauncher.launch(options);
+        });
+
+        binding.btnShowQr.setOnClickListener(v -> {
+            if (currentUserId == null || currentUserId.isEmpty()) {
+                Toast.makeText(this, "Không thể tải thông tin hồ sơ", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            ProfileQrDialogFragment qrDialog = ProfileQrDialogFragment.newInstance(
+                    currentUserId,
+                    currentUsername,
+                    currentAvatarUrl
+            );
+            qrDialog.show(getSupportFragmentManager(), "ProfileQrDialog");
+        });
     }
 
     private void configureOwnProfileView() {
@@ -149,9 +197,9 @@ public class ProfileActivity extends AppCompatActivity {
                 @Override
                 public void onResponse(Call<Void> call, Response<Void> response) {
                     if (response.isSuccessful()) {
-                        isFollowing = false;
-                        updateFollowButtonUI(false);
-                        Toast.makeText(ProfileActivity.this, "Đã bỏ theo dõi", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(ProfileActivity.this, "Đã hủy yêu cầu/Bỏ theo dõi", Toast.LENGTH_SHORT).show();
+                        // Tải lại hồ sơ để cập nhật giao diện
+                        loadUserProfile(targetUserId);
                     }
                 }
 
@@ -164,9 +212,9 @@ public class ProfileActivity extends AppCompatActivity {
                 @Override
                 public void onResponse(Call<FollowUserResponse> call, Response<FollowUserResponse> response) {
                     if (response.isSuccessful()) {
-                        isFollowing = true;
-                        updateFollowButtonUI(true);
-                        Toast.makeText(ProfileActivity.this, "Đã theo dõi", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(ProfileActivity.this, "Đã gửi yêu cầu/Theo dõi", Toast.LENGTH_SHORT).show();
+                        // Tải lại hồ sơ để cập nhật giao diện
+                        loadUserProfile(targetUserId);
                     }
                 }
 
@@ -174,18 +222,6 @@ public class ProfileActivity extends AppCompatActivity {
                 public void onFailure(Call<FollowUserResponse> call, Throwable t) {
                 }
             });
-        }
-    }
-
-    private void updateFollowButtonUI(boolean following) {
-        if (following) {
-            binding.btnPrimaryAction.setText(R.string.profile_action_following);
-            binding.btnPrimaryAction.setBackgroundResource(R.drawable.search_follow_back_button_bg);
-            binding.btnPrimaryAction.setTextColor(getColor(R.color.login_text_primary));
-        } else {
-            binding.btnPrimaryAction.setText(R.string.profile_action_follow);
-            binding.btnPrimaryAction.setBackgroundResource(R.drawable.search_follow_button_bg);
-            binding.btnPrimaryAction.setTextColor(getColor(R.color.login_primary_text));
         }
     }
 
@@ -202,13 +238,14 @@ public class ProfileActivity extends AppCompatActivity {
             }
         });
     }
-
     private void loadUserProfile(String userId) {
         apiService.getUserProfile(userId).enqueue(new Callback<UserProfileResponse>() {
             @Override
             public void onResponse(Call<UserProfileResponse> call, Response<UserProfileResponse> response) {
+                if (!response.isSuccessful()) {
+                    android.util.Log.e("API_ERROR", "Code: " + response.code() + " Message: " + response.message());
+                }
                 handleProfileResponse(response);
-                checkFollowStatus(userId);
             }
 
             @Override
@@ -218,32 +255,6 @@ public class ProfileActivity extends AppCompatActivity {
         });
     }
 
-    private void checkFollowStatus(String targetUserId) {
-        String myId = sessionManager.getUserId();
-        if (myId == null) {
-            return;
-        }
-
-        apiService.getFollowing(myId).enqueue(new Callback<List<FollowUserResponse>>() {
-            @Override
-            public void onResponse(Call<List<FollowUserResponse>> call, Response<List<FollowUserResponse>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    isFollowing = false;
-                    for (FollowUserResponse user : response.body()) {
-                        if (targetUserId.equals(user.getId())) {
-                            isFollowing = true;
-                            break;
-                        }
-                    }
-                    updateFollowButtonUI(isFollowing);
-                }
-            }
-
-            @Override
-            public void onFailure(Call<List<FollowUserResponse>> call, Throwable t) {
-            }
-        });
-    }
 
     private void handleProfileResponse(Response<UserProfileResponse> response) {
         if (response.code() == 401) {
@@ -252,22 +263,23 @@ public class ProfileActivity extends AppCompatActivity {
         }
 
         if (!response.isSuccessful() || response.body() == null) {
+            android.util.Log.e("PROFILE_DEBUG", "API lỗi hoặc body null. Code: " + response.code());
             Toast.makeText(ProfileActivity.this, "Không tải được hồ sơ", Toast.LENGTH_SHORT).show();
             return;
         }
 
         UserProfileResponse profile = response.body();
         currentUserId = profile.getId();
+
         bindProfile(profile);
-        if (profile.getId() != null && !profile.getId().isEmpty()) {
-            loadUserPosts(profile.getId());
-        }
     }
 
     private void bindProfile(UserProfileResponse profile) {
         if (profile.getId() != null && !profile.getId().trim().isEmpty()) {
             currentUserId = profile.getId();
         }
+        currentUsername = profile.getUsername();
+        currentAvatarUrl = profile.getAvatarUrl();
 
         String displayName = nonEmpty(profile.getUsername(), profile.getFullName(), "Unknown User");
         String subtitle = nonEmpty(profile.getFullName(), "Digital Artist & Storyteller");
@@ -287,14 +299,59 @@ public class ProfileActivity extends AppCompatActivity {
         binding.tvFriendsCount.setText(formatCount(profile.getFollowersCount()));
         binding.tvLikesCount.setText(formatCount(profile.getFollowingCount()));
 
-        binding.tvFriendsCount.setOnClickListener(v -> openFollowList(profile.getId(), "followers"));
-        binding.tvLikesCount.setOnClickListener(v -> openFollowList(profile.getId(), "following"));
-
         Glide.with(this)
                 .load(profile.getAvatarUrl())
                 .placeholder(R.drawable.profile_placeholder_bg)
                 .error(R.drawable.profile_placeholder_bg)
                 .into(binding.ivAvatar);
+
+        String relStatus = profile.getRelationshipStatus();
+        boolean isPrivate = profile.isPrivate();
+
+        if (!isOwnProfileView) {
+            if ("accepted".equals(relStatus)) {
+                isFollowing = true;
+                binding.btnPrimaryAction.setText("Following");
+                binding.btnPrimaryAction.setBackgroundResource(R.drawable.search_follow_back_button_bg);
+                binding.btnPrimaryAction.setTextColor(getColor(R.color.login_text_primary));
+            } else if ("pending".equals(relStatus)) {
+                isFollowing = true;
+                binding.btnPrimaryAction.setText("Pending");
+                binding.btnPrimaryAction.setBackgroundResource(R.drawable.search_follow_back_button_bg);
+                binding.btnPrimaryAction.setTextColor(getColor(R.color.login_text_primary));
+            } else {
+                isFollowing = false;
+                binding.btnPrimaryAction.setText("Follow");
+                binding.btnPrimaryAction.setBackgroundResource(R.drawable.search_follow_button_bg);
+                binding.btnPrimaryAction.setTextColor(getColor(R.color.login_primary_text));
+            }
+        }
+
+        boolean canViewDetails = isOwnProfileView || !isPrivate || "accepted".equals(relStatus);
+
+        if (canViewDetails) {
+            if (binding.layoutPrivateAccount != null) {
+                binding.layoutPrivateAccount.setVisibility(View.GONE);
+            }
+            binding.rvProfileGrid.setVisibility(View.VISIBLE);
+
+            binding.tvFriendsCount.setOnClickListener(v -> openFollowList(profile.getId(), "followers"));
+            binding.tvLikesCount.setOnClickListener(v -> openFollowList(profile.getId(), "following"));
+
+            if (profile.getId() != null && !profile.getId().isEmpty()) {
+                loadUserPosts(profile.getId());
+            }
+        } else {
+            if (binding.layoutPrivateAccount != null) {
+                binding.layoutPrivateAccount.setVisibility(View.VISIBLE);
+            }
+            binding.rvProfileGrid.setVisibility(View.GONE);
+
+            gridAdapter.setPosts(java.util.Collections.emptyList());
+
+            binding.tvFriendsCount.setOnClickListener(v -> Toast.makeText(this, "Bạn cần theo dõi để xem danh sách này", Toast.LENGTH_SHORT).show());
+            binding.tvLikesCount.setOnClickListener(v -> Toast.makeText(this, "Bạn cần theo dõi để xem danh sách này", Toast.LENGTH_SHORT).show());
+        }
     }
 
     private void loadUserPosts(String userId) {
@@ -361,9 +418,12 @@ public class ProfileActivity extends AppCompatActivity {
 
     private void shareProfile() {
         String username = binding.tvFullname.getText().toString().trim();
+        String deepLink = "instabond://user/" + currentUserId;
+        String shareText = "Check out " + username + " on Instabond: " + deepLink;
+
         Intent shareIntent = new Intent(Intent.ACTION_SEND);
         shareIntent.setType("text/plain");
-        shareIntent.putExtra(Intent.EXTRA_TEXT, "Check out " + username + " on Instabond");
+        shareIntent.putExtra(Intent.EXTRA_TEXT, shareText);
         startActivity(Intent.createChooser(shareIntent, getString(R.string.profile_action_share)));
     }
 
