@@ -17,7 +17,23 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.example.instabond_fe.model.FollowUserResponse;
+import com.example.instabond_fe.model.Conversation;
+import com.example.instabond_fe.model.ChatMessageRequest;
+import com.example.instabond_fe.model.ChatMessageResponse;
+import com.example.instabond_fe.network.SessionManager;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.LayoutInflater;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Button;
+import com.bumptech.glide.Glide;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+import com.example.instabond_fe.R;
+import com.example.instabond_fe.model.ChatMessageRequest;
 public class ProfilePostDetailActivity extends AppCompatActivity {
 
     private ActivityProfilePostDetailBinding binding;
@@ -95,17 +111,23 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
                 intent.putExtra("postCreatedAt", post.getCreatedAt());
                 startActivity(intent);
             }
-
             @Override
             public void onShareClicked(Post post, int position) {
-                android.content.Intent sendIntent = new android.content.Intent();
-                sendIntent.setAction(android.content.Intent.ACTION_SEND);
-                sendIntent.putExtra(android.content.Intent.EXTRA_TEXT, "Check out this post on InstaBond: https://instabond.com/post/" + post.getId());
-                sendIntent.setType("text/plain");
-                android.content.Intent shareIntent = android.content.Intent.createChooser(sendIntent, "Share post via");
-                startActivity(shareIntent);
-            }
+                apiService.sharePost(post.getId()).enqueue(new Callback<PostResponse>() {
+                    @Override
+                    public void onResponse(Call<PostResponse> call, Response<PostResponse> response) {
+                        if (response.isSuccessful()) {
+                            post.setSharesCount(post.getSharesCount() + 1);
+                            adapter.notifyItemChanged(position);
+                        }
+                    }
+                    @Override
+                    public void onFailure(Call<PostResponse> call, Throwable t) {}
+                });
 
+                com.example.instabond_fe.network.SessionManager sessionManager = new com.example.instabond_fe.network.SessionManager(ProfilePostDetailActivity.this);
+                com.example.instabond_fe.utils.ShareUtils.showShareBottomSheet(ProfilePostDetailActivity.this, post, apiService, sessionManager.getUserId());
+            }
             @Override
             public void onUserClicked(Post post, int position) {
                 finish();
@@ -168,5 +190,4 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
         }
         return list;
     }
-
 }

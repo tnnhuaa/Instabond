@@ -58,7 +58,7 @@ public class FollowListActivity extends AppCompatActivity {
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             if ("requests".equals(mode)) {
-                getSupportActionBar().setTitle("Yêu cầu theo dõi");
+                getSupportActionBar().setTitle("Follow requests");
             } else {
                 getSupportActionBar().setTitle("followers".equals(mode) ? "Người theo dõi" : "Đang theo dõi");
             }

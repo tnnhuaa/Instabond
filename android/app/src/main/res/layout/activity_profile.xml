@@ -577,7 +577,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
                         android:fontFamily="sans-serif-black"
-                        android:text="Tài khoản này là riêng tư"
+                        android:text="This account is private"
                         android:textColor="@color/login_text_primary"
                         android:textSize="18sp" />
 
@@ -586,7 +586,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:gravity="center"
-                        android:text="Theo dõi để xem ảnh và video của người này."
+                        android:text="Follow to view private content."
                         android:textColor="@color/login_text_secondary"
                         android:textSize="14sp" />
                 </LinearLayout>

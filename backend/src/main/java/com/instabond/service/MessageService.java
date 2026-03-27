@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+
 @Service
 @RequiredArgsConstructor
 public class MessageService {
@@ -46,9 +47,7 @@ public class MessageService {
         if (content == null) {
             throw new IllegalArgumentException("Content is required");
         }
-        if (!"text".equals(type)) {
-            throw new IllegalArgumentException("saveTextMessage only support type = 'text'");
-        }
+
 
         User sender = resolveUserByEmail(senderEmail);
         Conversation conversation = resolveConversationAndValidateParticipant(conversationId, sender.getId());
@@ -56,7 +55,7 @@ public class MessageService {
         Message message = Message.builder()
                 .conversation_id(conversationId)
                 .sender_id(sender.getId())
-                .type("text")
+                .type(type)
                 .content(content)
                 .is_view_once(false)
                 .is_viewed(false)

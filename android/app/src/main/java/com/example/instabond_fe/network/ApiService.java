@@ -32,6 +32,7 @@ import java.util.List;
 import com.example.instabond_fe.model.CreateCommentRequest;
 import com.example.instabond_fe.model.CommentResponse;
 import com.example.instabond_fe.model.FollowUserResponse;
+import com.example.instabond_fe.model.ChatMessageRequest;
 
 public interface ApiService {
     @POST("api/auth/login")
@@ -191,4 +192,7 @@ public interface ApiService {
             @Query("page") int page,
             @Query("size") int size
     );
+
+    @POST("api/messages/text")
+    Call<ChatMessageResponse> sendTextMessage(@Body ChatMessageRequest request);
 }
