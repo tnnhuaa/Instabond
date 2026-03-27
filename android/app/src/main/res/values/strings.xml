@@ -4,6 +4,20 @@
 <resources>
     <string name="app_name">InstaBond</string>
 
+    <string name="forgot_password_title">Forgot Password</string>
+    <string name="forgot_password_subtitle">Enter your email to receive an OTP code.</string>
+    <string name="forgot_password_send_otp">Send OTP</string>
+
+    <string name="reset_password_title">Verify Code</string>
+    <string name="reset_password_subtitle">An OTP code has been sent to your email.</string>
+    <string name="reset_password_otp_label">OTP CODE</string>
+    <string name="reset_password_otp_hint">Enter 6-digit OTP</string>
+    <string name="reset_password_new_password_label">NEW PASSWORD</string>
+    <string name="reset_password_new_password_hint_mask">********</string>
+    <string name="reset_password_confirm">Confirm</string>
+    <string name="reset_password_resend_prompt">Didn\'t receive the code?</string>
+    <string name="reset_password_resend_action">Resend code</string>
+
     <!-- Toolbar -->
     <string name="cd_menu">Menu</string>
     <string name="cd_qr_code">QR Code</string>
@@ -132,6 +146,8 @@
     <string name="signup_failed">Sign up failed</string>
     <string name="signup_loading">Signing up...</string>
     <string name="signup_connection_error">Could not reach the server: %1$s</string>
+
+
     <string name="feed_story_your_story">Your Story</string>
     <string name="feed_story_user_1">elara_designs</string>
     <string name="feed_story_user_2">marcus_v</string>
