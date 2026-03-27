@@ -15,6 +15,7 @@ import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityChatBinding;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
+import com.example.instabond_fe.repository.WebSocketManager;
 import com.example.instabond_fe.viewmodel.ChatViewModel;
 import com.example.instabond_fe.model.UserProfileResponse;
 
@@ -72,6 +73,13 @@ public class ChatActivity extends AppCompatActivity {
         hydratePartnerProfileIfNeeded();
 
         viewModel.startChat(conversationId, partnerId, partnerEmail, partnerOnline);
+        
+        // Cache partner name
+        if (partnerId != null && partnerName != null) {
+            WebSocketManager.getInstance(this).cacheUser(partnerId, partnerName);
+        }
+
+        WebSocketManager.getInstance(this).setActiveConversationId(conversationId);
     }
 
     @Override
@@ -81,8 +89,21 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        WebSocketManager.getInstance(this).setActiveConversationId(conversationId);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        WebSocketManager.getInstance(this).setActiveConversationId(null);
+    }
+
+    @Override
     protected void onDestroy() {
         viewModel.stopChat();
+        WebSocketManager.getInstance(this).setActiveConversationId(null);
         super.onDestroy();
     }
 
@@ -166,6 +187,8 @@ public class ChatActivity extends AppCompatActivity {
                 UserProfileResponse profile = response.body();
                 if (isBlank(partnerName) && !isBlank(profile.getUsername())) {
                     partnerName = profile.getUsername();
+                    // Cache name
+                    WebSocketManager.getInstance(ChatActivity.this).cacheUser(partnerId, partnerName);
                 }
                 if (isBlank(partnerAvatar) && !isBlank(profile.getAvatarUrl())) {
                     partnerAvatar = profile.getAvatarUrl();

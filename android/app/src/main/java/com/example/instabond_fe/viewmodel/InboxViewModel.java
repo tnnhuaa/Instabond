@@ -109,6 +109,14 @@ public class InboxViewModel extends AndroidViewModel {
             if (item == null || item.getId() == null) {
                 continue;
             }
+
+            // Cache usernames
+            if (item.getParticipants() != null) {
+                for (Conversation.Participant p : item.getParticipants()) {
+                    WebSocketManager.getInstance(getApplication()).cacheUser(p.getId(), p.getUsername());
+                }
+            }
+
             int existingIndex = findConversationIndex(item.getId());
             if (existingIndex >= 0) {
                 cachedConversations.set(existingIndex, item);

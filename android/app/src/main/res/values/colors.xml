@@ -98,6 +98,7 @@
 
     <!-- Login redesign -->
     <color name="login_bg_start">#8037B1</color>
+    <color name="login_bg_start_transparent">#806200EA</color>
     <color name="login_bg_mid">#CB80FE</color>
     <color name="login_bg_end">#FFC4B7</color>
     <color name="login_card_surface">#F9F6F5</color>
