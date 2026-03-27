@@ -115,11 +115,20 @@ public interface ApiService {
     @DELETE("api/posts/{postId}/share")
     Call<PostResponse> unsharePost(@Path("postId") String postId);
 
+
+
     @GET("api/posts/{postId}/comments")
     Call<List<CommentResponse>> getComments(@Path("postId") String postId);
 
     @POST("api/posts/{postId}/comments")
     Call<CommentResponse> addComment(@Path("postId") String postId, @Body CreateCommentRequest request);
+
+    @Headers("Content-Type: application/json")
+    @POST("api/posts/{postId}/comments/{commentId}/like")
+    Call<Void> likeComment(@Path("postId") String postId, @Path("commentId") String commentId);
+
+    @DELETE("api/posts/{postId}/comments/{commentId}/like")
+    Call<Void> unlikeComment(@Path("postId") String postId, @Path("commentId") String commentId);
 
     @GET("api/users/{id}")
     Call<UserProfileResponse> getUserProfile(@Path("id") String userId);

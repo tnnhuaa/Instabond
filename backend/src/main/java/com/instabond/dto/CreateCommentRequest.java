@@ -14,4 +14,7 @@ public class CreateCommentRequest {
 
     @Schema(description = "Optional reaction icon", example = "heart")
     private String reaction_icon;
+
+    @Schema(description = "Optional parent comment ID for replies", example = "65b999999999999999999991")
+    private String parent_id;
 }

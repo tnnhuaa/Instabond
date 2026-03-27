@@ -98,17 +98,12 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
 
             @Override
             public void onShareClicked(Post post, int position) {
-                apiService.sharePost(post.getId()).enqueue(new Callback<PostResponse>() {
-                    @Override
-                    public void onResponse(Call<PostResponse> call, Response<PostResponse> response) {}
-                    @Override
-                    public void onFailure(Call<PostResponse> call, Throwable t) {}
-                });
-
-                android.content.Intent shareIntent = new android.content.Intent(android.content.Intent.ACTION_SEND);
-                shareIntent.setType("text/plain");
-                shareIntent.putExtra(android.content.Intent.EXTRA_TEXT, "Xem bài viết của " + post.getUsername() + " trên InstaBond!");
-                startActivity(android.content.Intent.createChooser(shareIntent, "Chia sẻ bài viết"));
+                android.content.Intent sendIntent = new android.content.Intent();
+                sendIntent.setAction(android.content.Intent.ACTION_SEND);
+                sendIntent.putExtra(android.content.Intent.EXTRA_TEXT, "Check out this post on InstaBond: https://instabond.com/post/" + post.getId());
+                sendIntent.setType("text/plain");
+                android.content.Intent shareIntent = android.content.Intent.createChooser(sendIntent, "Share post via");
+                startActivity(shareIntent);
             }
 
             @Override

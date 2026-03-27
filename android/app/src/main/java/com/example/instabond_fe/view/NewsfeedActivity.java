@@ -111,17 +111,12 @@ public class NewsfeedActivity extends AppCompatActivity {
 
             @Override
             public void onShareClicked(Post post, int position) {
-                apiService.sharePost(post.getId()).enqueue(new Callback<PostResponse>() {
-                    @Override
-                    public void onResponse(Call<PostResponse> call, Response<PostResponse> response) {}
-                    @Override
-                    public void onFailure(Call<PostResponse> call, Throwable t) {}
-                });
-                
-                Intent shareIntent = new Intent(Intent.ACTION_SEND);
-                shareIntent.setType("text/plain");
-                shareIntent.putExtra(Intent.EXTRA_TEXT, "Xem bài viết của " + post.getUsername() + " trên InstaBond!");
-                startActivity(Intent.createChooser(shareIntent, "Chia sẻ bài viết"));
+                Intent sendIntent = new Intent();
+                sendIntent.setAction(Intent.ACTION_SEND);
+                sendIntent.putExtra(Intent.EXTRA_TEXT, "Check out this post on InstaBond: https://instabond.com/post/" + post.getId());
+                sendIntent.setType("text/plain");
+                Intent shareIntent = Intent.createChooser(sendIntent, "Share post via");
+                startActivity(shareIntent);
             }
 
             @Override
