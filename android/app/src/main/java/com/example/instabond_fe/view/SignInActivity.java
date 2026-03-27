@@ -62,8 +62,9 @@ public class SignInActivity extends AppCompatActivity {
 
         binding.btnSignin.setOnClickListener(v -> performLogin());
 
-        binding.tvForgotPassword.setOnClickListener(v ->
-                Toast.makeText(this, getString(R.string.login_forgot_unavailable), Toast.LENGTH_SHORT).show());
+        binding.tvForgotPassword.setOnClickListener(v -> {
+            startActivity(new Intent(this, ForgotPasswordActivity.class));
+        });
     }
 
     private void performLogin() {

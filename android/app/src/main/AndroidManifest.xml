@@ -86,6 +86,14 @@
         <activity
             android:name=".view.ChatActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".view.ForgotPasswordActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.ResetPasswordActivity"
+            android:exported="false" />
     </application>
 
 </manifest>
