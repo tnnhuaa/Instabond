@@ -11,7 +11,7 @@ public class Post {
     private final String createdAt;
     private int likesCount;
     private final int commentsCount;
-    private final int sharesCount;
+    private int sharesCount;
     private final String avatarUrl;
     private final String imageUrl;
     private final boolean hasMusicBadge;
@@ -70,9 +70,6 @@ public class Post {
         return commentsCount;
     }
 
-    public int getSharesCount() {
-        return sharesCount;
-    }
 
     public String getAvatarUrl() {
         return avatarUrl;
@@ -92,6 +89,13 @@ public class Post {
 
     public void setLiked(boolean liked) {
         isLiked = liked;
+    }
+
+    public void setSharesCount(int sharesCount) {
+        this.sharesCount = sharesCount;
+    }
+    public int getSharesCount() {
+        return this.sharesCount;
     }
 
     /** Returns a list of mock posts for the Newsfeed */

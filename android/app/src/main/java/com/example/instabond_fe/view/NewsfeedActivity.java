@@ -32,6 +32,18 @@ import java.util.Set;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.example.instabond_fe.model.FollowUserResponse;
+import com.example.instabond_fe.model.Conversation;
+import com.example.instabond_fe.model.ChatMessageRequest;
+import com.example.instabond_fe.model.ChatMessageResponse;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.LayoutInflater;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Button;
+import com.bumptech.glide.Glide;
 
 public class NewsfeedActivity extends AppCompatActivity {
     private static final String EXTRA_REFRESH_FEED = "refresh_feed";
@@ -111,12 +123,19 @@ public class NewsfeedActivity extends AppCompatActivity {
 
             @Override
             public void onShareClicked(Post post, int position) {
-                Intent sendIntent = new Intent();
-                sendIntent.setAction(Intent.ACTION_SEND);
-                sendIntent.putExtra(Intent.EXTRA_TEXT, "Check out this post on InstaBond: https://instabond.com/post/" + post.getId());
-                sendIntent.setType("text/plain");
-                Intent shareIntent = Intent.createChooser(sendIntent, "Share post via");
-                startActivity(shareIntent);
+                apiService.sharePost(post.getId()).enqueue(new Callback<PostResponse>() {
+                    @Override
+                    public void onResponse(Call<PostResponse> call, Response<PostResponse> response) {
+                        if (response.isSuccessful()) {
+                            post.setSharesCount(post.getSharesCount() + 1);
+                            adapter.notifyItemChanged(position);
+                        }
+                    }
+                    @Override
+                    public void onFailure(Call<PostResponse> call, Throwable t) {}
+                });
+
+                com.example.instabond_fe.utils.ShareUtils.showShareBottomSheet(NewsfeedActivity.this, post, apiService, sessionManager.getUserId());
             }
 
             @Override
