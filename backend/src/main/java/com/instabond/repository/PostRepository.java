@@ -21,4 +21,13 @@ public interface PostRepository extends MongoRepository<Post, String> {
     // Logic search
     @Query("{ '$or': [ { 'caption': { $regex: ?0, $options: 'i' } }, { 'location.name': { $regex: ?0, $options: 'i' } } ] }")
     List<Post> searchPosts(String keyword, Pageable pageable);
+
+    @Query(value = "{}", fields = "{ '_id': 1 }")
+    List<PostIdProjection> findAllPostIds();
+
+    List<Post> findByIdIn(List<String> ids);
+
+    interface PostIdProjection {
+        String getId();
+    }
 }

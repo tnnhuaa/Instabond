@@ -11,6 +11,7 @@ import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.model.ChatMessageResponse;
 import com.example.instabond_fe.model.Conversation;
 import com.example.instabond_fe.model.ConversationPageResponse;
+import com.example.instabond_fe.model.UserSearchDTO;
 import com.google.gson.JsonElement;
 
 import okhttp3.MultipartBody;
@@ -159,4 +160,26 @@ public interface ApiService {
 
     @POST("api/users/follow-requests/{id}/reject")
     Call<Void> rejectFollowRequest(@Path("id") String requesterId);
+
+    @GET("api/v1/search/suggestions")
+    Call<List<UserSearchDTO>> getSearchSuggestions(
+            @Query("type") String type,
+            @Query("q") String query
+    );
+
+    // Returning JsonElement to allow dynamic parsing based on "type" (users, posts, audios)
+    @GET("api/v1/search/results")
+    Call<JsonElement> getSearchResults(
+            @Query("type") String type,
+            @Query("q") String query,
+            @Query("page") int page,
+            @Query("size") int size
+    );
+
+    @GET("api/v1/search/explore")
+    Call<JsonElement> getExplorePosts(
+            @Query("seed") long seed,
+            @Query("page") int page,
+            @Query("size") int size
+    );
 }
