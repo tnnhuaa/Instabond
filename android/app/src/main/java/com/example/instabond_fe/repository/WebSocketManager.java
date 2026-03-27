@@ -14,8 +14,10 @@ import com.google.gson.JsonElement;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executors;
@@ -81,6 +83,9 @@ public class WebSocketManager {
     private int reconnectAttempt;
     private volatile boolean isConnecting;
     private volatile boolean isSocketOpened;
+
+    private String activeConversationId = null;
+    private final Map<String, String> userCache = new ConcurrentHashMap<>();
 
     private WebSocketManager(Context context) {
         this.sessionManager = new SessionManager(context.getApplicationContext());
@@ -251,6 +256,20 @@ public class WebSocketManager {
 
     public void addInboxListener(InboxListener listener) { if (listener != null) inboxListeners.add(listener); }
     public void removeInboxListener(InboxListener listener) { if (listener != null) inboxListeners.remove(listener); }
+
+    public void setActiveConversationId(String activeConversationId) {
+        this.activeConversationId = activeConversationId;
+    }
+
+    public void cacheUser(String userId, String username) {
+        if (userId != null && username != null) {
+            userCache.put(userId, username);
+        }
+    }
+
+    public String getCachedUsername(String userId) {
+        return userId != null ? userCache.get(userId) : null;
+    }
 
     private void connectInternal() {
         if (isConnecting) return;
