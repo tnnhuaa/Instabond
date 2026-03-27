@@ -332,9 +332,41 @@ public class PostController {
     @GetMapping("/{postId}/comments")
     public ResponseEntity<List<CommentResponse>> getComments(
             @Parameter(description = "ID of the target post", example = "65b444444444444444444441")
-            @PathVariable String postId) {
+            @PathVariable String postId,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(postService.getComments(postId));
+        String callerEmail = userDetails != null ? getUserId(userDetails) : null;
+        return ResponseEntity.ok(postService.getComments(postId, callerEmail));
+    }
+
+    // Like a comment
+
+    @Operation(
+            summary = "Like a comment",
+            description = "Adds a like from the authenticated user to the comment."
+    )
+    @PostMapping(value = "/{postId}/comments/{commentId}/like", consumes = MediaType.ALL_VALUE)
+    public ResponseEntity<Void> likeComment(
+            @PathVariable String postId,
+            @PathVariable String commentId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        postService.likeComment(postId, commentId, getUserId(userDetails));
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+            summary = "Unlike a comment",
+            description = "Removes the authenticated user's like from the comment."
+    )
+    @DeleteMapping("/{postId}/comments/{commentId}/like")
+    public ResponseEntity<Void> unlikeComment(
+            @PathVariable String postId,
+            @PathVariable String commentId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        postService.unlikeComment(postId, commentId, getUserId(userDetails));
+        return ResponseEntity.ok().build();
     }
 
     // Delete a comment

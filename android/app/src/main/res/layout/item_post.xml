@@ -188,9 +188,14 @@
 
                 <ImageButton
                     android:id="@+id/btn_share"
-                    android:layout_width="1dp"
-                    android:layout_height="1dp"
-                    android:visibility="gone" />
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginStart="16dp"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="@string/cd_share"
+                    android:padding="2dp"
+                    android:src="@drawable/ic_send"
+                    app:tint="@color/feed_icon_dark" />
 
             </LinearLayout>
 

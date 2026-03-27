@@ -63,6 +63,16 @@
                 android:layout_height="1dp"
                 android:layout_weight="1" />
 
+            <TextView
+                android:id="@+id/tv_comment_like_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                android:textColor="@color/feed_meta"
+                android:textSize="12sp"
+                android:visibility="gone"
+                tools:text="5" />
+
             <ImageView
                 android:id="@+id/iv_comment_like"
                 android:layout_width="20dp"
@@ -100,6 +110,7 @@
                 tools:text="1H AGO" />
 
             <TextView
+                android:id="@+id/tv_comment_reply"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"

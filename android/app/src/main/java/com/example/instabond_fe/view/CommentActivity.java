@@ -29,7 +29,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class CommentActivity extends AppCompatActivity {
+public class CommentActivity extends AppCompatActivity implements CommentAdapter.OnCommentInteractionListener {
 
     private String postId;
     private String postUsername;
@@ -39,6 +39,7 @@ public class CommentActivity extends AppCompatActivity {
 
     private ApiService apiService;
     private CommentAdapter adapter;
+    private String replyTargetId = null;
 
     private RecyclerView rvComments;
     private EditText etComment;
@@ -124,7 +125,7 @@ public class CommentActivity extends AppCompatActivity {
     }
 
     private void setupCommentList() {
-        adapter = new CommentAdapter(postUsername);
+        adapter = new CommentAdapter(postUsername, this);
         rvComments.setLayoutManager(new LinearLayoutManager(this));
         rvComments.setAdapter(adapter);
         rvComments.setClipToPadding(false);
@@ -193,7 +194,7 @@ public class CommentActivity extends AppCompatActivity {
         }
 
         btnPostComment.setEnabled(false);
-        CreateCommentRequest req = new CreateCommentRequest(content);
+        CreateCommentRequest req = new CreateCommentRequest(content, replyTargetId);
 
         apiService.addComment(postId, req).enqueue(new Callback<CommentResponse>() {
             @Override
@@ -202,8 +203,9 @@ public class CommentActivity extends AppCompatActivity {
                 btnPostComment.setEnabled(true);
                 if (response.isSuccessful() && response.body() != null) {
                     etComment.setText("");
-                    adapter.addComment(response.body());
-                    rvComments.scrollToPosition(0);
+                    etComment.setHint(getString(R.string.comment_hint));
+                    replyTargetId = null;
+                    loadComments();
                 } else {
                     Toast.makeText(CommentActivity.this, R.string.comment_post_failed, Toast.LENGTH_SHORT).show();
                 }
@@ -250,5 +252,53 @@ public class CommentActivity extends AppCompatActivity {
 
     private String valueOrEmpty(String value) {
         return value == null ? "" : value;
+    }
+
+    @Override
+    public void onReplyClicked(CommentResponse comment) {
+        replyTargetId = comment.getId();
+        String targetUsername = comment.getAuthor() != null ? comment.getAuthor().getUsername() : "unknown";
+        String replyHint = "Replying to @" + targetUsername;
+        etComment.setHint(replyHint);
+        etComment.setText("@" + targetUsername + " ");
+        etComment.requestFocus();
+        etComment.setSelection(etComment.getText().length());
+    }
+
+    @Override
+    public void onLikeClicked(CommentResponse comment, int position) {
+        boolean isCurrentlyLiked = comment.isLiked();
+        int currentLikes = comment.getLikesCount();
+        
+        // Optimistic UI update
+        comment.setLiked(!isCurrentlyLiked);
+        comment.setLikesCount(isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1);
+        adapter.notifyItemChanged(position);
+
+        Call<Void> call = isCurrentlyLiked ? 
+                apiService.unlikeComment(postId, comment.getId()) : 
+                apiService.likeComment(postId, comment.getId());
+
+        call.enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
+                if (!response.isSuccessful()) {
+                    // Revert if failed
+                    comment.setLiked(isCurrentlyLiked);
+                    comment.setLikesCount(currentLikes);
+                    adapter.notifyItemChanged(position);
+                    Toast.makeText(CommentActivity.this, "Failed to update like status", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
+                // Revert if failed
+                comment.setLiked(isCurrentlyLiked);
+                comment.setLikesCount(currentLikes);
+                adapter.notifyItemChanged(position);
+                Toast.makeText(CommentActivity.this, "Connection error", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }

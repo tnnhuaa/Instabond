@@ -173,7 +173,8 @@ public class MessageService {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conversation not found: " + conversationId));
 
-        // Ensure the user is a participant of the conversation before allowing them to send messages or view history
+        // Ensure the user is a participant of the conversation before allowing them to
+        // send messages or view history
         if (conversation.getParticipants() == null || !conversation.getParticipants().contains(userId)) {
             throw new ForbiddenOperationException("User is not a participant of this conversation");
         }

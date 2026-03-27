@@ -17,6 +17,7 @@
     <string name="cd_comment">Comment</string>
     <string name="cd_bookmark">Bookmark</string>
     <string name="cd_more_options">More options</string>
+    <string name="cd_share">Share</string>
 
     <!-- Bottom navigation -->
     <string name="nav_home">Home</string>
@@ -216,6 +217,7 @@
     <string name="create_post_loading_user">Loading profile...</string>
     <string name="comment_title">Comments</string>
     <string name="comment_input_hint">Add a comment...</string>
+    <string name="comment_hint">Thêm bình luận...</string>
     <string name="comment_post_action">Post</string>
     <string name="comment_reply_action">Reply</string>
     <string name="comment_author_badge">Author</string>

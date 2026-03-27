@@ -6,8 +6,16 @@ public class CreateCommentRequest {
     @SerializedName("content")
     private String content;
 
+    @SerializedName("parent_id")
+    private String parentId;
+
     public CreateCommentRequest(String content) {
         this.content = content;
+    }
+    
+    public CreateCommentRequest(String content, String parentId) {
+        this.content = content;
+        this.parentId = parentId;
     }
 
     public String getContent() {
@@ -16,5 +24,13 @@ public class CreateCommentRequest {
 
     public void setContent(String content) {
         this.content = content;
+    }
+    
+    public String getParentId() {
+        return parentId;
+    }
+    
+    public void setParentId(String parentId) {
+        this.parentId = parentId;
     }
 }

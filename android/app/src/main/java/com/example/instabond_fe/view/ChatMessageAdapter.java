@@ -102,8 +102,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
 
             int contentColor = ContextCompat.getColor(
                     itemView.getContext(),
-                    isMine ? android.R.color.white : R.color.login_text_primary
-            );
+                    isMine ? android.R.color.white : R.color.login_text_primary);
             tvMessageContent.setTextColor(contentColor);
             tvMessageTime.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.feed_meta));
             tvMessageTime.setTextAlignment(isMine ? View.TEXT_ALIGNMENT_VIEW_END : View.TEXT_ALIGNMENT_VIEW_START);

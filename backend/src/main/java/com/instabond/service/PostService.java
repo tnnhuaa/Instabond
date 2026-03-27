@@ -390,6 +390,7 @@ public class PostService {
                 .target_id(postId)
                 .target_type("post")
                 .type("comment")
+                .parent_id(request.getParent_id())
                 .reaction_icon(request.getReaction_icon())
                 .content(request.getContent().trim())
                 .created_at(Instant.now())
@@ -404,10 +405,10 @@ public class PostService {
             notificationService.sendCommentNotification(caller.getId(), postAuthorId, postId, request.getContent());
         }
 
-        return toCommentResponse(saved, caller);
+        return toCommentResponse(saved, caller, 0, false);
     }
 
-    public List<CommentResponse> getComments(String postId) {
+    public List<CommentResponse> getComments(String postId, String callerPrincipal) {
         postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
 
@@ -421,10 +422,71 @@ public class PostService {
         if (!userIds.isEmpty()) {
             userRepository.findAllById(userIds).forEach(user -> usersById.put(user.getId(), user));
         }
+        
+        Map<String, Long> likeCounts = new LinkedHashMap<>();
+        Map<String, Boolean> isLikedByMe = new LinkedHashMap<>();
+        
+        List<String> commentIds = comments.stream().map(Interaction::getId).toList();
+        if (!commentIds.isEmpty()) {
+            Query likesQuery = new Query(new Criteria().andOperator(
+                Criteria.where("target_id").in(commentIds),
+                Criteria.where("target_type").is("comment"),
+                Criteria.where("type").is("like")
+            ));
+            List<Interaction> likesForComments = mongoTemplate.find(likesQuery, Interaction.class);
 
-        return comments.stream()
-                .map(comment -> toCommentResponse(comment, usersById.get(comment.getUser_id())))
-                .toList();
+            for (Interaction like : likesForComments) {
+                likeCounts.put(like.getTarget_id(), likeCounts.getOrDefault(like.getTarget_id(), 0L) + 1);
+            }
+
+            if (callerPrincipal != null && !callerPrincipal.isBlank()) {
+                try {
+                    User caller = resolveUserFromPrincipal(callerPrincipal);
+                    for (Interaction like : likesForComments) {
+                        if (caller.getId().equals(like.getUser_id())) {
+                            isLikedByMe.put(like.getTarget_id(), true);
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
+        List<CommentResponse> allComments = comments.stream()
+                .map(comment -> toCommentResponse(comment, usersById.get(comment.getUser_id()),
+                     likeCounts.getOrDefault(comment.getId(), 0L).intValue(), 
+                     isLikedByMe.getOrDefault(comment.getId(), false)))
+                .collect(Collectors.toList());
+
+        List<CommentResponse> topLevel = new ArrayList<>();
+        Map<String, List<CommentResponse>> repliesMap = new java.util.HashMap<>();
+
+        for (CommentResponse c : allComments) {
+            if (c.getParent_id() == null || c.getParent_id().trim().isEmpty()) {
+                topLevel.add(c);
+            } else {
+                repliesMap.computeIfAbsent(c.getParent_id(), k -> new ArrayList<>()).add(c);
+            }
+        }
+
+        topLevel.sort((a, b) -> b.getCreated_at().compareTo(a.getCreated_at()));
+
+        List<CommentResponse> sortedComments = new ArrayList<>();
+        for (CommentResponse parent : topLevel) {
+            sortedComments.add(parent);
+            flattenReplies(parent.getId(), repliesMap, sortedComments);
+        }
+
+        return sortedComments;
+    }
+
+    private void flattenReplies(String commentId, Map<String, List<CommentResponse>> repliesMap, List<CommentResponse> result) {
+        List<CommentResponse> children = repliesMap.getOrDefault(commentId, new ArrayList<>());
+        children.sort((a, b) -> a.getCreated_at().compareTo(b.getCreated_at()));
+        for (CommentResponse child : children) {
+            result.add(child);
+            flattenReplies(child.getId(), repliesMap, result);
+        }
     }
 
     public void deleteComment(String postId, String commentId, String callerPrincipal) {
@@ -451,13 +513,43 @@ public class PostService {
         }
     }
 
+    public void likeComment(String postId, String commentId, String callerPrincipal) {
+        interactionRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Comment not found: " + commentId));
+
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        boolean alreadyLiked = interactionRepository
+                .findOne(caller.getId(), commentId, "comment", "like")
+                .isPresent();
+
+        if (!alreadyLiked) {
+            Interaction interaction = Interaction.builder()
+                    .user_id(caller.getId())
+                    .target_id(commentId)
+                    .target_type("comment")
+                    .type("like")
+                    .created_at(Instant.now())
+                    .build();
+            interactionRepository.save(interaction);
+        }
+    }
+
+    public void unlikeComment(String postId, String commentId, String callerPrincipal) {
+        interactionRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Comment not found: " + commentId));
+
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        interactionRepository.findOne(caller.getId(), commentId, "comment", "like")
+                .ifPresent(interaction -> interactionRepository.deleteById(interaction.getId()));
+    }
+
     private void incrementPostStat(String postId, String field, int delta) {
         Query query = new Query(Criteria.where("_id").is(postId));
         Update update = new Update().inc(field, delta);
         mongoTemplate.findAndModify(query, update, FindAndModifyOptions.options().returnNew(true), Post.class);
     }
 
-    private CommentResponse toCommentResponse(Interaction interaction, User author) {
+    private CommentResponse toCommentResponse(Interaction interaction, User author, int likesCount, boolean isLiked) {
         CommentResponse.AuthorInfo authorInfo = null;
         if (author != null) {
             authorInfo = CommentResponse.AuthorInfo.builder()
@@ -471,10 +563,13 @@ public class PostService {
         return CommentResponse.builder()
                 .id(interaction.getId())
                 .post_id(interaction.getTarget_id())
+                .parent_id(interaction.getParent_id())
                 .content(interaction.getContent())
                 .reaction_icon(interaction.getReaction_icon())
                 .author(authorInfo)
                 .created_at(interaction.getCreated_at())
+                .likes_count(likesCount)
+                .is_liked(isLiked)
                 .build();
     }
 

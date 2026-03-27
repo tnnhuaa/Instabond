@@ -23,11 +23,18 @@ import java.util.Locale;
 
 public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentViewHolder> {
 
+    public interface OnCommentInteractionListener {
+        void onReplyClicked(CommentResponse comment);
+        void onLikeClicked(CommentResponse comment, int position);
+    }
+
     private final List<CommentResponse> comments = new ArrayList<>();
     private final String postAuthorUsername;
+    private final OnCommentInteractionListener listener;
 
-    public CommentAdapter(String postAuthorUsername) {
+    public CommentAdapter(String postAuthorUsername, OnCommentInteractionListener listener) {
         this.postAuthorUsername = postAuthorUsername == null ? "" : postAuthorUsername.trim().toLowerCase(Locale.US);
+        this.listener = listener;
     }
 
     public void setComments(List<CommentResponse> newComments) {
@@ -72,8 +79,23 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
         holder.tvContent.setText(comment.getContent());
         holder.tvTime.setText(TimeUtils.getCompactRelativeTime(comment.getCreatedAt()));
         holder.tvAuthorBadge.setVisibility(isPostAuthor(username) ? View.VISIBLE : View.GONE);
-        holder.ivLike.setImageTintList(ColorStateList.valueOf(
-                ContextCompat.getColor(holder.itemView.getContext(), R.color.feed_meta)));
+        
+        if (comment.getLikesCount() > 0) {
+            holder.tvLikeCount.setVisibility(View.VISIBLE);
+            holder.tvLikeCount.setText(String.valueOf(comment.getLikesCount()));
+        } else {
+            holder.tvLikeCount.setVisibility(View.GONE);
+        }
+
+        if (comment.isLiked()) {
+            holder.ivLike.setImageTintList(ColorStateList.valueOf(
+                    ContextCompat.getColor(holder.itemView.getContext(), R.color.red_500))); // Ensure you have red_500 or use Color.RED
+            holder.ivLike.setImageResource(R.drawable.ic_heart_filled); // Assuming you have a filled heart icon, or fallback to tinting
+        } else {
+            holder.ivLike.setImageTintList(ColorStateList.valueOf(
+                    ContextCompat.getColor(holder.itemView.getContext(), R.color.feed_meta)));
+            holder.ivLike.setImageResource(R.drawable.ic_heart);
+        }
 
         Glide.with(holder.itemView)
                 .load(normalizeUrl(avatarUrl))
@@ -81,6 +103,20 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
                 .placeholder(R.drawable.avatar_circle_bg)
                 .error(R.drawable.avatar_circle_bg)
                 .into(holder.ivAvatar);
+
+        // Nested reply margin
+        ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams) holder.itemView.getLayoutParams();
+        if (comment.getParentId() != null && !comment.getParentId().isEmpty()) {
+            layoutParams.setMarginStart(dpToPx(holder.itemView, 56)); // indent for replies (40dp avatar + 16dp margin)
+        } else {
+            layoutParams.setMarginStart(0);
+        }
+        holder.itemView.setLayoutParams(layoutParams);
+
+        if (listener != null) {
+            holder.tvReply.setOnClickListener(v -> listener.onReplyClicked(comment));
+            holder.ivLike.setOnClickListener(v -> listener.onLikeClicked(comment, position));
+        }
     }
 
     @Override
@@ -92,6 +128,10 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
         return !postAuthorUsername.isEmpty()
                 && username != null
                 && postAuthorUsername.equals(username.trim().toLowerCase(Locale.US));
+    }
+
+    private int dpToPx(View view, int dp) {
+        return (int) (dp * view.getResources().getDisplayMetrics().density);
     }
 
     private String normalizeUrl(String rawUrl) {
@@ -120,6 +160,8 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
         TextView tvAuthorBadge;
         TextView tvContent;
         TextView tvTime;
+        TextView tvLikeCount;
+        TextView tvReply;
 
         CommentViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -129,6 +171,8 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
             tvAuthorBadge = itemView.findViewById(R.id.tv_comment_author_badge);
             tvContent = itemView.findViewById(R.id.tv_comment_content);
             tvTime = itemView.findViewById(R.id.tv_comment_time);
+            tvLikeCount = itemView.findViewById(R.id.tv_comment_like_count);
+            tvReply = itemView.findViewById(R.id.tv_comment_reply);
         }
     }
 }

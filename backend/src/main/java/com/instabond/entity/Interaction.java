@@ -24,6 +24,8 @@ public class Interaction {
 
     private String type;
 
+    private String parent_id; // For nested comments (replies)
+
     private String reaction_icon;
     private String content;
 

@@ -85,6 +85,9 @@ public class UserService {
 
 
     public ProfileResponse getProfile(String userId, String callerPrincipal) {
+        if ("me".equalsIgnoreCase(userId)) {
+            return toProfileResponseWithStatus(resolveUserFromPrincipal(callerPrincipal), callerPrincipal);
+        }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
         return toProfileResponseWithStatus(user, callerPrincipal);
@@ -201,10 +204,11 @@ public class UserService {
 
     public List<FollowUserResponse> getFollowers(String userId, String callerPrincipal) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
-        userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+        String targetId = "me".equalsIgnoreCase(userId) ? caller.getId() : userId;
+        userRepository.findById(targetId).orElseThrow(() -> new ResourceNotFoundException("User not found: " + targetId));
 
         Query query = new Query(new Criteria().andOperator(
-                idCriteria("recipient_id", userId),
+                idCriteria("recipient_id", targetId),
                 Criteria.where("status").is("accepted"))).with(Sort.by(Sort.Direction.DESC, "updated_at"));
 
         java.util.Set<String> myFollowing = getMyFollowingUserIds(caller.getId());
@@ -219,10 +223,11 @@ public class UserService {
 
     public List<FollowUserResponse> getFollowing(String userId, String callerPrincipal) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
-        userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+        String targetId = "me".equalsIgnoreCase(userId) ? caller.getId() : userId;
+        userRepository.findById(targetId).orElseThrow(() -> new ResourceNotFoundException("User not found: " + targetId));
 
         Query query = new Query(new Criteria().andOperator(
-                idCriteria("requester_id", userId),
+                idCriteria("requester_id", targetId),
                 Criteria.where("status").is("accepted"))).with(Sort.by(Sort.Direction.DESC, "updated_at"));
 
         java.util.Set<String> myFollowing = getMyFollowingUserIds(caller.getId());
@@ -237,17 +242,18 @@ public class UserService {
 
     public List<FollowUserResponse> getFriends(String userId, String callerPrincipal) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
-        userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+        String targetId = "me".equalsIgnoreCase(userId) ? caller.getId() : userId;
+        userRepository.findById(targetId).orElseThrow(() -> new ResourceNotFoundException("User not found: " + targetId));
 
         Query followingQuery = new Query(new Criteria().andOperator(
-                idCriteria("requester_id", userId),
+                idCriteria("requester_id", targetId),
                 Criteria.where("status").is("accepted")));
         List<String> followingIds = mongoTemplate.find(followingQuery, Relationship.class).stream()
                 .map(Relationship::getRecipient_id)
                 .toList();
 
         Query followersQuery = new Query(new Criteria().andOperator(
-                idCriteria("recipient_id", userId),
+                idCriteria("recipient_id", targetId),
                 Criteria.where("status").is("accepted"),
                 Criteria.where("requester_id").in(followingIds))).with(Sort.by(Sort.Direction.DESC, "updated_at"));
 

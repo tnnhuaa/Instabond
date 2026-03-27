@@ -33,6 +33,15 @@ public class CommentResponse {
     @Schema(description = "Comment creation timestamp (UTC)", example = "2026-03-13T03:15:00Z")
     private Instant created_at;
 
+    @Schema(description = "Optional parent comment ID for replies", example = "65b999999999999999999991")
+    private String parent_id;
+
+    @Schema(description = "Number of likes on this comment", example = "5")
+    private int likes_count;
+
+    @Schema(description = "Whether the current user liked this comment", example = "true")
+    private boolean is_liked;
+
     @Data
     @Builder
     @NoArgsConstructor

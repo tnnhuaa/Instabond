@@ -136,4 +136,5 @@
     <color name="search_featured_badge">#8C7668</color>
     <color name="color_grey_light">#EFEFEF</color>
     <color name="color_grey_darker">#DCDCDC</color>
+    <color name="red_500">#F44336</color>
 </resources>
