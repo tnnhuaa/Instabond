@@ -3,10 +3,12 @@ package com.example.instabond_fe.network;
 import com.example.instabond_fe.model.AuthRequest;
 import com.example.instabond_fe.model.AuthResponse;
 import com.example.instabond_fe.model.CreatePostRequest;
+import com.example.instabond_fe.model.ForgotPasswordRequest;
 import com.example.instabond_fe.model.Notification;
 import com.example.instabond_fe.model.NotificationPageResponse;
 import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.model.StoryResponse;
+import com.example.instabond_fe.model.ResetPasswordRequest;
 import com.example.instabond_fe.model.UpdateProfileRequest;
 import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.model.ChatMessageResponse;
@@ -203,4 +205,10 @@ public interface ApiService {
 
     @POST("api/messages/text")
     Call<ChatMessageResponse> sendTextMessage(@Body ChatMessageRequest request);
+
+    @POST("/api/auth/forgot-password")
+    Call<ResponseBody> forgotPassword(@Body ForgotPasswordRequest request);
+
+    @POST("/api/auth/reset-password")
+    Call<ResponseBody> resetPassword(@Body ResetPasswordRequest request);
 }
