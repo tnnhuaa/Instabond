@@ -136,4 +136,7 @@
     <dimen name="login_secondary_action_height">44dp</dimen>
     <dimen name="login_footer_dot_size">4dp</dimen>
     <dimen name="signup_input_height">56dp</dimen>
+    <dimen name="feed_story_outer_size">64dp</dimen>
+    <dimen name="feed_story_ring_padding">2dp</dimen>
+    <dimen name="feed_story_section_height">100dp</dimen>
 </resources>
