@@ -15,6 +15,9 @@ import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityMainBinding;
 import com.example.instabond_fe.model.Post;
 import com.example.instabond_fe.model.PostResponse;
+import com.example.instabond_fe.model.StoryItem;
+import com.example.instabond_fe.model.StoryResponse;
+import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiListParser;
 import com.example.instabond_fe.network.ApiService;
@@ -25,8 +28,10 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import retrofit2.Call;
@@ -52,9 +57,13 @@ public class NewsfeedActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;
     private PostAdapter adapter;
+    private StoryFeedAdapter storyAdapter;
     private ApiService apiService;
     private SessionManager sessionManager;
     private final Gson gson = new Gson();
+    private final List<StoryItem> storyFeedItems = new ArrayList<>();
+    private final Map<String, List<StoryItem>> storiesByAuthor = new LinkedHashMap<>();
+    private UserProfileResponse currentUserProfile;
 
     private final Set<String> loadedPostIds = new HashSet<>();
     private int currentPage;
@@ -77,6 +86,18 @@ public class NewsfeedActivity extends AppCompatActivity {
         }
 
         adapter = new PostAdapter(new ArrayList<>());
+        storyAdapter = new StoryFeedAdapter();
+        storyAdapter.setListener(new StoryFeedAdapter.Listener() {
+            @Override
+            public void onCreateStoryClicked() {
+                startActivity(new Intent(NewsfeedActivity.this, CreateStoryActivity.class));
+            }
+
+            @Override
+            public void onStoryClicked(StoryItem item) {
+                openStoryViewer(item);
+            }
+        });
         adapter.setListener(new PostAdapter.OnPostInteractionListener() {
             @Override
             public void onLikeClicked(Post post, int position) {
@@ -146,8 +167,12 @@ public class NewsfeedActivity extends AppCompatActivity {
             }
         });
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        LinearLayoutManager storyLayoutManager =
+                new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
         binding.rvFeed.setLayoutManager(layoutManager);
         binding.rvFeed.setAdapter(adapter);
+        binding.rvStories.setLayoutManager(storyLayoutManager);
+        binding.rvStories.setAdapter(storyAdapter);
         binding.rvFeed.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
@@ -172,6 +197,7 @@ public class NewsfeedActivity extends AppCompatActivity {
 
         binding.btnInbox.setOnClickListener(v -> startActivity(new Intent(this, InboxActivity.class)));
 
+        loadCurrentUserProfile();
         binding.swipeRefreshFeed.setRefreshing(true);
         refreshFeed();
     }
@@ -186,6 +212,16 @@ public class NewsfeedActivity extends AppCompatActivity {
             refreshFeed();
             intent.removeExtra(EXTRA_REFRESH_FEED);
         }
+        if (intent != null && intent.getBooleanExtra(CreateStoryActivity.EXTRA_REFRESH_STORIES, false)) {
+            loadStories();
+            intent.removeExtra(CreateStoryActivity.EXTRA_REFRESH_STORIES);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadStories();
     }
 
     private void refreshFeed() {
@@ -196,6 +232,7 @@ public class NewsfeedActivity extends AppCompatActivity {
         reachedEnd = false;
         loadedPostIds.clear();
         adapter.setPosts(new ArrayList<>());
+        loadStories();
         loadPage(true);
     }
 
@@ -357,6 +394,130 @@ public class NewsfeedActivity extends AppCompatActivity {
             return baseUrl + rawUrl;
         }
         return baseUrl + "/" + rawUrl;
+    }
+
+    private void loadCurrentUserProfile() {
+        apiService.getMe().enqueue(new Callback<UserProfileResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<UserProfileResponse> call,
+                                   @NonNull Response<UserProfileResponse> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    renderStories(List.of());
+                    return;
+                }
+                currentUserProfile = response.body();
+                loadStories();
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<UserProfileResponse> call, @NonNull Throwable t) {
+                renderStories(List.of());
+            }
+        });
+    }
+
+    private void loadStories() {
+        apiService.getStoriesFeed().enqueue(new Callback<List<StoryResponse>>() {
+            @Override
+            public void onResponse(@NonNull Call<List<StoryResponse>> call,
+                                   @NonNull Response<List<StoryResponse>> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    renderStories(List.of());
+                    return;
+                }
+                renderStories(response.body());
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<List<StoryResponse>> call, @NonNull Throwable t) {
+                renderStories(List.of());
+            }
+        });
+    }
+
+    private void renderStories(List<StoryResponse> stories) {
+        storyFeedItems.clear();
+        storiesByAuthor.clear();
+
+        String currentUserId = sessionManager.getUserId();
+        StoryItem ownStoryPreview = null;
+        LinkedHashMap<String, StoryItem> followerStoryPreviews = new LinkedHashMap<>();
+        if (stories != null) {
+            for (StoryResponse response : stories) {
+                if (response == null || response.getAuthor() == null) {
+                    continue;
+                }
+                StoryItem storyItem = new StoryItem(
+                        response.getId(),
+                        response.getAuthor().getId(),
+                        response.getAuthor().getUsername(),
+                        normalizeUrl(response.getAuthor().getAvatarUrl()),
+                        normalizeUrl(response.getMediaUrl()),
+                        response.getCreatedAt(),
+                        false);
+                String authorId = storyItem.getAuthorId() == null ? "" : storyItem.getAuthorId();
+                storiesByAuthor.computeIfAbsent(authorId, ignored -> new ArrayList<>()).add(storyItem);
+
+                if (currentUserId != null && currentUserId.equals(authorId)) {
+                    if (ownStoryPreview == null) {
+                        ownStoryPreview = storyItem;
+                    }
+                    continue;
+                }
+                followerStoryPreviews.putIfAbsent(authorId, storyItem);
+            }
+        }
+
+        storyFeedItems.add(buildCreateCard(ownStoryPreview));
+        storyFeedItems.addAll(followerStoryPreviews.values());
+        storyAdapter.submitItems(storyFeedItems);
+    }
+
+    private StoryItem buildCreateCard(StoryItem ownStoryPreview) {
+        String currentUserId = sessionManager.getUserId();
+        String username = getString(R.string.feed_story_your_story);
+        String avatarUrl = "";
+        if (currentUserProfile != null) {
+            if (currentUserProfile.getUsername() != null && !currentUserProfile.getUsername().trim().isEmpty()) {
+                username = currentUserProfile.getUsername();
+            }
+            avatarUrl = normalizeUrl(currentUserProfile.getAvatarUrl());
+        }
+        return new StoryItem(
+                ownStoryPreview != null ? ownStoryPreview.getId() : "create-story",
+                currentUserId,
+                username,
+                avatarUrl,
+                ownStoryPreview != null ? ownStoryPreview.getMediaUrl() : "",
+                ownStoryPreview != null ? ownStoryPreview.getCreatedAt() : "",
+                true
+        );
+    }
+
+    private void openStoryViewer(StoryItem selectedStory) {
+        String authorId = selectedStory.getAuthorId() == null ? "" : selectedStory.getAuthorId();
+        ArrayList<StoryItem> viewableStories = new ArrayList<>();
+        List<StoryItem> authorStories = storiesByAuthor.get(authorId);
+        if (authorStories != null) {
+            viewableStories.addAll(authorStories);
+        }
+        if (viewableStories.isEmpty()) {
+            return;
+        }
+
+        int storyIndex = 0;
+        for (int index = 0; index < viewableStories.size(); index++) {
+            StoryItem item = viewableStories.get(index);
+            if (selectedStory.getId() != null && selectedStory.getId().equals(item.getId())) {
+                storyIndex = index;
+                break;
+            }
+        }
+
+        Intent intent = new Intent(this, StoryViewerActivity.class);
+        intent.putExtra(StoryViewerActivity.EXTRA_STORIES, viewableStories);
+        intent.putExtra(StoryViewerActivity.EXTRA_STORY_INDEX, storyIndex);
+        startActivity(intent);
     }
 
     private void handleUnauthorized() {

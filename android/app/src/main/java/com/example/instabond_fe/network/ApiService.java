@@ -6,6 +6,7 @@ import com.example.instabond_fe.model.CreatePostRequest;
 import com.example.instabond_fe.model.Notification;
 import com.example.instabond_fe.model.NotificationPageResponse;
 import com.example.instabond_fe.model.PostResponse;
+import com.example.instabond_fe.model.StoryResponse;
 import com.example.instabond_fe.model.UpdateProfileRequest;
 import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.model.ChatMessageResponse;
@@ -50,6 +51,13 @@ public interface ApiService {
 
     @GET("api/posts/feed")
     Call<JsonElement> getFeed();
+
+    @GET("api/stories/feed")
+    Call<List<StoryResponse>> getStoriesFeed();
+
+    @Multipart
+    @POST("api/stories/images")
+    Call<StoryResponse> createStory(@Part MultipartBody.Part file);
 
     @GET("api/posts/user/{userId}")
     Call<JsonElement> getPostsByUserId(@Path("userId") String userId);

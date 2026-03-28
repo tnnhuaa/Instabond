@@ -41,7 +41,13 @@
             android:name=".view.CreatePostActivity"
             android:exported="false" />
         <activity
+            android:name=".view.CreateStoryActivity"
+            android:exported="false" />
+        <activity
             android:name=".view.ImageEditorActivity"
+            android:exported="false" />
+        <activity
+            android:name=".view.StoryViewerActivity"
             android:exported="false" />
 
         <activity
