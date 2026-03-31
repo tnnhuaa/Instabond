@@ -22,6 +22,7 @@ import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.AvatarLoader;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -123,12 +124,7 @@ public class CreateStoryActivity extends AppCompatActivity {
                     binding.tvStoryComposerUser.setText(profile.getUsername());
                 }
 
-                Glide.with(CreateStoryActivity.this)
-                        .load(profile.getAvatarUrl())
-                        .circleCrop()
-                        .placeholder(R.drawable.profile_placeholder_bg)
-                        .error(R.drawable.profile_placeholder_bg)
-                        .into(binding.ivStoryComposerAvatar);
+                AvatarLoader.load(binding.ivStoryComposerAvatar, profile.getAvatarUrl());
             }
 
             @Override

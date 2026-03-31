@@ -10,9 +10,9 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.FollowUserResponse;
+import com.example.instabond_fe.utils.AvatarLoader;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,11 +70,7 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
             }
             return true;
         });
-        Glide.with(holder.itemView)
-                .load(user.getAvatarUrl())
-                .placeholder(R.drawable.avatar_circle_bg)
-                .error(R.drawable.avatar_circle_bg)
-                .into(holder.ivAvatar);
+        AvatarLoader.load(holder.ivAvatar, user.getAvatarUrl());
 
         String itemId = user.getId();
         if (itemId != null) itemId = itemId.trim();
