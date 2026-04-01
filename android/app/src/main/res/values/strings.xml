@@ -94,6 +94,11 @@
     <string name="privacy_label">Quyền riêng tư</string>
     <string name="allow_tagging_label">Cho phép gắn thẻ</string>
     <string name="theme_label">Giao diện</string>
+    <string name="settings_section_personal_info">Thông tin cá nhân</string>
+    <string name="settings_section_security">Bảo mật</string>
+    <string name="settings_brand_name">Instabond</string>
+    <string name="settings_help_fab_desc">Hỗ trợ nhanh</string>
+    <string name="settings_feature_soon">Tính năng này sẽ sớm có</string>
     <string name="msg_user_id_missing">Không tìm thấy user id</string>
     <string name="msg_profile_update_failed">Cập nhật profile thất bại</string>
     <string name="msg_profile_updated">Đã cập nhật profile</string>
