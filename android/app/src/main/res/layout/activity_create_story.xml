@@ -4,14 +4,52 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/login_card_surface">
+    android:background="@android:color/black">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <FrameLayout
+        android:id="@+id/preview_card"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:id="@+id/iv_story_preview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/story_create_camera_preview_bg"
+            android:contentDescription="@string/story_view_content"
+            android:scaleType="centerCrop" />
+
+        <View
+            android:id="@+id/story_preview_top_scrim"
+            android:layout_width="match_parent"
+            android:layout_height="196dp"
+            android:layout_gravity="top"
+            android:background="@drawable/story_viewer_top_scrim" />
+
+        <View
+            android:id="@+id/story_preview_bottom_scrim"
+            android:layout_width="match_parent"
+            android:layout_height="260dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/story_viewer_bottom_scrim" />
+
+    </FrameLayout>
+
+    <LinearLayout
         android:id="@+id/story_create_toolbar"
         android:layout_width="0dp"
-        android:layout_height="72dp"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="16dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -20,230 +58,305 @@
             android:id="@+id/btn_back_story_composer"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:background="@drawable/story_create_action_bg"
+            android:background="@drawable/story_create_tool_button_bg"
             android:contentDescription="@string/cd_back"
             android:padding="10dp"
-            android:src="@drawable/ic_arrow_back"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/login_text_primary" />
+            android:src="@drawable/ic_story_close" />
 
         <TextView
             android:id="@+id/tv_story_create_title"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:fontFamily="sans-serif-black"
+            android:gravity="center"
             android:text="@string/story_create_title"
-            android:textColor="@color/login_text_primary"
-            android:textSize="20sp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.5"
-            app:layout_constraintHorizontal_bias="0.5"
-            app:layout_constraintEnd_toEndOf="parent" />
-
-        <Button
-            android:id="@+id/btn_share_story"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:background="@drawable/story_create_share_bg"
-            android:fontFamily="sans-serif-bold"
-            android:paddingStart="18dp"
-            android:paddingEnd="18dp"
-            android:text="@string/story_create_share"
-            android:textAllCaps="false"
             android:textColor="@android:color/white"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:textSize="22sp" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+        <ImageButton
+            android:id="@+id/btn_story_settings"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/story_create_tool_button_bg"
+            android:contentDescription="@string/cd_story_settings"
+            android:padding="10dp"
+            android:src="@drawable/ic_settings"
+            app:tint="@android:color/white" />
 
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/preview_card"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginEnd="20dp"
-        app:cardBackgroundColor="@android:color/white"
-        app:cardCornerRadius="34dp"
-        app:cardElevation="0dp"
-        app:layout_constraintBottom_toTopOf="@id/story_create_actions"
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/story_side_tools"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="96dp"
+        android:layout_marginEnd="16dp"
+        android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/story_create_toolbar">
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/btn_story_tool_text"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/story_create_tool_button_bg"
+            android:gravity="center"
+            android:text="@string/story_create_tool_text_label"
+            android:textColor="@android:color/white"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btn_story_tool_comment"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/story_create_tool_button_bg"
+            android:contentDescription="@string/cd_story_tool_comment"
+            android:padding="13dp"
+            android:src="@drawable/ic_story_comment" />
+
+        <ImageButton
+            android:id="@+id/btn_story_tool_music"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/story_create_tool_button_bg"
+            android:contentDescription="@string/cd_music"
+            android:padding="12dp"
+            android:src="@drawable/ic_music" />
+
+        <ImageButton
+            android:id="@+id/btn_story_tool_effects"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/story_create_tool_button_bg"
+            android:contentDescription="@string/cd_story_tool_effects"
+            android:padding="12dp"
+            android:src="@drawable/ic_story_sparkles" />
+
+        <ImageButton
+            android:id="@+id/btn_story_tool_more"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/story_create_tool_button_bg"
+            android:contentDescription="@string/cd_more_options"
+            android:padding="12dp"
+            android:src="@drawable/ic_more_horizontal" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/story_camera_controls"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginBottom="34dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
 
         <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:id="@+id/btn_choose_story_photo"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/story_create_gallery_button_bg"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackgroundBorderless">
 
             <ImageView
-                android:id="@+id/iv_story_preview"
+                android:id="@+id/iv_story_gallery_thumb"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/story_create_preview_bg"
-                android:contentDescription="@string/story_create_preview_title"
+                android:layout_margin="2dp"
+                android:background="@drawable/story_create_camera_preview_bg"
+                android:contentDescription="@string/cd_story_gallery"
                 android:scaleType="centerCrop" />
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="180dp"
-                android:layout_gravity="top"
-                android:background="@drawable/story_viewer_top_scrim" />
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:alpha="0.82"
+                android:contentDescription="@null"
+                android:src="@drawable/baseline_camera_alt_24" />
 
-            <View
+        </FrameLayout>
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <FrameLayout
+            android:id="@+id/btn_capture_story_photo"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:background="@drawable/story_create_shutter_ring_bg"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:padding="4dp">
+
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="220dp"
-                android:layout_gravity="bottom"
-                android:background="@drawable/story_viewer_bottom_scrim" />
+                android:layout_height="match_parent"
+                android:background="@drawable/story_create_shutter_surface_bg"
+                android:padding="4dp">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/story_create_shutter_border_bg" />
+
+            </FrameLayout>
+
+        </FrameLayout>
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <ImageButton
+            android:id="@+id/btn_story_tool_flash"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/story_create_tool_button_bg"
+            android:contentDescription="@string/cd_story_flash"
+            android:padding="13dp"
+            android:src="@drawable/ic_story_flash" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/story_share_footer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/story_create_footer_bg"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="32dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:visibility="visible">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:alpha="0.6"
+                android:fontFamily="sans-serif-black"
+                android:letterSpacing="0.08"
+                android:text="@string/story_create_mode_post"
+                android:textAllCaps="true"
+                android:textColor="@android:color/white"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="28dp"
+                android:layout_marginStart="24dp"
+                android:background="@drawable/story_create_mode_selected_bg"
+                android:fontFamily="sans-serif-black"
+                android:gravity="center"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:text="@string/story_create_mode_story"
+                android:textAllCaps="true"
+                android:textColor="@android:color/white"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
+                android:id="@+id/btn_replace_story_photo"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:background="@drawable/story_create_destination_bg"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackgroundBorderless"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="4dp"
+                android:paddingEnd="16dp">
 
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                <FrameLayout
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="@drawable/story_create_avatar_ring"
+                    android:padding="2dp">
 
                     <ImageView
                         android:id="@+id/iv_story_composer_avatar"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
                         android:background="@drawable/avatar_circle_bg"
                         android:clipToOutline="true"
                         android:contentDescription="@string/cd_user_avatar"
                         android:scaleType="centerCrop"
                         android:src="@drawable/profile_placeholder_bg" />
 
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:orientation="vertical">
+                </FrameLayout>
 
-                        <TextView
-                            android:id="@+id/tv_story_composer_user"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif-black"
-                            android:textColor="@android:color/white"
-                            android:textSize="16sp"
-                            tools:text="johndoe" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="@string/story_create_visibility_hint"
-                            android:textColor="#CCFFFFFF"
-                            android:textSize="11sp" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif-black"
-                        android:text="@string/story_create_preview_title"
-                        android:textColor="@android:color/white"
-                        android:textSize="28sp" />
-
-                    <TextView
-                        android:layout_width="280dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:gravity="center"
-                        android:text="@string/story_create_preview_subtitle"
-                        android:textColor="#D9FFFFFF"
-                        android:textSize="14sp" />
-
-                </LinearLayout>
-
-                <Button
-                    android:id="@+id/btn_replace_story_photo"
+                <TextView
+                    android:id="@+id/tv_story_composer_user"
                     android:layout_width="wrap_content"
-                    android:layout_height="40dp"
-                    android:background="@drawable/story_viewer_glass_button"
-                    android:text="@string/story_create_replace_photo"
-                    android:textAllCaps="false"
-                    android:textColor="@android:color/white" />
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.08"
+                    android:text="@string/story_create_destination_story"
+                    android:textAllCaps="true"
+                    android:textColor="@android:color/white"
+                    android:textSize="10sp" />
 
             </LinearLayout>
 
-        </FrameLayout>
-
-    </com.google.android.material.card.MaterialCardView>
-
-    <LinearLayout
-        android:id="@+id/story_create_actions"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="28dp"
-        android:orientation="vertical"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-black"
-            android:text="@string/story_create_pick_title"
-            android:textColor="@color/login_text_primary"
-            android:textSize="18sp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="@string/story_create_pick_body"
-            android:textColor="@color/feed_story_label"
-            android:textSize="13sp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:orientation="horizontal">
-
             <Button
-                android:id="@+id/btn_choose_story_photo"
+                android:id="@+id/btn_share_story"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
+                android:layout_marginStart="16dp"
                 android:layout_weight="1"
-                android:background="@drawable/story_create_action_bg"
-                android:text="@string/story_create_pick_gallery"
+                android:background="@drawable/story_create_post_button_bg"
+                android:drawableEnd="@drawable/ic_arrow_right_small"
+                android:drawablePadding="8dp"
+                android:fontFamily="sans-serif-black"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:text="@string/story_create_post_action"
                 android:textAllCaps="false"
-                android:textColor="@color/login_text_primary" />
-
-            <Button
-                android:id="@+id/btn_capture_story_photo"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
-                android:background="@drawable/story_create_action_bg"
-                android:text="@string/story_create_pick_camera"
-                android:textAllCaps="false"
-                android:textColor="@color/login_text_primary" />
+                android:textColor="@android:color/white"
+                android:textSize="16sp" />
 
         </LinearLayout>
 
