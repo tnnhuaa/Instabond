@@ -7,6 +7,7 @@ import android.graphics.ImageDecoder;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -22,6 +23,7 @@ import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.AvatarLoader;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -70,13 +72,29 @@ public class CreateStoryActivity extends AppCompatActivity {
     private void setupToolbar() {
         binding.btnBackStoryComposer.setOnClickListener(v -> finish());
         binding.btnShareStory.setOnClickListener(v -> submitStory());
+        binding.btnStorySettings.setOnClickListener(v ->
+                Toast.makeText(this, R.string.story_create_tools_soon, Toast.LENGTH_SHORT).show()
+        );
     }
 
     private void setupActions() {
-        binding.previewCard.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
+        View.OnClickListener toolsSoonClick = v ->
+                Toast.makeText(this, R.string.story_create_tools_soon, Toast.LENGTH_SHORT).show();
+
+        binding.previewCard.setOnClickListener(v -> {
+            if (hasSelectedImage()) {
+                pickImageLauncher.launch("image/*");
+            }
+        });
         binding.btnChooseStoryPhoto.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
         binding.btnCaptureStoryPhoto.setOnClickListener(v -> takePhotoLauncher.launch(null));
         binding.btnReplaceStoryPhoto.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
+        binding.btnStoryToolFlash.setOnClickListener(toolsSoonClick);
+        binding.btnStoryToolText.setOnClickListener(toolsSoonClick);
+        binding.btnStoryToolComment.setOnClickListener(toolsSoonClick);
+        binding.btnStoryToolMusic.setOnClickListener(toolsSoonClick);
+        binding.btnStoryToolEffects.setOnClickListener(toolsSoonClick);
+        binding.btnStoryToolMore.setOnClickListener(toolsSoonClick);
     }
 
     private void registerLaunchers() {
@@ -104,7 +122,6 @@ public class CreateStoryActivity extends AppCompatActivity {
     }
 
     private void loadCurrentUser() {
-        binding.tvStoryComposerUser.setText(R.string.feed_story_your_story);
         String userId = sessionManager.getUserId();
         if (userId == null || userId.trim().isEmpty()) {
             return;
@@ -119,16 +136,7 @@ public class CreateStoryActivity extends AppCompatActivity {
                 }
 
                 UserProfileResponse profile = response.body();
-                if (profile.getUsername() != null && !profile.getUsername().trim().isEmpty()) {
-                    binding.tvStoryComposerUser.setText(profile.getUsername());
-                }
-
-                Glide.with(CreateStoryActivity.this)
-                        .load(profile.getAvatarUrl())
-                        .circleCrop()
-                        .placeholder(R.drawable.profile_placeholder_bg)
-                        .error(R.drawable.profile_placeholder_bg)
-                        .into(binding.ivStoryComposerAvatar);
+                AvatarLoader.load(binding.ivStoryComposerAvatar, profile.getAvatarUrl());
             }
 
             @Override
@@ -139,15 +147,20 @@ public class CreateStoryActivity extends AppCompatActivity {
     }
 
     private void renderPreview() {
-        boolean hasImage = selectedBitmap != null || selectedImageUri != null;
+        boolean hasImage = hasSelectedImage();
         binding.btnShareStory.setEnabled(hasImage);
         binding.btnShareStory.setAlpha(hasImage ? 1f : 0.5f);
         binding.btnReplaceStoryPhoto.setEnabled(hasImage);
         binding.btnReplaceStoryPhoto.setAlpha(hasImage ? 1f : 0.5f);
+        binding.storyCameraControls.setVisibility(hasImage ? View.GONE : View.VISIBLE);
+        binding.storyShareFooter.setVisibility(hasImage ? View.VISIBLE : View.GONE);
+        binding.previewCard.setClickable(hasImage);
+        binding.previewCard.setFocusable(hasImage);
+        binding.storyPreviewBottomScrim.setAlpha(hasImage ? 0.9f : 0.65f);
 
         if (!hasImage) {
             binding.ivStoryPreview.setImageDrawable(null);
-            binding.ivStoryPreview.setBackgroundResource(R.drawable.create_post_preview_placeholder);
+            binding.ivStoryPreview.setBackgroundResource(R.drawable.story_create_camera_preview_bg);
             return;
         }
 
@@ -160,6 +173,10 @@ public class CreateStoryActivity extends AppCompatActivity {
                     .placeholder(R.drawable.create_post_preview_placeholder)
                     .into(binding.ivStoryPreview);
         }
+    }
+
+    private boolean hasSelectedImage() {
+        return selectedBitmap != null || selectedImageUri != null;
     }
 
     private void submitStory() {
@@ -313,14 +330,23 @@ public class CreateStoryActivity extends AppCompatActivity {
     }
 
     private void setLoading(boolean loading) {
-        binding.btnShareStory.setEnabled(!loading && (selectedBitmap != null || selectedImageUri != null));
+        boolean hasImage = hasSelectedImage();
+        binding.btnShareStory.setEnabled(!loading && hasImage);
         binding.btnBackStoryComposer.setEnabled(!loading);
+        binding.btnStorySettings.setEnabled(!loading);
         binding.btnChooseStoryPhoto.setEnabled(!loading);
         binding.btnCaptureStoryPhoto.setEnabled(!loading);
-        binding.btnReplaceStoryPhoto.setEnabled(!loading && (selectedBitmap != null || selectedImageUri != null));
+        binding.btnReplaceStoryPhoto.setEnabled(!loading && hasImage);
+        binding.previewCard.setEnabled(!loading);
+        binding.btnStoryToolFlash.setEnabled(!loading);
+        binding.btnStoryToolText.setEnabled(!loading);
+        binding.btnStoryToolComment.setEnabled(!loading);
+        binding.btnStoryToolMusic.setEnabled(!loading);
+        binding.btnStoryToolEffects.setEnabled(!loading);
+        binding.btnStoryToolMore.setEnabled(!loading);
         binding.btnShareStory.setText(loading
                 ? getString(R.string.story_create_posting)
-                : getString(R.string.story_create_share));
+                : getString(R.string.story_create_post_action));
     }
 
     private void openFeedWithRefresh() {

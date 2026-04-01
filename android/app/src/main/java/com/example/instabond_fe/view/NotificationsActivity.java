@@ -28,6 +28,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.WebSocketManager;
+import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.utils.TimeUtils;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.google.gson.Gson;
@@ -350,16 +351,7 @@ public class NotificationsActivity extends AppCompatActivity {
                     avatarUrl = item.getMetadata().get("sender_image_url");
                 }
 
-                if (avatarUrl != null && !avatarUrl.isEmpty()) {
-                    Glide.with(binding.getRoot().getContext())
-                            .load(avatarUrl)
-                            .placeholder(R.drawable.ic_person)
-                            .error(R.drawable.ic_person)
-                            .circleCrop()
-                            .into(binding.ivAvatar);
-                } else {
-                    binding.ivAvatar.setImageResource(R.drawable.ic_person);
-                }
+                AvatarLoader.load(binding.ivAvatar, avatarUrl);
                 binding.getRoot().setOnClickListener(v -> listener.onNotificationClick(item));
             }
         }

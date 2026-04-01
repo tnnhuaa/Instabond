@@ -23,6 +23,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiListParser;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -307,11 +308,7 @@ public class ProfileActivity extends AppCompatActivity {
         binding.tvFriendsCount.setText(formatCount(profile.getFollowersCount()));
         binding.tvLikesCount.setText(formatCount(profile.getFollowingCount()));
 
-        Glide.with(this)
-                .load(profile.getAvatarUrl())
-                .placeholder(R.drawable.profile_placeholder_bg)
-                .error(R.drawable.profile_placeholder_bg)
-                .into(binding.ivAvatar);
+        AvatarLoader.load(binding.ivAvatar, profile.getAvatarUrl());
 
         String relStatus = profile.getRelationshipStatus();
         boolean isPrivate = profile.isPrivate();

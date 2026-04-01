@@ -10,9 +10,9 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.UserSearchDTO;
+import com.example.instabond_fe.utils.AvatarLoader;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,14 +41,7 @@ public class SearchUserAdapter extends RecyclerView.Adapter<SearchUserAdapter.Us
         holder.tvUsername.setText(user.getUsername());
         holder.tvFullname.setText(user.getFullName() != null ? user.getFullName() : "");
 
-        if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
-            Glide.with(holder.itemView.getContext())
-                    .load(user.getAvatarUrl())
-                    .circleCrop()
-                    .into(holder.ivAvatar);
-        } else {
-            holder.ivAvatar.setImageResource(R.drawable.ic_person);
-        }
+        AvatarLoader.load(holder.ivAvatar, user.getAvatarUrl());
 
         // EVENT: Click on user suggestion to navigate to their profile
         holder.itemView.setOnClickListener(v -> {

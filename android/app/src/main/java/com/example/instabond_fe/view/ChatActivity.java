@@ -10,12 +10,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
-import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityChatBinding;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.repository.WebSocketManager;
+import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.viewmodel.ChatViewModel;
 import com.example.instabond_fe.model.UserProfileResponse;
 
@@ -157,16 +157,7 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void renderPartnerAvatar() {
-        if (partnerAvatar != null && !partnerAvatar.trim().isEmpty()) {
-            Glide.with(this)
-                    .load(normalizeUrl(partnerAvatar))
-                    .placeholder(R.drawable.profile_placeholder_bg)
-                    .error(R.drawable.profile_placeholder_bg)
-                    .circleCrop()
-                    .into(binding.ivPartnerAvatar);
-        } else {
-            binding.ivPartnerAvatar.setImageResource(R.drawable.profile_placeholder_bg);
-        }
+        AvatarLoader.load(binding.ivPartnerAvatar, normalizeUrl(partnerAvatar));
     }
 
     private void hydratePartnerProfileIfNeeded() {

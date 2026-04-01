@@ -10,10 +10,9 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.StoryItem;
+import com.example.instabond_fe.utils.AvatarLoader;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,12 +70,7 @@ public class StoryFeedAdapter extends RecyclerView.Adapter<StoryFeedAdapter.Stor
             holder.innerFrame.setPadding(padding, padding, padding, padding);
         }
 
-        Glide.with(holder.itemView)
-                .load(item.getAvatarUrl())
-                .transform(new CircleCrop())
-                .placeholder(R.drawable.profile_placeholder_bg)
-                .error(R.drawable.profile_placeholder_bg)
-                .into(holder.ivAvatar);
+        AvatarLoader.load(holder.ivAvatar, item.getAvatarUrl());
 
         holder.itemView.setOnClickListener(v -> {
             if (listener == null) {

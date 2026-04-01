@@ -9,12 +9,12 @@ import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ItemInboxConversationBinding;
 import com.example.instabond_fe.model.Conversation;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.utils.TimeUtils;
 
 import java.util.ArrayList;
@@ -97,12 +97,7 @@ public class InboxAdapter extends RecyclerView.Adapter<InboxAdapter.InboxViewHol
                 }
             }
 
-            Glide.with(binding.ivAvatar.getContext())
-                    .load(normalizeUrl(avatarUrl))
-                    .circleCrop()
-                    .placeholder(R.drawable.profile_placeholder_bg)
-                    .error(R.drawable.profile_placeholder_bg)
-                    .into(binding.ivAvatar);
+            AvatarLoader.load(binding.ivAvatar, normalizeUrl(avatarUrl));
 
             binding.tvConversationTitle.setText(title);
             binding.tvConversationPreview.setText(preview);

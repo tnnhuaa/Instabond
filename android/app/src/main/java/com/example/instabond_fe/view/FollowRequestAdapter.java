@@ -8,9 +8,9 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.FollowUserResponse;
+import com.example.instabond_fe.utils.AvatarLoader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,10 +50,7 @@ public class FollowRequestAdapter extends RecyclerView.Adapter<FollowRequestAdap
         FollowUserResponse user = requests.get(position);
         holder.tvUsername.setText(user.getUsername());
         holder.tvFullname.setText(user.getFullName());
-        Glide.with(holder.itemView.getContext())
-                .load(user.getAvatarUrl())
-                .placeholder(R.drawable.profile_placeholder_bg)
-                .into(holder.ivAvatar);
+        AvatarLoader.load(holder.ivAvatar, user.getAvatarUrl());
 
         holder.btnAccept.setOnClickListener(v -> listener.onAccept(user, position));
         holder.btnReject.setOnClickListener(v -> listener.onReject(user, position));

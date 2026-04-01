@@ -6,6 +6,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivitySettingsBinding;
 import com.example.instabond_fe.model.UpdateProfileRequest;
 import com.example.instabond_fe.model.UserProfileResponse;
@@ -13,6 +14,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.ChatRepository;
+import com.example.instabond_fe.utils.AvatarLoader;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -42,6 +44,8 @@ public class SettingsActivity extends AppCompatActivity {
         }
 
         setupListeners();
+        binding.swAllowTagging.setChecked(true);
+        binding.swTheme.setChecked(false);
         setUiEnabled(false);
         loadMe();
     }
@@ -56,11 +60,27 @@ public class SettingsActivity extends AppCompatActivity {
         binding.btnBack.setOnClickListener(v -> finish());
         binding.btnSaveProfile.setOnClickListener(v -> updateProfile());
         binding.btnLogout.setOnClickListener(v -> logout());
+        binding.btnEditAvatar.setOnClickListener(v ->
+                Toast.makeText(this, R.string.settings_feature_soon, Toast.LENGTH_SHORT).show());
+        binding.btnHelpFab.setOnClickListener(v ->
+                Toast.makeText(this, R.string.settings_feature_soon, Toast.LENGTH_SHORT).show());
         binding.swPrivateAccount.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (suppressPrivacyToggleListener || isUpdatingPrivacy) {
                 return;
             }
             updatePrivacy(isChecked);
+        });
+        binding.swAllowTagging.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (!buttonView.isPressed()) {
+                return;
+            }
+            Toast.makeText(this, R.string.settings_feature_soon, Toast.LENGTH_SHORT).show();
+        });
+        binding.swTheme.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (!buttonView.isPressed()) {
+                return;
+            }
+            Toast.makeText(this, R.string.settings_feature_soon, Toast.LENGTH_SHORT).show();
         });
     }
 
@@ -77,6 +97,16 @@ public class SettingsActivity extends AppCompatActivity {
                     UserProfileResponse me = response.body();
                     if (me.getId() != null) userId = me.getId();
 
+                    String fullName = me.getFullName() != null && !me.getFullName().trim().isEmpty()
+                            ? me.getFullName().trim()
+                            : getString(R.string.app_name);
+                    String username = me.getUsername() != null && !me.getUsername().trim().isEmpty()
+                            ? "@" + me.getUsername().trim().replace("@", "")
+                            : "@instabond";
+
+                    binding.tvDisplayName.setText(fullName);
+                    binding.tvUsername.setText(username);
+                    AvatarLoader.load(binding.ivAvatar, me.getAvatarUrl());
                     binding.etFullName.setText(me.getFullName() != null ? me.getFullName() : "");
                     binding.etBio.setText(me.getBio() != null ? me.getBio() : "");
                     binding.etPhoneNumber.setText(me.getPhoneNumber() != null ? me.getPhoneNumber() : "");
@@ -189,6 +219,10 @@ public class SettingsActivity extends AppCompatActivity {
         binding.etPhoneNumber.setEnabled(enabled);
         binding.btnSaveProfile.setEnabled(enabled);
         binding.btnSaveProfile.setAlpha(enabled ? 1.0f : 0.5f);
+        binding.swAllowTagging.setEnabled(enabled);
+        binding.swTheme.setEnabled(enabled);
+        binding.swAllowTagging.setAlpha(enabled ? 1.0f : 0.7f);
+        binding.swTheme.setAlpha(enabled ? 1.0f : 0.7f);
         setPrivacyToggleEnabled(enabled && !isUpdatingPrivacy);
     }
 

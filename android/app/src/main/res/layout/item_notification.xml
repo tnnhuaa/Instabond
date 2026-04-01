@@ -20,7 +20,7 @@
             android:layout_height="48dp"
             android:scaleType="centerCrop"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.MaterialComponents.SmallComponent"
-            android:src="@drawable/ic_person" />
+            android:src="@drawable/profile_placeholder_bg" />
 
         <FrameLayout
             android:id="@+id/small_chip"

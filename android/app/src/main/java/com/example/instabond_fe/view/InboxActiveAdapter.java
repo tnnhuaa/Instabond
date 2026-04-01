@@ -10,11 +10,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.Conversation;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.AvatarLoader;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -91,12 +91,7 @@ public class InboxActiveAdapter extends RecyclerView.Adapter<InboxActiveAdapter.
                     ? R.drawable.comment_author_ring_gradient
                     : R.drawable.bg_active_avatar_ring_neutral);
 
-            Glide.with(itemView)
-                    .load(normalizeUrl(avatarUrl))
-                    .circleCrop()
-                    .placeholder(R.drawable.profile_placeholder_bg)
-                    .error(R.drawable.profile_placeholder_bg)
-                    .into(ivAvatar);
+            AvatarLoader.load(ivAvatar, normalizeUrl(avatarUrl));
 
             itemView.setOnClickListener(v -> clickListener.onConversationClick(conversation));
         }
