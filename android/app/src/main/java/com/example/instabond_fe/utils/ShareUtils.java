@@ -15,7 +15,6 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.ChatMessageRequest;
 import com.example.instabond_fe.model.ChatMessageResponse;
@@ -139,11 +138,7 @@ public class ShareUtils {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             FollowUserResponse user = users.get(position);
             holder.tvUsername.setText(user.getUsername());
-            Glide.with(holder.itemView.getContext())
-                    .load(user.getAvatarUrl())
-                    .placeholder(R.drawable.profile_placeholder_bg)
-                    .error(R.drawable.profile_placeholder_bg)
-                    .into(holder.ivAvatar);
+            AvatarLoader.load(holder.ivAvatar, user.getAvatarUrl());
 
             holder.btnSend.setOnClickListener(v -> {
                 String typedText = etShareMessage != null ? etShareMessage.getText().toString() : "";

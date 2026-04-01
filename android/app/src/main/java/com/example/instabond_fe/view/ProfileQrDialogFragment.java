@@ -14,8 +14,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
-import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
+import com.example.instabond_fe.utils.AvatarLoader;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
@@ -67,7 +67,7 @@ public class ProfileQrDialogFragment extends DialogFragment {
             String avatarUrl = getArguments().getString(ARG_AVATAR_URL);
 
             tvUsername.setText(username != null ? username : "");
-            Glide.with(this).load(avatarUrl).placeholder(R.drawable.profile_placeholder_bg).into(ivAvatar);
+            AvatarLoader.load(ivAvatar, avatarUrl);
 
             if (userId != null) {
                 generateQrCode("instabond://user/" + userId, ivQrCode);

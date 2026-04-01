@@ -116,6 +116,8 @@
                     android:id="@+id/iv_story_avatar"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    android:background="@drawable/avatar_circle_bg"
+                    android:clipToOutline="true"
                     android:contentDescription="@string/cd_user_avatar"
                     android:scaleType="centerCrop"
                     android:src="@drawable/profile_placeholder_bg" />

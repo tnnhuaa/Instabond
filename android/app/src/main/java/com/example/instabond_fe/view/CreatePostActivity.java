@@ -36,6 +36,7 @@ import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.AvatarLoader;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
@@ -271,7 +272,7 @@ public class CreatePostActivity extends AppCompatActivity {
     private void loadCurrentUser() {
         String userId = sessionManager.getUserId();
         if (userId == null || userId.trim().isEmpty()) {
-            binding.ivUserAvatar.setImageResource(R.drawable.profile_placeholder_bg);
+            AvatarLoader.load(binding.ivUserAvatar, null);
             return;
         }
 
@@ -280,27 +281,17 @@ public class CreatePostActivity extends AppCompatActivity {
             public void onResponse(@NonNull Call<UserProfileResponse> call,
                                    @NonNull Response<UserProfileResponse> response) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    binding.ivUserAvatar.setImageResource(R.drawable.profile_placeholder_bg);
+                    AvatarLoader.load(binding.ivUserAvatar, null);
                     return;
                 }
 
                 String avatarUrl = response.body().getAvatarUrl();
-                if (avatarUrl == null || avatarUrl.trim().isEmpty()) {
-                    binding.ivUserAvatar.setImageResource(R.drawable.profile_placeholder_bg);
-                    return;
-                }
-
-                Glide.with(CreatePostActivity.this)
-                        .load(avatarUrl)
-                        .circleCrop()
-                        .placeholder(R.drawable.profile_placeholder_bg)
-                        .error(R.drawable.profile_placeholder_bg)
-                        .into(binding.ivUserAvatar);
+                AvatarLoader.load(binding.ivUserAvatar, avatarUrl);
             }
 
             @Override
             public void onFailure(@NonNull Call<UserProfileResponse> call, @NonNull Throwable t) {
-                binding.ivUserAvatar.setImageResource(R.drawable.profile_placeholder_bg);
+                AvatarLoader.load(binding.ivUserAvatar, null);
             }
         });
     }

@@ -138,4 +138,13 @@
     <color name="color_grey_light">#EFEFEF</color>
     <color name="color_grey_darker">#DCDCDC</color>
     <color name="red_500">#F44336</color>
+    <color name="settings_accent">#E1306C</color>
+    <color name="settings_muted_label">#787676</color>
+    <color name="settings_switch_off_track">#DFDCDC</color>
+    <color name="settings_chip_purple_bg">#F3E9FF</color>
+    <color name="settings_chip_peach_bg">#FCE9E4</color>
+    <color name="settings_chip_yellow_bg">#FFF2CF</color>
+    <color name="settings_chip_purple_icon">#8037B1</color>
+    <color name="settings_chip_peach_icon">#E45E38</color>
+    <color name="settings_chip_yellow_icon">#8F7312</color>
 </resources>
