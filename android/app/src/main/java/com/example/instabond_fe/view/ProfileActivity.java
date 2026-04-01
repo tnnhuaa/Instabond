@@ -79,9 +79,17 @@ public class ProfileActivity extends AppCompatActivity {
         gridAdapter = new ProfileGridAdapter();
         binding.rvProfileGrid.setAdapter(gridAdapter);
         gridAdapter.setListener((allPosts, clickedPosition) -> {
-            Intent intent = new Intent(this, ProfilePostDetailActivity.class);
-            intent.putExtra("targetUserId", currentUserId);
-            intent.putExtra("scrollToPosition", clickedPosition);
+            if (clickedPosition < 0 || clickedPosition >= allPosts.size()) {
+                return;
+            }
+
+            PostResponse selectedPost = allPosts.get(clickedPosition);
+            if (selectedPost == null || selectedPost.getId() == null || selectedPost.getId().trim().isEmpty()) {
+                return;
+            }
+
+            Intent intent = new Intent(this, CommentActivity.class);
+            intent.putExtra("postId", selectedPost.getId());
             startActivity(intent);
         });
 

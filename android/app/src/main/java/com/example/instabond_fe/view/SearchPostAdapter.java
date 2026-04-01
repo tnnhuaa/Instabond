@@ -1,5 +1,6 @@
 package com.example.instabond_fe.view;
 
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -45,10 +46,13 @@ public class SearchPostAdapter extends RecyclerView.Adapter<SearchPostAdapter.Po
 
         // EVENT: Click on post thumbnail to navigate to post details
         holder.itemView.setOnClickListener(v -> {
-            // @TODO: Navigate to PostDetailActivity and pass the postId (just todo for now, as PostDetailActivity is not implemented yet)
-            // Intent intent = new Intent(v.getContext(), PostDetailActivity.class);
-            // intent.putExtra("POST_ID", post.getId());
-            // v.getContext().startActivity(intent);
+            if (post.getId() == null || post.getId().trim().isEmpty()) {
+                return;
+            }
+
+            Intent intent = new Intent(v.getContext(), CommentActivity.class);
+            intent.putExtra("postId", post.getId());
+            v.getContext().startActivity(intent);
         });
     }
 
