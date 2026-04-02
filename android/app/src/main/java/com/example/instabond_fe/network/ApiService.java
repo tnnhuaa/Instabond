@@ -74,6 +74,9 @@ public interface ApiService {
     @DELETE("api/stories/{storyId}/like")
     Call<StoryResponse> unlikeStory(@Path("storyId") String storyId);
 
+    @DELETE("api/stories/{storyId}")
+    Call<Void> deleteStory(@Path("storyId") String storyId);
+
     @GET("api/stories/{storyId}/viewers")
     Call<StoryViewersResponse> getStoryViewers(@Path("storyId") String storyId);
 

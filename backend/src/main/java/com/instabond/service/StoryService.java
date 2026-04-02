@@ -131,6 +131,18 @@ public class StoryService {
                 .build();
     }
 
+    public void deleteStory(String storyId, String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        Story story = storyRepository.findById(storyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Story not found: " + storyId));
+
+        if (!caller.getId().equals(normalizeId(story.getAuthor_id()))) {
+            throw new ForbiddenOperationException("You can only delete your own story");
+        }
+
+        storyRepository.delete(story);
+    }
+
     private User resolveUserFromPrincipal(String principal) {
         if (principal == null || principal.isBlank()) {
             throw new IllegalArgumentException("Invalid user principal");

@@ -195,6 +195,13 @@
     <string name="story_view_reply_own_story">You cannot reply to your own story</string>
     <string name="story_view_reply_required">Enter a reply first</string>
     <string name="story_view_like_failed">Could not update story heart</string>
+    <string name="story_view_delete_action">Delete story</string>
+    <string name="story_view_delete_title">Delete this story?</string>
+    <string name="story_view_delete_message">This action cannot be undone.</string>
+    <string name="story_view_delete_confirm">Delete</string>
+    <string name="story_view_delete_cancel">Cancel</string>
+    <string name="story_view_delete_success">Story deleted</string>
+    <string name="story_view_delete_failed">Could not delete story</string>
     <string name="story_view_viewers_title">Story viewers</string>
     <string name="story_view_viewers_empty">No one has viewed this story yet.</string>
     <string name="story_view_viewers_summary">Seen by %1$d</string>

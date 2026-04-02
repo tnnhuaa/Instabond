@@ -34,6 +34,7 @@ import com.example.instabond_fe.repository.ChatRepository;
 import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.utils.RichMessageUtils;
 import com.example.instabond_fe.utils.TimeUtils;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -68,6 +69,7 @@ public class StoryViewerActivity extends AppCompatActivity {
     private long progressStartedAt = 0L;
     private boolean likeRequestInFlight;
     private boolean replyRequestInFlight;
+    private boolean deleteRequestInFlight;
     private List<StoryViewerResponse> currentViewers = new ArrayList<>();
 
     private final Runnable progressRunnable = new Runnable() {
@@ -136,8 +138,7 @@ public class StoryViewerActivity extends AppCompatActivity {
         binding.btnCloseStory.setOnClickListener(v -> finish());
         binding.storyTapLeft.setOnClickListener(v -> showPreviousStory());
         binding.storyTapRight.setOnClickListener(v -> showNextStoryOrFinish());
-        binding.btnStoryMore.setOnClickListener(v ->
-                Toast.makeText(this, R.string.story_view_more_soon, Toast.LENGTH_SHORT).show());
+        binding.btnStoryMore.setOnClickListener(v -> showStoryOptions());
         binding.btnStoryLike.setOnClickListener(v -> toggleLikeCurrentStory());
         binding.btnStorySend.setOnClickListener(v -> sendStoryReply());
         binding.tvStoryViewersSummary.setOnClickListener(v -> showViewersBottomSheet());
@@ -202,6 +203,9 @@ public class StoryViewerActivity extends AppCompatActivity {
         boolean ownStory = isOwnStory(story);
         binding.storyReplyBar.setVisibility(ownStory ? android.view.View.GONE : android.view.View.VISIBLE);
         binding.tvStoryViewersSummary.setVisibility(ownStory ? android.view.View.VISIBLE : android.view.View.GONE);
+        binding.btnStoryMore.setVisibility(ownStory ? android.view.View.VISIBLE : android.view.View.GONE);
+        binding.btnStoryMore.setEnabled(ownStory && !deleteRequestInFlight);
+        binding.btnStoryMore.setAlpha(deleteRequestInFlight ? 0.55f : 1f);
         binding.btnStoryLike.setEnabled(!ownStory && !likeRequestInFlight);
         updateViewersSummary(story.getViewerCount());
     }
@@ -404,6 +408,96 @@ public class StoryViewerActivity extends AppCompatActivity {
         binding.btnStorySend.setEnabled(!sending);
         binding.btnStorySend.setAlpha(sending ? 0.55f : 1f);
         binding.etStoryReply.setEnabled(!sending);
+    }
+
+    private void showStoryOptions() {
+        StoryItem story = stories.get(currentIndex);
+        if (!isOwnStory(story) || deleteRequestInFlight) {
+            return;
+        }
+
+        CharSequence[] options = {getString(R.string.story_view_delete_action)};
+        new MaterialAlertDialogBuilder(this)
+                .setItems(options, (dialogInterface, which) -> {
+                    if (which == 0) {
+                        confirmDeleteStory(story);
+                    }
+                })
+                .show();
+    }
+
+    private void confirmDeleteStory(StoryItem story) {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.story_view_delete_title)
+                .setMessage(R.string.story_view_delete_message)
+                .setNegativeButton(R.string.story_view_delete_cancel, null)
+                .setPositiveButton(R.string.story_view_delete_confirm, (dialogInterface, which) -> deleteCurrentStory(story))
+                .show();
+    }
+
+    private void deleteCurrentStory(StoryItem story) {
+        if (story == null || RichMessageUtils.isBlank(story.getId()) || deleteRequestInFlight) {
+            return;
+        }
+
+        deleteRequestInFlight = true;
+        stopProgress();
+        refreshCurrentStoryButtons();
+
+        apiService.deleteStory(story.getId()).enqueue(new Callback<>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                deleteRequestInFlight = false;
+                if (!response.isSuccessful()) {
+                    refreshCurrentStoryButtons();
+                    startProgress();
+                    showReplyError(extractErrorMessage(response, R.string.story_view_delete_failed));
+                    return;
+                }
+
+                handleStoryDeleted(story.getId());
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                deleteRequestInFlight = false;
+                refreshCurrentStoryButtons();
+                startProgress();
+                showReplyError(t == null ? getString(R.string.story_view_delete_failed) : t.getMessage());
+            }
+        });
+    }
+
+    private void handleStoryDeleted(String storyId) {
+        int removedIndex = -1;
+        for (int index = 0; index < stories.size(); index++) {
+            if (storyId.equals(stories.get(index).getId())) {
+                removedIndex = index;
+                break;
+            }
+        }
+
+        if (removedIndex < 0) {
+            refreshCurrentStoryButtons();
+            startProgress();
+            return;
+        }
+
+        stories.remove(removedIndex);
+        trackedViewedStoryIds.remove(storyId);
+        Toast.makeText(this, R.string.story_view_delete_success, Toast.LENGTH_SHORT).show();
+
+        if (stories.isEmpty()) {
+            finish();
+            return;
+        }
+
+        if (currentIndex >= stories.size()) {
+            currentIndex = stories.size() - 1;
+        } else if (removedIndex < currentIndex) {
+            currentIndex--;
+        }
+        renderCurrentStory();
     }
 
     private void loadStoryViewers(StoryItem story) {

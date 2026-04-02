@@ -370,4 +370,38 @@ class StoryServiceTest {
         assertEquals("viewer", response.getViewers().getFirst().getUsername());
         assertTrue(response.getViewers().getFirst().isLiked());
     }
+
+    @Test
+    void deleteStoryRemovesOwnedStory() {
+        User author = User.builder().id("author-1").email("author@example.com").build();
+        Story story = Story.builder()
+                .id("story-1")
+                .author_id(author.getId())
+                .media_url("https://cdn/story.jpg")
+                .build();
+
+        when(userRepository.findByEmail("author@example.com")).thenReturn(Optional.of(author));
+        when(storyRepository.findById("story-1")).thenReturn(Optional.of(story));
+
+        storyService.deleteStory("story-1", "author@example.com");
+
+        verify(storyRepository).delete(story);
+    }
+
+    @Test
+    void deleteStoryRejectsNonOwner() {
+        User caller = User.builder().id("viewer-1").email("viewer@example.com").build();
+        Story story = Story.builder()
+                .id("story-1")
+                .author_id("author-1")
+                .media_url("https://cdn/story.jpg")
+                .build();
+
+        when(userRepository.findByEmail("viewer@example.com")).thenReturn(Optional.of(caller));
+        when(storyRepository.findById("story-1")).thenReturn(Optional.of(story));
+
+        assertThrows(ForbiddenOperationException.class,
+                () -> storyService.deleteStory("story-1", "viewer@example.com"));
+        verify(storyRepository, never()).delete(any(Story.class));
+    }
 }
