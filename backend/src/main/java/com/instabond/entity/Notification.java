@@ -41,5 +41,6 @@ public class Notification {
         private String sender_image_url;
         private String post_image_url;
         private String conversation_id;
+        private String comment_id;
     }
 }

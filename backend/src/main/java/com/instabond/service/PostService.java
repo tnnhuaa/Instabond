@@ -399,10 +399,22 @@ public class PostService {
         Interaction saved = interactionRepository.save(interaction);
         incrementPostStat(postId, "stats.comments", 1);
 
-        // Send notification to post author
+        // Send notification
         String postAuthorId = post.getAuthor_id();
-        if (postAuthorId != null && !postAuthorId.equals(caller.getId())) {
-            notificationService.sendCommentNotification(caller.getId(), postAuthorId, postId, request.getContent());
+        if (request.getParent_id() != null && !request.getParent_id().isBlank()) {
+            // This is a reply to a comment
+            Interaction parentComment = interactionRepository.findById(request.getParent_id())
+                    .orElseThrow(() -> new ResourceNotFoundException("Parent comment not found: " + request.getParent_id()));
+            String parentCommentAuthorId = parentComment.getUser_id();
+
+            if (parentCommentAuthorId != null && !parentCommentAuthorId.equals(caller.getId())) {
+                notificationService.sendReplyCommentNotification(caller.getId(), parentCommentAuthorId, postId, request.getParent_id(), request.getContent());
+            }
+        } else {
+            // This is a top-level comment on a post
+            if (postAuthorId != null && !postAuthorId.equals(caller.getId())) {
+                notificationService.sendCommentNotification(caller.getId(), postAuthorId, postId, request.getContent());
+            }
         }
 
         return toCommentResponse(saved, caller, 0, false);
@@ -514,7 +526,7 @@ public class PostService {
     }
 
     public void likeComment(String postId, String commentId, String callerPrincipal) {
-        interactionRepository.findById(commentId)
+        Interaction comment = interactionRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found: " + commentId));
 
         User caller = resolveUserFromPrincipal(callerPrincipal);
@@ -531,6 +543,12 @@ public class PostService {
                     .created_at(Instant.now())
                     .build();
             interactionRepository.save(interaction);
+
+            // Send notification to comment author
+            String commentAuthorId = comment.getUser_id();
+            if (commentAuthorId != null && !commentAuthorId.equals(caller.getId())) {
+                notificationService.sendLikeCommentNotification(caller.getId(), commentAuthorId, postId, commentId);
+            }
         }
     }
 
