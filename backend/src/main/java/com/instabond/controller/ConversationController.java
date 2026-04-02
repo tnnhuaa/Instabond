@@ -1,7 +1,7 @@
 package com.instabond.controller;
 
+import com.instabond.dto.ConversationDTO;
 import com.instabond.dto.ConversationPageResponse;
-import com.instabond.entity.Conversation;
 import com.instabond.service.ConversationService;
 import com.instabond.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,12 +34,12 @@ public class ConversationController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Return conversation details (existing or newly created)",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Conversation.class))),
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ConversationDTO.class))),
             @ApiResponse(responseCode = "400", description = "Logic error such as trying to chat with oneself",
                     content = @Content)
     })
     @PostMapping("/direct")
-    public ResponseEntity<Conversation> getOrCreateDirectConversation(
+    public ResponseEntity<ConversationDTO> getOrCreateDirectConversation(
             @Parameter(description = "ID of user", required = true, example = "65e2a1b2c3d4e5f6g7h8i9j0")
             @RequestParam String partnerId,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -50,7 +50,7 @@ public class ConversationController {
         // Query database for current user ID
         String currentUserId = userService.getUserIdByEmail(email);
 
-        Conversation conversation = conversationService.getOrCreateDirectConversation(
+        ConversationDTO conversation = conversationService.getOrCreateDirectConversationDto(
                 currentUserId,
                 partnerId
         );
