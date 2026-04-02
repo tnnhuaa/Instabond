@@ -145,6 +145,25 @@ public class StoryController {
         return ResponseEntity.ok(storyService.getStoryViewers(storyId, getUserId(userDetails)));
     }
 
+    @Operation(
+            summary = "Delete a story",
+            description = "Deletes one story owned by the authenticated user."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Story deleted successfully"),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "403", description = "The authenticated user is not the story author"),
+            @ApiResponse(responseCode = "404", description = "Story not found")
+    })
+    @DeleteMapping("/{storyId}")
+    public ResponseEntity<Void> deleteStory(
+            @PathVariable String storyId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        storyService.deleteStory(storyId, getUserId(userDetails));
+        return ResponseEntity.noContent().build();
+    }
+
     private String getUserId(UserDetails userDetails) {
         return userDetails.getUsername();
     }
