@@ -8,6 +8,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -30,6 +31,7 @@ public class FollowListActivity extends AppCompatActivity {
 
     private String mode;
     private String userId;
+    private SessionManager sessionManager;
 
     private ApiService apiService;
     private UserAdapter adapter;
@@ -45,10 +47,15 @@ public class FollowListActivity extends AppCompatActivity {
         mode = getIntent().getStringExtra(EXTRA_MODE);
         userId = getIntent().getStringExtra(EXTRA_USER_ID);
 
-        if (mode == null || userId == null) {
+        if (mode == null) {
             Toast.makeText(this, "Lỗi hiển thị danh sách", Toast.LENGTH_SHORT).show();
             finish();
             return;
+        }
+
+        sessionManager = new SessionManager(this);
+        if (userId == null || userId.trim().isEmpty()) {
+            userId = sessionManager.getUserId();
         }
 
         apiService = ApiClient.getApiService(this);
@@ -59,6 +66,8 @@ public class FollowListActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             if ("requests".equals(mode)) {
                 getSupportActionBar().setTitle("Follow requests");
+            } else if ("blocked".equals(mode)) {
+                getSupportActionBar().setTitle(getString(R.string.blocked_users_title));
             } else {
                 getSupportActionBar().setTitle("followers".equals(mode) ? "Người theo dõi" : "Đang theo dõi");
             }
@@ -76,6 +85,9 @@ public class FollowListActivity extends AppCompatActivity {
         if ("requests".equals(mode)) {
             setupRequestAdapter();
             loadRequests();
+        } else if ("blocked".equals(mode)) {
+            setupUserAdapter();
+            loadBlockedUsers();
         } else {
             setupUserAdapter();
             loadList();
@@ -169,8 +181,8 @@ public class FollowListActivity extends AppCompatActivity {
     private void setupUserAdapter() {
         adapter = new UserAdapter();
         adapter.setProfileOwnerId(userId);
-        SessionManager sessionManager = new SessionManager(this);
         adapter.setCurrentUserId(sessionManager.getUserId());
+        adapter.setMode(mode);
         adapter.setListener(new UserAdapter.OnUserInteractionListener() {
             @Override
             public void onUserClicked(FollowUserResponse user) {
@@ -180,6 +192,10 @@ public class FollowListActivity extends AppCompatActivity {
             }
             @Override
             public void onUserLongClicked(FollowUserResponse user, int position) {
+                if ("blocked".equals(mode)) {
+                    Toast.makeText(FollowListActivity.this, "Nhấn nút để bỏ chặn", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 if (!"accepted".equals(user.getRelationshipStatus())) {
                     Toast.makeText(FollowListActivity.this, "Cần theo dõi trước", Toast.LENGTH_SHORT).show();
                     return;
@@ -190,10 +206,44 @@ public class FollowListActivity extends AppCompatActivity {
                         .setMessage("Xác nhận thao tác đối với người dùng này?")
                         .setPositiveButton("Xác nhận", (d, w) -> toggleCloseFriend(user, position))
                         .setNegativeButton("Hủy", null)
-                        .show();
+                        .create();
+
+                dialog.setOnShowListener(d -> {
+                    int textColor = ContextCompat.getColor(FollowListActivity.this, R.color.settings_text_primary);
+                    android.widget.Button negativeButton = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE);
+                    android.widget.Button positiveButton = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE);
+                    if (negativeButton != null) {
+                        negativeButton.setTextColor(textColor);
+                    }
+                    if (positiveButton != null) {
+                        positiveButton.setTextColor(textColor);
+                    }
+                });
+
+                dialog.show();
             }
             @Override
             public void onActionClicked(FollowUserResponse user, int position) {
+                if ("blocked".equals(mode)) {
+                    apiService.unblockUser(user.getId()).enqueue(new Callback<Void>() {
+                        @Override
+                        public void onResponse(Call<Void> call, Response<Void> response) {
+                            if (response.isSuccessful()) {
+                                Toast.makeText(FollowListActivity.this, "Đã bỏ chặn", Toast.LENGTH_SHORT).show();
+                                loadBlockedUsers();
+                            } else {
+                                Toast.makeText(FollowListActivity.this, "Bỏ chặn thất bại", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<Void> call, Throwable t) {
+                            Toast.makeText(FollowListActivity.this, "Lỗi mạng", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    return;
+                }
+
                 String currentStatus = user.getRelationshipStatus();
                 if ("accepted".equals(currentStatus) || "pending".equals(currentStatus) || user.isMutualFollow()) {
                     apiService.unfollowUser(user.getId()).enqueue(new Callback<Void>() {
@@ -231,6 +281,27 @@ public class FollowListActivity extends AppCompatActivity {
         });
         RecyclerView rvUsers = findViewById(R.id.rv_users);
         rvUsers.setAdapter(adapter);
+    }
+
+    private void loadBlockedUsers() {
+        progressBar.setVisibility(View.VISIBLE);
+        apiService.getBlockedUsers().enqueue(new Callback<List<FollowUserResponse>>() {
+            @Override
+            public void onResponse(Call<List<FollowUserResponse>> call, Response<List<FollowUserResponse>> response) {
+                progressBar.setVisibility(View.GONE);
+                if (response.isSuccessful() && response.body() != null) {
+                    adapter.setUsers(response.body());
+                } else {
+                    Toast.makeText(FollowListActivity.this, getString(R.string.blocked_users_empty), Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<FollowUserResponse>> call, Throwable t) {
+                progressBar.setVisibility(View.GONE);
+                Toast.makeText(FollowListActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void loadRequests() {

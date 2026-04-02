@@ -29,6 +29,7 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
     private OnUserInteractionListener listener;
     private String profileOwnerId;
     private String currentUserId;
+    private String mode = "follow";
 
     public void setUsers(List<FollowUserResponse> newUsers) {
         users.clear();
@@ -46,6 +47,10 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
 
     public void setListener(OnUserInteractionListener listener) {
         this.listener = listener;
+    }
+
+    public void setMode(String mode) {
+        this.mode = mode != null ? mode.trim() : "follow";
     }
 
     @NonNull
@@ -75,13 +80,16 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
         String itemId = user.getId();
         if (itemId != null) itemId = itemId.trim();
 
-        // Kiểm tra xem user trong list có phải là chính mình không
         boolean isMe = itemId != null && currentUserId != null && itemId.equalsIgnoreCase(currentUserId);
 
-        // Luôn đảm bảo nút hiển thị ban đầu để tránh lỗi tái sử dụng View (Recycle)
         holder.btnAction.setVisibility(View.VISIBLE);
 
-        if (isMe) {
+        if ("blocked".equalsIgnoreCase(mode)) {
+            holder.btnAction.setText(R.string.blocked_users_unblock);
+            holder.btnAction.setEnabled(true);
+            holder.btnAction.setAlpha(1.0f);
+            holder.btnAction.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
+        } else if (isMe) {
             // Nếu là tài khoản của mình: Hiện chữ "Bạn" và không cho bấm
             holder.btnAction.setText("Bạn");
             holder.btnAction.setEnabled(false);

@@ -64,6 +64,8 @@ public class SettingsActivity extends AppCompatActivity {
                 Toast.makeText(this, R.string.settings_feature_soon, Toast.LENGTH_SHORT).show());
         binding.btnHelpFab.setOnClickListener(v ->
                 Toast.makeText(this, R.string.settings_feature_soon, Toast.LENGTH_SHORT).show());
+        binding.btnBookmarks.setOnClickListener(v -> openBookmarks());
+        binding.btnBlockedUsers.setOnClickListener(v -> openBlockedUsers());
         binding.swPrivateAccount.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (suppressPrivacyToggleListener || isUpdatingPrivacy) {
                 return;
@@ -258,5 +260,15 @@ public class SettingsActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+
+    private void openBookmarks() {
+        Intent intent = new Intent(this, BookmarksActivity.class);
+        startActivity(intent);
+    }
+
+    private void openBlockedUsers() {
+        Intent intent = new Intent(this, BlockedUsersActivity.class);
+        startActivity(intent);
     }
 }

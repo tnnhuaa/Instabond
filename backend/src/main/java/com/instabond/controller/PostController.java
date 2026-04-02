@@ -118,9 +118,13 @@ public class PostController {
     public ResponseEntity<List<PostResponse>> getPostsByUserId(
             @Parameter(description = "ID of the target user", example = "65b111111111111111111111")
             @PathVariable String userId,
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page", example = "20")
+            @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(postService.getPostsByUserId(userId, getUserId(userDetails)));
+        return ResponseEntity.ok(postService.getPostsByUserId(userId, getUserId(userDetails), page, size));
     }
 
     // Get all posts authored by a specific user (by username)
@@ -139,9 +143,13 @@ public class PostController {
     public ResponseEntity<List<PostResponse>> getPostsByUsername(
             @Parameter(description = "Username of the target user", example = "nam_nguyen")
             @PathVariable String username,
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page", example = "20")
+            @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(postService.getPostsByUsername(username, getUserId(userDetails)));
+        return ResponseEntity.ok(postService.getPostsByUsername(username, getUserId(userDetails), page, size));
     }
 
     // Get all posts authored by a specific user (by email)
@@ -160,9 +168,13 @@ public class PostController {
     public ResponseEntity<List<PostResponse>> getPostsByEmail(
             @Parameter(description = "Email of the target user", example = "nam@example.com")
             @PathVariable String email,
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page", example = "20")
+            @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(postService.getPostsByEmail(email, getUserId(userDetails)));
+        return ResponseEntity.ok(postService.getPostsByEmail(email, getUserId(userDetails), page, size));
     }
 
     // Update a post
@@ -333,10 +345,14 @@ public class PostController {
     public ResponseEntity<List<CommentResponse>> getComments(
             @Parameter(description = "ID of the target post", example = "65b444444444444444444441")
             @PathVariable String postId,
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page", example = "20")
+            @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal UserDetails userDetails) {
 
         String callerEmail = userDetails != null ? getUserId(userDetails) : null;
-        return ResponseEntity.ok(postService.getComments(postId, callerEmail));
+        return ResponseEntity.ok(postService.getComments(postId, callerEmail, page, size));
     }
 
     // Like a comment
@@ -391,6 +407,65 @@ public class PostController {
 
         postService.deleteComment(postId, commentId, getUserId(userDetails));
         return ResponseEntity.noContent().build();
+    }
+    // Bookmark a post
+
+    @Operation(
+            summary = "Bookmark a post",
+            description = "Saves a post to the authenticated user's bookmarks. Idempotent."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Post bookmarked successfully",
+                    content = @Content(schema = @Schema(implementation = PostResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "404", description = "Post not found")
+    })
+    @PostMapping(value = "/{postId}/bookmark", consumes = MediaType.ALL_VALUE)
+    public ResponseEntity<PostResponse> bookmarkPost(
+            @Parameter(description = "ID of the target post", example = "65b444444444444444444441")
+            @PathVariable String postId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(postService.bookmarkPost(postId, getUserId(userDetails)));
+    }
+
+    @Operation(
+            summary = "Remove bookmark from a post",
+            description = "Removes a post from the authenticated user's bookmarks. Idempotent."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bookmark removed successfully",
+                    content = @Content(schema = @Schema(implementation = PostResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "404", description = "Post not found")
+    })
+    @DeleteMapping("/{postId}/bookmark")
+    public ResponseEntity<PostResponse> unbookmarkPost(
+            @Parameter(description = "ID of the target post", example = "65b444444444444444444441")
+            @PathVariable String postId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(postService.unbookmarkPost(postId, getUserId(userDetails)));
+    }
+
+    @Operation(
+            summary = "Get bookmarked posts",
+            description = "Returns bookmarked posts of the authenticated user, sorted by newest bookmark first. Supports pagination."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bookmarked posts returned successfully",
+                    content = @Content(schema = @Schema(implementation = PostResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token")
+    })
+    @GetMapping("/bookmarks")
+    public ResponseEntity<List<PostResponse>> getBookmarkedPosts(
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page", example = "20")
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(postService.getBookmarkedPosts(getUserId(userDetails), page, size));
     }
 
     // Returns the email (username) of the currently authenticated user

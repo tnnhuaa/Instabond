@@ -173,6 +173,36 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
                 intent.putExtra("targetUserId", post.getAuthorId());
                 startActivity(intent);
             }
+
+            @Override
+            public void onBookmarkClicked(Post post, int position) {
+                boolean isCurrentlyBookmarked = post.isBookmarked();
+                post.setBookmarked(!isCurrentlyBookmarked);
+                postAdapter.notifyItemChanged(position);
+
+                Callback<PostResponse> cb = new Callback<PostResponse>() {
+                    @Override
+                    public void onResponse(@NonNull Call<PostResponse> call,
+                                           @NonNull Response<PostResponse> response) {
+                        if (!response.isSuccessful()) {
+                            post.setBookmarked(isCurrentlyBookmarked);
+                            postAdapter.notifyItemChanged(position);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<PostResponse> call, @NonNull Throwable t) {
+                        post.setBookmarked(isCurrentlyBookmarked);
+                        postAdapter.notifyItemChanged(position);
+                    }
+                };
+
+                if (isCurrentlyBookmarked) {
+                    apiService.unbookmarkPost(post.getId()).enqueue(cb);
+                } else {
+                    apiService.bookmarkPost(post.getId()).enqueue(cb);
+                }
+            }
         });
     }
 
