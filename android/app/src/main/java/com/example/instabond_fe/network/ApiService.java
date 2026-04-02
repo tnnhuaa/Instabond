@@ -54,6 +54,9 @@ public interface ApiService {
     @GET("api/posts/feed")
     Call<JsonElement> getFeed();
 
+    @GET("api/posts/{postId}")
+    Call<PostResponse> getPost(@Path("postId") String postId);
+
     @GET("api/stories/feed")
     Call<List<StoryResponse>> getStoriesFeed();
 
