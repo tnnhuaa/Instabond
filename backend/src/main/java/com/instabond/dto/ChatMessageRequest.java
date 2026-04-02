@@ -23,7 +23,7 @@ public class ChatMessageRequest {
     @Schema(description = "Text content of the message, or a media URL when type is 'image'", example = "Hello!")
     private String content;
 
-    @Pattern(regexp = "(?i)^(text|image)$", message = "type must be 'text' or 'image'")
-    @Schema(description = "Message type", allowableValues = {"text", "image"}, example = "text")
+    @Pattern(regexp = "(?i)^(text|image|post_share|story_reply)$", message = "type must be 'text', 'image', 'post_share', or 'story_reply'")
+    @Schema(description = "Message type", allowableValues = {"text", "image", "post_share", "story_reply"}, example = "text")
     private String type;
 }

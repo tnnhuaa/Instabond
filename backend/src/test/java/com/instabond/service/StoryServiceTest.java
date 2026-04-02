@@ -1,8 +1,10 @@
 package com.instabond.service;
 
 import com.instabond.dto.StoryResponse;
+import com.instabond.dto.StoryViewersResponse;
 import com.instabond.entity.Story;
 import com.instabond.entity.User;
+import com.instabond.exception.ForbiddenOperationException;
 import com.instabond.repository.StoryRepository;
 import com.instabond.repository.UserRepository;
 import org.bson.Document;
@@ -20,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -88,6 +92,9 @@ class StoryServiceTest {
         assertEquals("alice", response.getAuthor().getUsername());
         assertEquals("https://cdn/story.jpg", response.getMedia_url());
         assertEquals("image", response.getType());
+        assertTrue(!response.isViewed_by_me());
+        assertTrue(!response.isLiked_by_me());
+        assertEquals(0, response.getViewer_count());
     }
 
     @Test
@@ -170,6 +177,9 @@ class StoryServiceTest {
         assertEquals("story-1", feed.getFirst().getId());
         assertEquals("bob", feed.getFirst().getAuthor().getUsername());
         assertEquals("https://cdn/story.jpg", feed.getFirst().getMedia_url());
+        assertTrue(!feed.getFirst().isViewed_by_me());
+        assertTrue(!feed.getFirst().isLiked_by_me());
+        assertEquals(0, feed.getFirst().getViewer_count());
     }
 
     @Test
@@ -199,5 +209,165 @@ class StoryServiceTest {
         assertEquals(1, feed.size());
         assertEquals("story-oid", feed.getFirst().getId());
         assertEquals("bob", feed.getFirst().getAuthor().getUsername());
+    }
+
+    @Test
+    void markStoryViewedAddsViewerForAnotherUser() {
+        User author = User.builder().id("author-1").email("author@example.com").build();
+        User viewer = User.builder().id("viewer-1").email("viewer@example.com").build();
+        Story story = Story.builder()
+                .id("story-1")
+                .author_id(author.getId())
+                .media_url("https://cdn/story.jpg")
+                .type("image")
+                .created_at(Instant.parse("2026-03-27T10:15:30Z"))
+                .expires_at(Instant.now().plus(Duration.ofHours(1)))
+                .viewers(new ArrayList<>())
+                .build();
+
+        when(userRepository.findByEmail("viewer@example.com")).thenReturn(Optional.of(viewer));
+        when(userRepository.findById("author-1")).thenReturn(Optional.of(author));
+        when(storyRepository.findById("story-1")).thenReturn(Optional.of(story));
+        when(storyRepository.save(any(Story.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StoryResponse response = storyService.markStoryViewed("story-1", "viewer@example.com");
+
+        assertTrue(response.isViewed_by_me());
+        assertTrue(!response.isLiked_by_me());
+        assertEquals(1, response.getViewer_count());
+        assertEquals("viewer-1", story.getViewers().getFirst().getUser_id());
+    }
+
+    @Test
+    void markStoryViewedDoesNotAddViewerForAuthor() {
+        User author = User.builder().id("author-1").email("author@example.com").build();
+        Story story = Story.builder()
+                .id("story-1")
+                .author_id(author.getId())
+                .media_url("https://cdn/story.jpg")
+                .type("image")
+                .created_at(Instant.parse("2026-03-27T10:15:30Z"))
+                .expires_at(Instant.now().plus(Duration.ofHours(1)))
+                .viewers(new ArrayList<>())
+                .build();
+
+        when(userRepository.findByEmail("author@example.com")).thenReturn(Optional.of(author));
+        when(userRepository.findById("author-1")).thenReturn(Optional.of(author));
+        when(storyRepository.findById("story-1")).thenReturn(Optional.of(story));
+
+        StoryResponse response = storyService.markStoryViewed("story-1", "author@example.com");
+
+        verify(storyRepository, never()).save(any(Story.class));
+        assertEquals(0, response.getViewer_count());
+    }
+
+    @Test
+    void setStoryLikedMarksViewerReactionAsHeart() {
+        User author = User.builder().id("author-1").email("author@example.com").build();
+        User viewer = User.builder().id("viewer-1").email("viewer@example.com").build();
+        Story story = Story.builder()
+                .id("story-1")
+                .author_id(author.getId())
+                .media_url("https://cdn/story.jpg")
+                .type("image")
+                .created_at(Instant.parse("2026-03-27T10:15:30Z"))
+                .expires_at(Instant.now().plus(Duration.ofHours(1)))
+                .viewers(new ArrayList<>())
+                .build();
+
+        when(userRepository.findByEmail("viewer@example.com")).thenReturn(Optional.of(viewer));
+        when(userRepository.findById("author-1")).thenReturn(Optional.of(author));
+        when(storyRepository.findById("story-1")).thenReturn(Optional.of(story));
+        when(storyRepository.save(any(Story.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StoryResponse response = storyService.setStoryLiked("story-1", "viewer@example.com", true);
+
+        assertTrue(response.isViewed_by_me());
+        assertTrue(response.isLiked_by_me());
+        assertEquals("heart", story.getViewers().getFirst().getReaction());
+    }
+
+    @Test
+    void markStoryViewedKeepsExistingHeartReaction() {
+        User author = User.builder().id("author-1").email("author@example.com").build();
+        User viewer = User.builder().id("viewer-1").email("viewer@example.com").build();
+        Story story = Story.builder()
+                .id("story-1")
+                .author_id(author.getId())
+                .media_url("https://cdn/story.jpg")
+                .type("image")
+                .created_at(Instant.parse("2026-03-27T10:15:30Z"))
+                .expires_at(Instant.now().plus(Duration.ofHours(1)))
+                .viewers(new ArrayList<>(List.of(Story.Viewer.builder()
+                        .user_id("viewer-1")
+                        .viewed_at(Instant.parse("2026-03-27T10:16:30Z"))
+                        .reaction("heart")
+                        .build())))
+                .build();
+
+        when(userRepository.findByEmail("viewer@example.com")).thenReturn(Optional.of(viewer));
+        when(userRepository.findById("author-1")).thenReturn(Optional.of(author));
+        when(storyRepository.findById("story-1")).thenReturn(Optional.of(story));
+        when(storyRepository.save(any(Story.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StoryResponse response = storyService.markStoryViewed("story-1", "viewer@example.com");
+
+        assertTrue(response.isLiked_by_me());
+        assertEquals("heart", story.getViewers().getFirst().getReaction());
+    }
+
+    @Test
+    void setStoryLikedRejectsAuthorLikingOwnStory() {
+        User author = User.builder().id("author-1").email("author@example.com").build();
+        Story story = Story.builder()
+                .id("story-1")
+                .author_id(author.getId())
+                .media_url("https://cdn/story.jpg")
+                .type("image")
+                .created_at(Instant.parse("2026-03-27T10:15:30Z"))
+                .expires_at(Instant.now().plus(Duration.ofHours(1)))
+                .viewers(new ArrayList<>())
+                .build();
+
+        when(userRepository.findByEmail("author@example.com")).thenReturn(Optional.of(author));
+        when(storyRepository.findById("story-1")).thenReturn(Optional.of(story));
+
+        assertThrows(ForbiddenOperationException.class,
+                () -> storyService.setStoryLiked("story-1", "author@example.com", true));
+    }
+
+    @Test
+    void getStoryViewersReturnsViewerProfilesAndHeartState() {
+        User author = User.builder().id("author-1").email("author@example.com").build();
+        User viewer = User.builder()
+                .id("viewer-1")
+                .username("viewer")
+                .full_name("Viewer One")
+                .avatar_url("https://cdn/viewer.jpg")
+                .build();
+        Story story = Story.builder()
+                .id("story-1")
+                .author_id(author.getId())
+                .media_url("https://cdn/story.jpg")
+                .type("image")
+                .created_at(Instant.parse("2026-03-27T10:15:30Z"))
+                .expires_at(Instant.now().plus(Duration.ofHours(1)))
+                .viewers(List.of(Story.Viewer.builder()
+                        .user_id("viewer-1")
+                        .viewed_at(Instant.parse("2026-03-27T10:16:30Z"))
+                        .reaction("heart")
+                        .build()))
+                .build();
+
+        when(userRepository.findByEmail("author@example.com")).thenReturn(Optional.of(author));
+        when(storyRepository.findById("story-1")).thenReturn(Optional.of(story));
+        when(userRepository.findAllById(any())).thenReturn(List.of(viewer));
+
+        StoryViewersResponse response = storyService.getStoryViewers("story-1", "author@example.com");
+
+        assertEquals("story-1", response.getStory_id());
+        assertEquals(1, response.getViewer_count());
+        assertEquals("viewer", response.getViewers().getFirst().getUsername());
+        assertTrue(response.getViewers().getFirst().isLiked());
     }
 }

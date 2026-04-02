@@ -33,6 +33,15 @@ public class StoryResponse {
     @Schema(description = "Story expiry timestamp (UTC)", example = "2024-01-16T08:30:00Z")
     private Instant expires_at;
 
+    @Schema(description = "Whether the authenticated user has viewed this story", example = "true")
+    private boolean viewed_by_me;
+
+    @Schema(description = "Whether the authenticated user has liked this story", example = "false")
+    private boolean liked_by_me;
+
+    @Schema(description = "How many viewers this story has", example = "12")
+    private int viewer_count;
+
     @Data
     @Builder
     @NoArgsConstructor
