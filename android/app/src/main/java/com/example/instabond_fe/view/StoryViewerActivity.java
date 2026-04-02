@@ -30,11 +30,15 @@ import com.example.instabond_fe.model.StoryViewersResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.repository.ChatRepository;
 import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.utils.RichMessageUtils;
 import com.example.instabond_fe.utils.TimeUtils;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -57,6 +61,7 @@ public class StoryViewerActivity extends AppCompatActivity {
     private final Set<String> trackedViewedStoryIds = new HashSet<>();
 
     private ApiService apiService;
+    private ChatRepository chatRepository;
     private SessionManager sessionManager;
     private ArrayList<StoryItem> stories = new ArrayList<>();
     private int currentIndex = 0;
@@ -92,6 +97,7 @@ public class StoryViewerActivity extends AppCompatActivity {
         getWindow().setStatusBarColor(Color.TRANSPARENT);
 
         apiService = ApiClient.getApiService(this);
+        chatRepository = ChatRepository.getInstance(this);
         sessionManager = new SessionManager(this);
 
         progressBars.add(binding.progressStory1);
@@ -271,26 +277,32 @@ public class StoryViewerActivity extends AppCompatActivity {
     private void sendStoryReply() {
         StoryItem story = stories.get(currentIndex);
         if (isOwnStory(story) || replyRequestInFlight) {
+            if (isOwnStory(story)) {
+                Toast.makeText(this, R.string.story_view_reply_own_story, Toast.LENGTH_SHORT).show();
+            }
             return;
         }
 
         String replyText = binding.etStoryReply.getText() == null ? "" : binding.etStoryReply.getText().toString().trim();
-        if (replyText.isEmpty()) {
-            Toast.makeText(this, R.string.story_view_reply_required, Toast.LENGTH_SHORT).show();
+        String authorId = story.getAuthorId() == null ? "" : story.getAuthorId().trim();
+        if (RichMessageUtils.isBlank(authorId)) {
+            Toast.makeText(this, R.string.story_view_reply_failed, Toast.LENGTH_SHORT).show();
             return;
         }
-        if (RichMessageUtils.isBlank(story.getAuthorId())) {
-            Toast.makeText(this, R.string.story_view_reply_failed, Toast.LENGTH_SHORT).show();
+        String currentUserId = sessionManager.getUserId();
+        if (currentUserId != null && currentUserId.trim().equals(authorId)) {
+            Toast.makeText(this, R.string.story_view_reply_own_story, Toast.LENGTH_SHORT).show();
             return;
         }
 
         replyRequestInFlight = true;
         setReplySendingState(true);
 
-        apiService.getOrCreateDirectConversation(story.getAuthorId()).enqueue(new Callback<>() {
+        apiService.getOrCreateDirectConversation(authorId).enqueue(new Callback<>() {
             @Override
             public void onResponse(Call<Conversation> call, Response<Conversation> response) {
                 if (!response.isSuccessful() || response.body() == null || RichMessageUtils.isBlank(response.body().getId())) {
+                    showReplyError(extractErrorMessage(response, R.string.story_view_reply_failed));
                     finishReplyRequest(false);
                     return;
                 }
@@ -300,18 +312,30 @@ public class StoryViewerActivity extends AppCompatActivity {
                 apiService.sendTextMessage(request).enqueue(new Callback<>() {
                     @Override
                     public void onResponse(Call<ChatMessageResponse> call, Response<ChatMessageResponse> sendResponse) {
-                        finishReplyRequest(sendResponse.isSuccessful());
+                        if (sendResponse.isSuccessful()) {
+                            finishReplyRequest(true);
+                            return;
+                        }
+                        String errorMessage = extractErrorMessage(sendResponse, R.string.story_view_reply_failed);
+                        if (!sendReplyViaSocketFallback(request)) {
+                            showReplyError(errorMessage);
+                            finishReplyRequest(false);
+                        }
                     }
 
                     @Override
                     public void onFailure(Call<ChatMessageResponse> call, Throwable t) {
-                        finishReplyRequest(false);
+                        if (!sendReplyViaSocketFallback(request)) {
+                            showReplyError(t == null ? getString(R.string.story_view_reply_failed) : t.getMessage());
+                            finishReplyRequest(false);
+                        }
                     }
                 });
             }
 
             @Override
             public void onFailure(Call<Conversation> call, Throwable t) {
+                showReplyError(t == null ? getString(R.string.story_view_reply_failed) : t.getMessage());
                 finishReplyRequest(false);
             }
         });
@@ -330,6 +354,50 @@ public class StoryViewerActivity extends AppCompatActivity {
                 Toast.makeText(this, R.string.story_view_reply_failed, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private boolean sendReplyViaSocketFallback(ChatMessageRequest request) {
+        try {
+            chatRepository.connectRealtime();
+            chatRepository.subscribeGlobalChannels();
+            chatRepository.sendRealtimeMessage(request);
+            finishReplyRequest(true);
+            return true;
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    private void showReplyError(String message) {
+        runOnUiThread(() -> Toast.makeText(
+                this,
+                RichMessageUtils.isBlank(message) ? getString(R.string.story_view_reply_failed) : message,
+                Toast.LENGTH_SHORT
+        ).show());
+    }
+
+    private String extractErrorMessage(Response<?> response, int fallbackResId) {
+        if (response == null) {
+            return getString(fallbackResId);
+        }
+
+        try {
+            if (response.errorBody() != null) {
+                String raw = response.errorBody().string();
+                if (raw != null && !raw.trim().isEmpty()) {
+                    JsonObject obj = new JsonParser().parse(raw).getAsJsonObject();
+                    if (obj.has("message") && !obj.get("message").isJsonNull()) {
+                        String message = obj.get("message").getAsString();
+                        if (!RichMessageUtils.isBlank(message)) {
+                            return message;
+                        }
+                    }
+                }
+            }
+        } catch (IOException | IllegalStateException ignored) {
+        }
+
+        return getString(fallbackResId) + " (HTTP " + response.code() + ")";
     }
 
     private void setReplySendingState(boolean sending) {

@@ -192,6 +192,7 @@
     <string name="story_view_content">Story content</string>
     <string name="story_view_reply_sent">Story reply sent</string>
     <string name="story_view_reply_failed">Could not send story reply</string>
+    <string name="story_view_reply_own_story">You cannot reply to your own story</string>
     <string name="story_view_reply_required">Enter a reply first</string>
     <string name="story_view_like_failed">Could not update story heart</string>
     <string name="story_view_viewers_title">Story viewers</string>
