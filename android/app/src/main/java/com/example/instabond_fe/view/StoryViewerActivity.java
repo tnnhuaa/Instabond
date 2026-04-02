@@ -1,18 +1,21 @@
 package com.example.instabond_fe.view;
 
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -20,6 +23,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityStoryViewerBinding;
+import com.example.instabond_fe.databinding.DialogStoryDeleteConfirmBinding;
+import com.example.instabond_fe.databinding.DialogStoryOptionsBinding;
 import com.example.instabond_fe.model.ChatMessageRequest;
 import com.example.instabond_fe.model.ChatMessageResponse;
 import com.example.instabond_fe.model.Conversation;
@@ -34,7 +39,6 @@ import com.example.instabond_fe.repository.ChatRepository;
 import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.utils.RichMessageUtils;
 import com.example.instabond_fe.utils.TimeUtils;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -416,23 +420,50 @@ public class StoryViewerActivity extends AppCompatActivity {
             return;
         }
 
-        CharSequence[] options = {getString(R.string.story_view_delete_action)};
-        new MaterialAlertDialogBuilder(this)
-                .setItems(options, (dialogInterface, which) -> {
-                    if (which == 0) {
-                        confirmDeleteStory(story);
-                    }
-                })
-                .show();
+        DialogStoryOptionsBinding dialogBinding = DialogStoryOptionsBinding.inflate(getLayoutInflater());
+        AlertDialog dialog = buildStoryDialog(dialogBinding.getRoot());
+
+        dialogBinding.btnStoryDialogDelete.setOnClickListener(v -> {
+            dialog.dismiss();
+            confirmDeleteStory(story);
+        });
+        dialogBinding.btnStoryDialogCancel.setOnClickListener(v -> dialog.dismiss());
+
+        showStoryDialog(dialog);
     }
 
     private void confirmDeleteStory(StoryItem story) {
-        new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.story_view_delete_title)
-                .setMessage(R.string.story_view_delete_message)
-                .setNegativeButton(R.string.story_view_delete_cancel, null)
-                .setPositiveButton(R.string.story_view_delete_confirm, (dialogInterface, which) -> deleteCurrentStory(story))
-                .show();
+        DialogStoryDeleteConfirmBinding dialogBinding =
+                DialogStoryDeleteConfirmBinding.inflate(getLayoutInflater());
+        AlertDialog dialog = buildStoryDialog(dialogBinding.getRoot());
+
+        dialogBinding.btnStoryConfirmCancel.setOnClickListener(v -> dialog.dismiss());
+        dialogBinding.btnStoryConfirmDelete.setOnClickListener(v -> {
+            dialog.dismiss();
+            deleteCurrentStory(story);
+        });
+
+        showStoryDialog(dialog);
+    }
+
+    private AlertDialog buildStoryDialog(View contentView) {
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(contentView)
+                .create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+        dialog.setOnDismissListener(ignored -> {
+            if (!deleteRequestInFlight) {
+                startProgress();
+            }
+        });
+        return dialog;
+    }
+
+    private void showStoryDialog(AlertDialog dialog) {
+        stopProgress();
+        dialog.show();
     }
 
     private void deleteCurrentStory(StoryItem story) {

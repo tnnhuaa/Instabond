@@ -341,18 +341,22 @@
 
             </LinearLayout>
 
-            <Button
+            <androidx.appcompat.widget.AppCompatTextView
                 android:id="@+id/btn_share_story"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_marginStart="16dp"
                 android:layout_weight="1"
                 android:background="@drawable/story_create_post_button_bg"
+                android:clickable="true"
                 android:drawableEnd="@drawable/ic_arrow_right_small"
                 android:drawablePadding="8dp"
                 android:fontFamily="sans-serif-black"
+                android:foreground="?attr/selectableItemBackgroundBorderless"
+                android:gravity="center"
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
+                android:textAlignment="center"
                 android:text="@string/story_create_post_action"
                 android:textAllCaps="false"
                 android:textColor="@android:color/white"
