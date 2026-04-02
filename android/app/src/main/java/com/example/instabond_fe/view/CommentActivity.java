@@ -1,8 +1,10 @@
 package com.example.instabond_fe.view;
 
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -75,6 +77,20 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
         loadCurrentUser();
         loadPostDetail();
         loadComments();
+
+        handleFocusRequest();
+    }
+
+    private void handleFocusRequest() {
+        if (getIntent().getBooleanExtra("focusComment", false)) {
+            etComment.requestFocus();
+            etComment.postDelayed(() -> {
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.showSoftInput(etComment, InputMethodManager.SHOW_IMPLICIT);
+                }
+            }, 300);
+        }
     }
 
     private void bindViews() {
