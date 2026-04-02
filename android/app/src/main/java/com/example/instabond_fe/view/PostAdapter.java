@@ -32,6 +32,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         void onLikeClicked(Post post, int position);
         void onCommentClicked(Post post, int position);
         void onShareClicked(Post post, int position);
+        void onBookmarkClicked(Post post, int position);
         void onUserClicked(Post post, int position);
     }
 
@@ -108,7 +109,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         int defaultColor = ContextCompat.getColor(holder.itemView.getContext(), R.color.feed_icon_dark);
         holder.btnLike.setColorFilter(post.isLiked() ? accentColor : defaultColor);
         holder.btnComment.setColorFilter(defaultColor);
-        holder.btnBookmark.setColorFilter(defaultColor);
+        holder.btnBookmark.setColorFilter(post.isBookmarked() ? accentColor : defaultColor);
 
         AvatarLoader.load(holder.ivAvatar, post.getAvatarUrl());
 
@@ -129,6 +130,9 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         });
         holder.tvUsername.setOnClickListener(v -> {
             if (listener != null) listener.onUserClicked(post, position);
+        });
+        holder.btnBookmark.setOnClickListener(v -> {
+            if (listener != null) listener.onBookmarkClicked(post, position);
         });
 
         if (post.getImageUrl() == null || post.getImageUrl().trim().isEmpty()) {

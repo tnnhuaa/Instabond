@@ -73,6 +73,14 @@
                     android:host="user"
                     android:scheme="instabond" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="profile"
+                    android:scheme="instabond" />
+            </intent-filter>
         </activity>
 
         <activity
@@ -99,6 +107,14 @@
 
         <activity
             android:name=".view.ResetPasswordActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.BookmarksActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.BlockedUsersActivity"
             android:exported="false" />
     </application>
 

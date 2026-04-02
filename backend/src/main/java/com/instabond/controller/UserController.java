@@ -2,6 +2,8 @@ package com.instabond.controller;
 
 import com.instabond.dto.FollowUserResponse;
 import com.instabond.dto.ProfileResponse;
+import com.instabond.dto.ProfileShareResponse;
+import com.instabond.dto.ResolveProfileRequest;
 import com.instabond.dto.UpdatePrivacyRequest;
 import com.instabond.dto.UpdateProfileRequest;
 import com.instabond.exception.ForbiddenOperationException;
@@ -274,9 +276,13 @@ public class UserController {
     public ResponseEntity<List<FollowUserResponse>> getFollowers(
             @Parameter(description = "ID of the user", example = "64f1a2b3c4d5e6f7a8b9c0d1")
             @PathVariable String id,
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page", example = "20")
+            @RequestParam(defaultValue = "20") int limit,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(userService.getFollowers(id, userDetails.getUsername()));
+        return ResponseEntity.ok(userService.getFollowers(id, userDetails.getUsername(), page, limit));
     }
 
     // Following
@@ -295,9 +301,13 @@ public class UserController {
     public ResponseEntity<List<FollowUserResponse>> getFollowing(
             @Parameter(description = "ID of the user", example = "64f1a2b3c4d5e6f7a8b9c0d1")
             @PathVariable String id,
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page", example = "20")
+            @RequestParam(defaultValue = "20") int limit,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(userService.getFollowing(id, userDetails.getUsername()));
+        return ResponseEntity.ok(userService.getFollowing(id, userDetails.getUsername(), page, limit));
     }
 
     // Friends (Mutual Followers)
@@ -316,9 +326,13 @@ public class UserController {
     public ResponseEntity<List<FollowUserResponse>> getFriends(
             @Parameter(description = "ID of the user", example = "64f1a2b3c4d5e6f7a8b9c0d1")
             @PathVariable String id,
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page", example = "20")
+            @RequestParam(defaultValue = "20") int limit,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(userService.getFriends(id, userDetails.getUsername()));
+        return ResponseEntity.ok(userService.getFriends(id, userDetails.getUsername(), page, limit));
     }
 
     // Follow/Unfollow
@@ -437,9 +451,13 @@ public class UserController {
     public ResponseEntity<List<FollowUserResponse>> getCloseFriends(
             @Parameter(description = "ID of the user", example = "65b111111111111111111111")
             @PathVariable String id,
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page", example = "20")
+            @RequestParam(defaultValue = "20") int limit,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(userService.getCloseFriends(id, userDetails.getUsername()));
+        return ResponseEntity.ok(userService.getCloseFriends(id, userDetails.getUsername(), page, limit));
     }
 
     // Follow requests (private accounts)
@@ -455,9 +473,13 @@ public class UserController {
     })
     @GetMapping("/follow-requests/incoming")
     public ResponseEntity<List<FollowUserResponse>> getIncomingFollowRequests(
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page", example = "20")
+            @RequestParam(defaultValue = "20") int limit,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(userService.getIncomingFollowRequests(userDetails.getUsername()));
+        return ResponseEntity.ok(userService.getIncomingFollowRequests(userDetails.getUsername(), page, limit));
     }
 
     @Operation(
@@ -509,9 +531,13 @@ public class UserController {
     })
     @GetMapping("/follow-requests/sent")
     public ResponseEntity<List<FollowUserResponse>> getSentFollowRequests(
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page", example = "20")
+            @RequestParam(defaultValue = "20") int limit,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(userService.getSentFollowRequests(userDetails.getUsername()));
+        return ResponseEntity.ok(userService.getSentFollowRequests(userDetails.getUsername(), page, limit));
     }
 
     @Operation(
@@ -531,5 +557,167 @@ public class UserController {
 
         userService.cancelSentFollowRequest(recipientId, userDetails.getUsername());
         return ResponseEntity.noContent().build();
+    }
+
+    // Block User
+
+    @Operation(
+            summary = "Block a user",
+            description = "Blocks the target user. Automatically removes any follow relationships in both directions."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "User blocked successfully"),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "403", description = "Forbidden — cannot block yourself"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @PostMapping(value = "/{id}/block", consumes = MediaType.ALL_VALUE)
+    public ResponseEntity<Void> blockUser(
+            @Parameter(description = "ID of user to block", example = "65b222222222222222222222")
+            @PathVariable String id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        userService.blockUser(id, userDetails.getUsername());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "Unblock a user",
+            description = "Removes the block on the target user."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "User unblocked successfully"),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "404", description = "User or block not found")
+    })
+    @DeleteMapping("/{id}/block")
+    public ResponseEntity<Void> unblockUser(
+            @Parameter(description = "ID of user to unblock", example = "65b222222222222222222222")
+            @PathVariable String id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        userService.unblockUser(id, userDetails.getUsername());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "Get blocked users list",
+            description = "Returns the list of users that the authenticated user has blocked."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Blocked users returned successfully",
+                    content = @Content(schema = @Schema(implementation = FollowUserResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token")
+    })
+    @GetMapping("/blocked")
+    public ResponseEntity<List<FollowUserResponse>> getBlockedUsers(
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page", example = "20")
+            @RequestParam(defaultValue = "20") int limit,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(userService.getBlockedUsers(userDetails.getUsername(), page, limit));
+    }
+
+    // Friend Suggestions
+
+    @Operation(
+            summary = "Get friend suggestions",
+            description = "Returns suggested users based on friends-of-friends algorithm, excluding already-followed and blocked users."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Suggestions returned successfully",
+                    content = @Content(schema = @Schema(implementation = FollowUserResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token")
+    })
+    @GetMapping("/suggestions")
+    public ResponseEntity<List<FollowUserResponse>> getFriendSuggestions(
+            @Parameter(description = "Maximum number of suggestions", example = "10")
+            @RequestParam(defaultValue = "10") int limit,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(userService.getFriendSuggestions(userDetails.getUsername(), limit));
+    }
+
+    // QR Profile Resolve
+
+    @Operation(
+            summary = "Resolve profile from QR code",
+            description = "Resolves a user profile from a userId (typically scanned from QR code). Returns full profile with relationship status."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Profile resolved successfully",
+                    content = @Content(schema = @Schema(implementation = ProfileResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @GetMapping("/resolve")
+    public ResponseEntity<ProfileResponse> resolveProfile(
+            @Parameter(description = "Target user ID", example = "64f1a2b3c4d5e6f7a8b9c0d1")
+            @RequestParam(required = false) String userId,
+            @Parameter(description = "Target username", example = "john_doe")
+            @RequestParam(required = false) String username,
+            @Parameter(description = "Target QR UID", example = "qr_65b111111111111111111111")
+            @RequestParam(required = false) String qrUid,
+            @Parameter(description = "Raw payload from deep-link/share text", example = "instabond://profile?uid=qr_65b111111111111111111111")
+            @RequestParam(required = false) String payload,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(userService.resolveProfileQuery(userId, username, qrUid, payload, userDetails.getUsername()));
+    }
+
+    @Operation(
+            summary = "Resolve profile from payload",
+            description = "Resolves a profile from raw QR/deep-link/share payload to unify scan and share-open flows."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Profile resolved successfully",
+                    content = @Content(schema = @Schema(implementation = ProfileResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid payload"),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @PostMapping("/resolve")
+    public ResponseEntity<ProfileResponse> resolveProfileByPayload(
+            @Valid @RequestBody ResolveProfileRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(userService.resolveProfilePayload(request.getPayload(), userDetails.getUsername()));
+    }
+
+    @Operation(
+            summary = "Get my profile share payload",
+            description = "Returns QR UID, deep-link and share text for the authenticated user profile."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Share payload returned successfully",
+                    content = @Content(schema = @Schema(implementation = ProfileShareResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token")
+    })
+    @GetMapping("/me/share-profile")
+    public ResponseEntity<ProfileShareResponse> getMyShareProfile(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(userService.getMyShareProfile(userDetails.getUsername()));
+    }
+
+    @Operation(
+            summary = "Get profile share payload by user ID",
+            description = "Returns QR UID, deep-link and share text for the target profile."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Share payload returned successfully",
+                    content = @Content(schema = @Schema(implementation = ProfileShareResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @GetMapping("/{id}/share-profile")
+    public ResponseEntity<ProfileShareResponse> getShareProfile(
+            @Parameter(description = "ID of the user", example = "65b111111111111111111111")
+            @PathVariable String id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(userService.getShareProfile(id, userDetails.getUsername()));
     }
 }

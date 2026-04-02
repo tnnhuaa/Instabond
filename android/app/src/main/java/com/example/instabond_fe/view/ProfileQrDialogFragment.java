@@ -16,16 +16,23 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.utils.AvatarLoader;
+import com.example.instabond_fe.model.ProfileShareResponse;
+import com.example.instabond_fe.network.ApiClient;
+import com.example.instabond_fe.network.ApiService;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class ProfileQrDialogFragment extends DialogFragment {
 
     private static final String ARG_USER_ID = "user_id";
     private static final String ARG_USERNAME = "username";
     private static final String ARG_AVATAR_URL = "avatar_url";
+    private ApiService apiService;
 
     public static ProfileQrDialogFragment newInstance(String userId, String username, String avatarUrl) {
         ProfileQrDialogFragment fragment = new ProfileQrDialogFragment();
@@ -52,6 +59,8 @@ public class ProfileQrDialogFragment extends DialogFragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        apiService = ApiClient.getApiService(requireContext());
+
         ImageView ivQrCode = view.findViewById(R.id.iv_qr_code);
         ImageView ivAvatar = view.findViewById(R.id.iv_avatar_qr);
         TextView tvUsername = view.findViewById(R.id.tv_username_qr);
@@ -70,7 +79,7 @@ public class ProfileQrDialogFragment extends DialogFragment {
             AvatarLoader.load(ivAvatar, avatarUrl);
 
             if (userId != null) {
-                generateQrCode("instabond://user/" + userId, ivQrCode);
+                loadSharePayload(userId, ivQrCode);
             }
         }
     }
@@ -100,5 +109,26 @@ public class ProfileQrDialogFragment extends DialogFragment {
         } catch (WriterException e) {
             e.printStackTrace();
         }
+    }
+
+    private void loadSharePayload(String userId, ImageView imageView) {
+        apiService.getShareProfile(userId).enqueue(new Callback<ProfileShareResponse>() {
+            @Override
+            public void onResponse(Call<ProfileShareResponse> call, Response<ProfileShareResponse> response) {
+                String qrContent = "instabond://profile?uid=" + userId;
+                if (response.isSuccessful() && response.body() != null) {
+                    String deepLink = response.body().getDeepLink();
+                    if (deepLink != null && !deepLink.trim().isEmpty()) {
+                        qrContent = deepLink.trim();
+                    }
+                }
+                generateQrCode(qrContent, imageView);
+            }
+
+            @Override
+            public void onFailure(Call<ProfileShareResponse> call, Throwable t) {
+                generateQrCode("instabond://profile?uid=" + userId, imageView);
+            }
+        });
     }
 }

@@ -16,6 +16,7 @@ public class Post {
     private final String imageUrl;
     private final boolean hasMusicBadge;
     private boolean isLiked;
+    private boolean isBookmarked;
 
     public Post(String id, String authorId, String username, String caption, int likesCount, int commentsCount, int sharesCount,
                 String avatarUrl, String imageUrl, boolean hasMusicBadge, boolean isLiked) {
@@ -24,6 +25,11 @@ public class Post {
 
     public Post(String id, String authorId, String username, String caption, String createdAt, int likesCount, int commentsCount, int sharesCount,
                 String avatarUrl, String imageUrl, boolean hasMusicBadge, boolean isLiked) {
+        this(id, authorId, username, caption, createdAt, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, hasMusicBadge, isLiked, false);
+    }
+
+    public Post(String id, String authorId, String username, String caption, String createdAt, int likesCount, int commentsCount, int sharesCount,
+                String avatarUrl, String imageUrl, boolean hasMusicBadge, boolean isLiked, boolean isBookmarked) {
         this.id = id;
         this.authorId = authorId;
         this.username = username;
@@ -36,6 +42,7 @@ public class Post {
         this.imageUrl = imageUrl;
         this.hasMusicBadge = hasMusicBadge;
         this.isLiked = isLiked;
+        this.isBookmarked = isBookmarked;
     }
 
     public String getId() {
@@ -89,6 +96,14 @@ public class Post {
 
     public void setLiked(boolean liked) {
         isLiked = liked;
+    }
+
+    public boolean isBookmarked() {
+        return isBookmarked;
+    }
+
+    public void setBookmarked(boolean bookmarked) {
+        isBookmarked = bookmarked;
     }
 
     public void setSharesCount(int sharesCount) {

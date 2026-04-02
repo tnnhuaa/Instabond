@@ -58,6 +58,7 @@ public class NewsfeedActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
     private PostAdapter adapter;
     private StoryFeedAdapter storyAdapter;
+    private FriendSuggestionCardAdapter suggestionAdapter;
     private ApiService apiService;
     private SessionManager sessionManager;
     private final Gson gson = new Gson();
@@ -87,6 +88,8 @@ public class NewsfeedActivity extends AppCompatActivity {
 
         adapter = new PostAdapter(new ArrayList<>());
         storyAdapter = new StoryFeedAdapter();
+        suggestionAdapter = new FriendSuggestionCardAdapter(new ArrayList<>(), this, apiService);
+
         storyAdapter.setListener(new StoryFeedAdapter.Listener() {
             @Override
             public void onCreateStoryClicked() {
@@ -165,14 +168,49 @@ public class NewsfeedActivity extends AppCompatActivity {
                 intent.putExtra("targetUserId", post.getAuthorId());
                 startActivity(intent);
             }
+
+            @Override
+            public void onBookmarkClicked(Post post, int position) {
+                // Handle bookmark action
+                boolean isCurrentlyBookmarked = post.isBookmarked();
+                post.setBookmarked(!isCurrentlyBookmarked);
+                adapter.notifyItemChanged(position);
+
+                Callback<PostResponse> cb = new Callback<PostResponse>() {
+                    @Override
+                    public void onResponse(Call<PostResponse> call, Response<PostResponse> response) {
+                        if (!response.isSuccessful()) {
+                            // Revert on failure
+                            post.setBookmarked(isCurrentlyBookmarked);
+                            adapter.notifyItemChanged(position);
+                        }
+                    }
+                    @Override
+                    public void onFailure(Call<PostResponse> call, Throwable t) {
+                        post.setBookmarked(isCurrentlyBookmarked);
+                        adapter.notifyItemChanged(position);
+                    }
+                };
+
+                if (isCurrentlyBookmarked) {
+                    apiService.unbookmarkPost(post.getId()).enqueue(cb);
+                } else {
+                    apiService.bookmarkPost(post.getId()).enqueue(cb);
+                }
+            }
         });
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         LinearLayoutManager storyLayoutManager =
                 new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
+        LinearLayoutManager suggestionLayoutManager =
+                new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
+
         binding.rvFeed.setLayoutManager(layoutManager);
         binding.rvFeed.setAdapter(adapter);
         binding.rvStories.setLayoutManager(storyLayoutManager);
         binding.rvStories.setAdapter(storyAdapter);
+        binding.rvFriendSuggestions.setLayoutManager(suggestionLayoutManager);
+        binding.rvFriendSuggestions.setAdapter(suggestionAdapter);
         binding.rvFeed.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
@@ -200,6 +238,24 @@ public class NewsfeedActivity extends AppCompatActivity {
         loadCurrentUserProfile();
         binding.swipeRefreshFeed.setRefreshing(true);
         refreshFeed();
+        loadFriendSuggestions();
+    }
+
+    private void loadFriendSuggestions() {
+        apiService.getFriendSuggestions(10).enqueue(new Callback<List<FollowUserResponse>>() {
+            @Override
+            public void onResponse(Call<List<FollowUserResponse>> call, Response<List<FollowUserResponse>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    suggestionAdapter = new FriendSuggestionCardAdapter(response.body(), NewsfeedActivity.this, apiService);
+                    binding.rvFriendSuggestions.setAdapter(suggestionAdapter);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<FollowUserResponse>> call, Throwable t) {
+                // Silent fail
+            }
+        });
     }
 
     @Override
@@ -233,6 +289,7 @@ public class NewsfeedActivity extends AppCompatActivity {
         loadedPostIds.clear();
         adapter.setPosts(new ArrayList<>());
         loadStories();
+        loadFriendSuggestions();
         loadPage(true);
     }
 
@@ -366,7 +423,8 @@ public class NewsfeedActivity extends AppCompatActivity {
                     avatarUrl,
                     imageUrl,
                     postResponse.hasMusicSuggestion(),
-                    postResponse.isLiked()
+                    postResponse.isLiked(),
+                    postResponse.isBookmarked()
             ));
         }
         return result;
