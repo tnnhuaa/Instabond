@@ -43,6 +43,7 @@ public class PostService {
     private final MongoTemplate mongoTemplate;
     private final InteractionRepository interactionRepository;
     private final NotificationService notificationService;
+    private final UserService userService;
 
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 20;
@@ -86,6 +87,55 @@ public class PostService {
                 .with(Sort.by(Sort.Direction.DESC, "created_at"))
                 .with(org.springframework.data.domain.PageRequest.of(sanitizePage(page), sanitizeSize(size)));
         return mongoTemplate.find(query, Post.class);
+    }
+
+    private User resolveTaggedUser(String rawTaggedValue) {
+        if (rawTaggedValue == null || rawTaggedValue.isBlank()) {
+            return null;
+        }
+
+        String normalized = rawTaggedValue.trim();
+        User userById = userRepository.findById(normalized).orElse(null);
+        if (userById != null) {
+            return userById;
+        }
+
+        return userRepository.findByUsername(normalized).orElse(null);
+    }
+
+    private List<Post.TaggedUser> processTaggedUsers(String callerId, List<CreatePostRequest.TaggedUserRequest> requestTaggedUsers) {
+        Map<String, Post.TaggedUser> taggedUsers = new LinkedHashMap<>();
+        if (requestTaggedUsers == null || requestTaggedUsers.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        for (CreatePostRequest.TaggedUserRequest requestTaggedUser : requestTaggedUsers) {
+            User targetUser = resolveTaggedUser(requestTaggedUser != null ? requestTaggedUser.getUser_id() : null);
+            if (targetUser == null) {
+                continue;
+            }
+
+            if (targetUser.getId().equals(callerId)) {
+                taggedUsers.putIfAbsent(targetUser.getId(), Post.TaggedUser.builder().user_id(targetUser.getId()).build());
+                continue;
+            }
+
+            // Check for block status
+            if (userService.isBlocked(callerId, targetUser.getId())) {
+                continue;
+            }
+
+            // Check allow_tagging setting
+            String allowTagging = (targetUser.getSettings() != null && targetUser.getSettings().getAllow_tagging() != null)
+                    ? targetUser.getSettings().getAllow_tagging().toLowerCase()
+                    : "everyone";
+
+            if (!"none".equals(allowTagging)) {
+                taggedUsers.putIfAbsent(targetUser.getId(), Post.TaggedUser.builder().user_id(targetUser.getId()).build());
+            }
+        }
+
+        return new ArrayList<>(taggedUsers.values());
     }
 
     // Create a new post
@@ -147,12 +197,7 @@ public class PostService {
                     .build();
         }
 
-        List<Post.TaggedUser> taggedUsers = new ArrayList<>();
-        if (payload.getTagged_users() != null) {
-            for (CreatePostRequest.TaggedUserRequest t : payload.getTagged_users()) {
-                taggedUsers.add(Post.TaggedUser.builder().user_id(t.getUser_id()).build());
-            }
-        }
+        List<Post.TaggedUser> taggedUsers = processTaggedUsers(authorId, payload.getTagged_users());
 
         Post post = Post.builder()
                 .author_id(authorId)
@@ -290,10 +335,17 @@ public class PostService {
                     .coordinates(request.getLocation().getCoordinates())
                     .build());
         }
+        
         if (request.getTagged_users() != null) {
-            post.setTagged_users(request.getTagged_users().stream()
-                    .map(t -> Post.TaggedUser.builder().user_id(t.getUser_id()).build())
-                    .toList());
+            List<CreatePostRequest.TaggedUserRequest> mappedTagRequests = request.getTagged_users().stream()
+                .map(req -> {
+                    CreatePostRequest.TaggedUserRequest tReq = new CreatePostRequest.TaggedUserRequest();
+                    tReq.setUser_id(req.getUser_id());
+                    return tReq;
+                })
+                .toList();
+            List<Post.TaggedUser> processedTags = processTaggedUsers(callerId, mappedTagRequests);
+            post.setTagged_users(processedTags);
         }
 
         return toPostResponse(postRepository.save(post), caller, caller);

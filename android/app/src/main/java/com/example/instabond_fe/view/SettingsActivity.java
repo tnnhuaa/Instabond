@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivitySettingsBinding;
+import com.example.instabond_fe.model.UpdateAllowTaggingResponse;
 import com.example.instabond_fe.model.UpdateProfileRequest;
 import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
@@ -15,6 +16,7 @@ import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.ChatRepository;
 import com.example.instabond_fe.utils.AvatarLoader;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -28,6 +30,7 @@ public class SettingsActivity extends AppCompatActivity {
     private boolean isUpdatingPrivacy;
     private boolean suppressPrivacyToggleListener;
     private boolean currentPrivacyState;
+    private String currentTagPreference = "everyone";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,7 +47,6 @@ public class SettingsActivity extends AppCompatActivity {
         }
 
         setupListeners();
-        binding.swAllowTagging.setChecked(true);
         binding.swTheme.setChecked(false);
         setUiEnabled(false);
         loadMe();
@@ -72,12 +74,7 @@ public class SettingsActivity extends AppCompatActivity {
             }
             updatePrivacy(isChecked);
         });
-        binding.swAllowTagging.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (!buttonView.isPressed()) {
-                return;
-            }
-            Toast.makeText(this, R.string.settings_feature_soon, Toast.LENGTH_SHORT).show();
-        });
+        binding.btnTagPreference.setOnClickListener(v -> showTagPreferenceDialog());
         binding.swTheme.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (!buttonView.isPressed()) {
                 return;
@@ -114,6 +111,11 @@ public class SettingsActivity extends AppCompatActivity {
                     binding.etPhoneNumber.setText(me.getPhoneNumber() != null ? me.getPhoneNumber() : "");
                     applyPrivacyState(me.isPrivate());
 
+                    if (me.getAllowTagging() != null) {
+                        currentTagPreference = me.getAllowTagging();
+                        updateTagPreferenceUi();
+                    }
+
                     setUiEnabled(true);
                 } else {
                     Toast.makeText(SettingsActivity.this, "Không thể tải dữ liệu người dùng", Toast.LENGTH_SHORT).show();
@@ -127,12 +129,74 @@ public class SettingsActivity extends AppCompatActivity {
         });
     }
 
+    private void showTagPreferenceDialog() {
+        String[] options = {
+                getString(R.string.tag_preference_none),
+                getString(R.string.tag_preference_everyone)
+        };
+        String[] values = {"none", "everyone"};
+
+        int checkedItem = 1; // Default everyone
+        for (int i = 0; i < values.length; i++) {
+            if (values[i].equalsIgnoreCase(currentTagPreference)) {
+                checkedItem = i;
+                break;
+            }
+        }
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.tag_preference_dialog_title)
+                .setSingleChoiceItems(options, checkedItem, (dialog, which) -> {
+                    String selectedValue = values[which];
+                    updateTagPreferenceInstant(selectedValue);
+                    dialog.dismiss();
+                })
+                .setNegativeButton(R.string.create_post_cancel, null)
+                .show();
+    }
+
+    private void updateTagPreferenceInstant(String newValue) {
+        setUiEnabled(false);
+        apiService.updateAllowTagging(newValue).enqueue(new Callback<UpdateAllowTaggingResponse>() {
+            @Override
+            public void onResponse(Call<UpdateAllowTaggingResponse> call, Response<UpdateAllowTaggingResponse> response) {
+                setUiEnabled(true);
+                if (response.isSuccessful() && response.body() != null) {
+                    currentTagPreference = response.body().getAllowTagging();
+                    updateTagPreferenceUi();
+                    Toast.makeText(SettingsActivity.this, "Đã cập nhật tùy chọn gắn thẻ", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(SettingsActivity.this, "Không thể cập nhật tùy chọn gắn thẻ", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<UpdateAllowTaggingResponse> call, Throwable t) {
+                setUiEnabled(true);
+                Toast.makeText(SettingsActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void updateTagPreferenceUi() {
+        String displayValue;
+        if ("none".equalsIgnoreCase(currentTagPreference)) {
+            displayValue = getString(R.string.tag_preference_none);
+        } else {
+            displayValue = getString(R.string.tag_preference_everyone);
+        }
+        binding.tvTagPreferenceValue.setText(displayValue);
+    }
 
     private UpdateProfileRequest createRequest() {
         UpdateProfileRequest request = new UpdateProfileRequest();
         request.setFullName(binding.etFullName.getText().toString().trim());
         request.setBio(binding.etBio.getText().toString().trim());
         request.setPhoneNumber(binding.etPhoneNumber.getText().toString().trim());
+
+        UpdateProfileRequest.SettingsRequest settings = new UpdateProfileRequest.SettingsRequest();
+        settings.setAllowTagging(currentTagPreference.toLowerCase());
+        request.setSettings(settings);
 
         return request;
     }
@@ -192,11 +256,6 @@ public class SettingsActivity extends AppCompatActivity {
                         setPrivacyToggleEnabled(true);
                     }
                 } else {
-                    try {
-                        String errorStr = response.errorBody() != null ? response.errorBody().string() : "Unknown error";
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
                     setPrivacyToggleCheckedSilently(currentPrivacyState);
                     setPrivacyToggleEnabled(true);
                     Toast.makeText(SettingsActivity.this, "Không thể cập nhật quyền riêng tư", Toast.LENGTH_SHORT).show();
@@ -206,8 +265,6 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<UserProfileResponse> call, Throwable t) {
                 isUpdatingPrivacy = false;
-                t.printStackTrace();
-
                 setPrivacyToggleCheckedSilently(currentPrivacyState);
                 setPrivacyToggleEnabled(true);
                 Toast.makeText(SettingsActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
@@ -221,16 +278,16 @@ public class SettingsActivity extends AppCompatActivity {
         binding.etPhoneNumber.setEnabled(enabled);
         binding.btnSaveProfile.setEnabled(enabled);
         binding.btnSaveProfile.setAlpha(enabled ? 1.0f : 0.5f);
-        binding.swAllowTagging.setEnabled(enabled);
+        binding.btnTagPreference.setEnabled(enabled);
         binding.swTheme.setEnabled(enabled);
-        binding.swAllowTagging.setAlpha(enabled ? 1.0f : 0.7f);
-        binding.swTheme.setAlpha(enabled ? 1.0f : 0.7f);
+        binding.btnTagPreference.setAlpha(enabled ? 1.0f : 0.7f);
+        binding.swTheme.setAlpha(1.0f);
         setPrivacyToggleEnabled(enabled && !isUpdatingPrivacy);
     }
 
     private void setPrivacyToggleEnabled(boolean enabled) {
         binding.swPrivateAccount.setEnabled(enabled);
-        binding.swPrivateAccount.setAlpha(enabled ? 1.0f : 0.5f);
+        binding.swPrivateAccount.setAlpha(1.0f);
     }
 
     private void setPrivacyToggleCheckedSilently(boolean checked) {

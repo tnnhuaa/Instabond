@@ -10,6 +10,7 @@ import com.example.instabond_fe.model.ProfileShareResponse;
 import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.model.StoryResponse;
 import com.example.instabond_fe.model.ResetPasswordRequest;
+import com.example.instabond_fe.model.UpdateAllowTaggingResponse;
 import com.example.instabond_fe.model.StoryViewersResponse;
 import com.example.instabond_fe.model.UpdateProfileRequest;
 import com.example.instabond_fe.model.UserProfileResponse;
@@ -28,6 +29,7 @@ import retrofit2.http.DELETE;
 import retrofit2.http.GET;
 import retrofit2.http.Headers;
 import retrofit2.http.Multipart;
+import retrofit2.http.PATCH;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Part;
@@ -264,4 +266,7 @@ public interface ApiService {
     // QR Resolve
     @GET("api/users/resolve")
         Call<UserProfileResponse> resolveProfile(@Query("payload") String payload);
+
+    @PATCH("api/users/me/allow-tagging")
+    Call<UpdateAllowTaggingResponse> updateAllowTagging(@Query("value") String value);
 }
