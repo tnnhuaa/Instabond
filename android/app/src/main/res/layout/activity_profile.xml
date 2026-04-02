@@ -117,7 +117,7 @@
                         android:layout_width="110dp"
                         android:layout_height="110dp"
                         app:cardBackgroundColor="@android:color/white"
-                        app:cardCornerRadius="28dp"
+                        app:cardCornerRadius="55dp"
                         app:cardElevation="0dp"
                         app:strokeColor="@color/login_bg_start"
                         app:strokeWidth="3dp">
@@ -130,13 +130,15 @@
                             <com.google.android.material.card.MaterialCardView
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
-                                app:cardCornerRadius="24dp"
+                                app:cardCornerRadius="48dp"
                                 app:cardElevation="0dp">
 
                                 <ImageView
                                     android:id="@+id/iv_avatar"
                                     android:layout_width="match_parent"
                                     android:layout_height="match_parent"
+                                    android:background="@drawable/avatar_circle_bg"
+                                    android:clipToOutline="true"
                                     android:contentDescription="@string/cd_profile_photo"
                                     android:scaleType="centerCrop" />
 

@@ -18,6 +18,9 @@ public class ChatMessageResponse {
     @SerializedName(value = "created_at", alternate = {"createdAt"})
     private String createdAt;
 
+    @SerializedName(value = "preview_text", alternate = {"previewText"})
+    private String previewText;
+
     public ChatMessageResponse() {
     }
 
@@ -76,5 +79,13 @@ public class ChatMessageResponse {
 
     public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getPreviewText() {
+        return previewText;
+    }
+
+    public void setPreviewText(String previewText) {
+        this.previewText = previewText;
     }
 }

@@ -26,6 +26,7 @@ public class InstaBottomNavView extends FrameLayout {
     public enum Tab {
         HOME,
         SEARCH,
+        CREATE,
         NOTIFICATIONS,
         PROFILE
     }
@@ -62,6 +63,7 @@ public class InstaBottomNavView extends FrameLayout {
 
         applyState(binding.navHome, binding.ivNavHome, activeTab == Tab.HOME, activeColor, inactiveColor);
         applyState(binding.navSearch, binding.ivNavSearch, activeTab == Tab.SEARCH, activeColor, inactiveColor);
+        applyState(binding.btnCreate, binding.ivNavCreate, activeTab == Tab.CREATE, activeColor, inactiveColor);
         applyState(binding.navNotifications, binding.ivNavNotifications, activeTab == Tab.NOTIFICATIONS, activeColor, inactiveColor);
         applyState(binding.navProfile, binding.ivNavProfile, activeTab == Tab.PROFILE, activeColor, inactiveColor);
     }

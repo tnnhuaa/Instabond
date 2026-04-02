@@ -159,8 +159,26 @@ public class MessageService {
                 .senderId(message.getSender_id())
                 .type(message.getType())
                 .content(message.getContent())
+                .previewText(buildMessagePreview(message))
                 .createdAt(message.getCreated_at())
                 .build();
+    }
+
+    public String buildMessagePreview(Message message) {
+        if (message == null) {
+            return "";
+        }
+
+        String type = normalizeType(message.getType());
+        return switch (type) {
+            case "image" -> "sent a photo";
+            case "post_share" -> "shared a post";
+            case "story_reply" -> "replied to your story";
+            default -> {
+                String content = trimToNull(message.getContent());
+                yield content == null ? "" : content;
+            }
+        };
     }
 
     private User resolveUserByEmail(String email) {
@@ -183,7 +201,7 @@ public class MessageService {
 
     private void updateConversationLastMessage(Conversation conversation, Message savedMessage) {
         conversation.setLast_message(Conversation.LastMessage.builder()
-                .content(savedMessage.getContent())
+                .content(buildMessagePreview(savedMessage))
                 .sender_id(savedMessage.getSender_id())
                 .sent_at(savedMessage.getCreated_at())
                 .is_read(false)

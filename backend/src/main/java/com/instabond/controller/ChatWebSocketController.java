@@ -63,19 +63,22 @@ public class ChatWebSocketController {
             }
 
             String recipientId = userService.getUserIdByEmail(participant);
+            String previewText = response.getPreviewText() == null || response.getPreviewText().isBlank()
+                    ? "New message"
+                    : response.getPreviewText();
 
             notificationService.saveAndSendChatNotification(
                     saved.getSender_id(),
                     recipientId,
                     saved.getConversation_id(),
-                    saved.getContent()
+                    previewText
             );
 
             if (!presenceService.isOnline(participant)) {
                 notificationService.sendPushNotification(
                         recipientId,
                         "New message",
-                        saved.getContent()
+                        previewText
                 );
             }
         }

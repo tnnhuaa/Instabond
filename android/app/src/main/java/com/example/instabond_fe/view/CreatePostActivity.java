@@ -17,7 +17,6 @@ import android.provider.OpenableColumns;
 import android.text.InputType;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -37,6 +36,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.utils.AvatarLoader;
+import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
@@ -148,38 +148,7 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private void setupBottomNav() {
-        View navHome = binding.bottomNav.findViewById(R.id.nav_home);
-        View navSearch = binding.bottomNav.findViewById(R.id.nav_search);
-        View navNotifications = binding.bottomNav.findViewById(R.id.nav_notifications);
-        View navProfile = binding.bottomNav.findViewById(R.id.nav_profile);
-        View btnCreate = binding.bottomNav.findViewById(R.id.btn_create);
-
-        clearBottomNavHighlight(navHome, navSearch, navNotifications, navProfile);
-        navHome.setOnClickListener(v -> navigateTo(NewsfeedActivity.class));
-        navSearch.setOnClickListener(v -> navigateTo(SearchActivity.class));
-        navNotifications.setOnClickListener(v -> navigateTo(NotificationsActivity.class));
-        navProfile.setOnClickListener(v -> navigateTo(ProfileActivity.class));
-        btnCreate.setOnClickListener(v -> {
-            // Current screen.
-        });
-    }
-
-    private void clearBottomNavHighlight(View... views) {
-        for (View view : views) {
-            if (view instanceof FrameLayout) {
-                view.setBackgroundResource(android.R.color.transparent);
-            }
-        }
-    }
-
-    private void navigateTo(Class<?> destination) {
-        if (getClass().equals(destination)) {
-            return;
-        }
-        Intent intent = new Intent(this, destination);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        startActivity(intent);
-        finish();
+        binding.bottomNav.bind(this, InstaBottomNavView.Tab.CREATE);
     }
 
     private void setupFilterStrip() {

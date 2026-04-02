@@ -24,10 +24,14 @@ public class ChatMessageResponse {
     @Schema(description = "ID of the user who sent the message", example = "64f1a2b3c4d5e6f7a8b9c0d3")
     private String senderId;
 
-    @Schema(description = "Message type", allowableValues = {"text", "image"}, example = "text")
+    @Schema(description = "Message type", allowableValues = {"text", "image", "post_share", "story_reply"}, example = "text")
     private String type;
     @Schema(description = "Text content or media URL of the message", example = "Hello!")
     private String content;
+
+    @JsonProperty("preview_text")
+    @Schema(description = "Short preview text suitable for inbox lists and notifications", example = "replied to your story")
+    private String previewText;
 
     @JsonProperty("created_at")
     @Schema(description = "UTC timestamp of when the message was created")
