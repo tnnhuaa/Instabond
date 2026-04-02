@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="20dp"
+    android:paddingTop="20dp"
+    android:paddingEnd="20dp"
+    android:paddingBottom="28dp">
+
+    <TextView
+        android:id="@+id/tv_story_viewers_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/story_view_viewers_title"
+        android:textColor="@color/login_text_primary"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tv_story_viewers_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:textColor="@color/login_text_secondary"
+        android:textSize="13sp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_story_viewers"
+        android:layout_width="match_parent"
+        android:layout_height="320dp"
+        android:layout_marginTop="18dp" />
+
+    <TextView
+        android:id="@+id/tv_story_viewers_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="@string/story_view_viewers_empty"
+        android:textColor="@color/login_text_secondary"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+</LinearLayout>

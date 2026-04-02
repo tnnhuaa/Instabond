@@ -12,6 +12,7 @@ import android.widget.TextView;
 
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.ChatMessageResponse;
+import com.example.instabond_fe.utils.RichMessageUtils;
 import com.example.instabond_fe.view.ChatActivity;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -27,7 +28,8 @@ public class MessagePopupHelper {
         TextView customText = customView.findViewById(R.id.customText);
 
         customTitle.setText(cachedName != null ? cachedName : "New message");
-        customText.setText(message.getContent() != null ? message.getContent() : "You have a new message");
+        String preview = RichMessageUtils.getConversationPreview(message);
+        customText.setText(preview.isEmpty() ? "You have a new message" : preview);
 
         // Create Snackbar
         View rootView = activity.findViewById(android.R.id.content);

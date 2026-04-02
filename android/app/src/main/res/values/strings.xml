@@ -190,6 +190,14 @@
     <string name="story_view_react_soon">Reactions are coming soon</string>
     <string name="story_view_reply_soon">Replies are coming soon</string>
     <string name="story_view_content">Story content</string>
+    <string name="story_view_reply_sent">Story reply sent</string>
+    <string name="story_view_reply_failed">Could not send story reply</string>
+    <string name="story_view_reply_required">Enter a reply first</string>
+    <string name="story_view_like_failed">Could not update story heart</string>
+    <string name="story_view_viewers_title">Story viewers</string>
+    <string name="story_view_viewers_empty">No one has viewed this story yet.</string>
+    <string name="story_view_viewers_summary">Seen by %1$d</string>
+    <string name="story_view_unknown_viewer">Viewer</string>
     <string name="feed_messages_coming_soon">Direct messages coming soon</string>
     <string name="search_section_new">New</string>
     <string name="search_section_today">Today</string>
@@ -281,12 +289,21 @@
     <string name="inbox_active_now">Active Now</string>
     <string name="inbox_recent_messages">Recent Messages</string>
     <string name="inbox_empty_preview">No messages yet</string>
+    <string name="inbox_preview_you">You: %1$s</string>
     <string name="chat_online_now">ONLINE NOW</string>
     <string name="chat_offline_now">OFFLINE</string>
     <string name="chat_today">TODAY</string>
     <string name="chat_type_message">Type a message...</string>
     <string name="chat_reconnecting">Reconnecting...</string>
     <string name="chat_missing_conversation">Missing conversation</string>
+    <string name="chat_story_reply_header">Reply to story</string>
+    <string name="chat_story_reply_title">Story</string>
+    <string name="chat_story_reply_title_named">%1$s\'s story</string>
+    <string name="chat_story_reply_empty">Sent a story reply</string>
+    <string name="chat_post_share_header">Shared post</string>
+    <string name="chat_post_share_title">Post</string>
+    <string name="chat_post_share_title_named">@%1$s</string>
+    <string name="chat_post_share_empty">Shared a post</string>
     <string name="image_editor_title">Edit Photo</string>
     <string name="image_editor_done">Done</string>
     <string name="image_editor_tab_crop">Crop</string>
@@ -313,4 +330,9 @@
     <string name="image_editor_select_text_first">Select a text sticker first</string>
     <string name="image_editor_text_dialog_supporting">Shape a short artistic caption that feels at home on the photo.</string>
     <string name="image_editor_text_required">Please enter some text</string>
+
+    <plurals name="story_view_viewers_count">
+        <item quantity="one">%1$d viewer</item>
+        <item quantity="other">%1$d viewers</item>
+    </plurals>
 </resources>

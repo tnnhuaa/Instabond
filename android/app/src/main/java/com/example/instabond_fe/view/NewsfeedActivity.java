@@ -454,7 +454,10 @@ public class NewsfeedActivity extends AppCompatActivity {
                         normalizeUrl(response.getAuthor().getAvatarUrl()),
                         normalizeUrl(response.getMediaUrl()),
                         response.getCreatedAt(),
-                        false);
+                        false,
+                        response.isViewedByMe(),
+                        response.isLikedByMe(),
+                        response.getViewerCount());
                 String authorId = storyItem.getAuthorId() == null ? "" : storyItem.getAuthorId();
                 storiesByAuthor.computeIfAbsent(authorId, ignored -> new ArrayList<>()).add(storyItem);
 
@@ -490,7 +493,10 @@ public class NewsfeedActivity extends AppCompatActivity {
                 avatarUrl,
                 ownStoryPreview != null ? ownStoryPreview.getMediaUrl() : "",
                 ownStoryPreview != null ? ownStoryPreview.getCreatedAt() : "",
-                true
+                true,
+                ownStoryPreview != null && ownStoryPreview.isViewedByMe(),
+                ownStoryPreview != null && ownStoryPreview.isLikedByMe(),
+                ownStoryPreview != null ? ownStoryPreview.getViewerCount() : 0
         );
     }
 

@@ -91,7 +91,7 @@ public class InboxAdapter extends RecyclerView.Adapter<InboxAdapter.InboxViewHol
                 String content = conversation.getLastMessage().getContent();
                 String safeContent = content == null ? "" : content;
                 if (safeCurrentUserId.equals(conversation.getLastMessage().getSenderId())) {
-                    preview = safeContent.isEmpty() ? preview : "You: " + safeContent;
+                    preview = safeContent.isEmpty() ? preview : itemView.getContext().getString(R.string.inbox_preview_you, safeContent);
                 } else {
                     preview = safeContent.isEmpty() ? preview : safeContent;
                 }
