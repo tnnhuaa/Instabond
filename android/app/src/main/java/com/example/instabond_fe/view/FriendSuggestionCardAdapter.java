@@ -19,6 +19,7 @@ import com.example.instabond_fe.model.FollowUserResponse;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.utils.AvatarLoader;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import retrofit2.Call;
@@ -27,9 +28,9 @@ import retrofit2.Response;
 
 public class FriendSuggestionCardAdapter extends RecyclerView.Adapter<FriendSuggestionCardAdapter.ViewHolder> {
 
-    private List<FollowUserResponse> suggestions;
-    private Context context;
-    private ApiService apiService;
+    private final List<FollowUserResponse> suggestions;
+    private final Context context;
+    private final ApiService apiService;
     private OnFollowListener listener;
 
     public interface OnFollowListener {
@@ -37,7 +38,10 @@ public class FriendSuggestionCardAdapter extends RecyclerView.Adapter<FriendSugg
     }
 
     public FriendSuggestionCardAdapter(List<FollowUserResponse> suggestions, Context context, ApiService apiService) {
-        this.suggestions = suggestions;
+        this.suggestions = new ArrayList<>();
+        if (suggestions != null) {
+            this.suggestions.addAll(suggestions);
+        }
         this.context = context;
         this.apiService = apiService;
     }
@@ -77,6 +81,14 @@ public class FriendSuggestionCardAdapter extends RecyclerView.Adapter<FriendSugg
     @Override
     public int getItemCount() {
         return suggestions != null ? suggestions.size() : 0;
+    }
+
+    public void submitSuggestions(List<FollowUserResponse> newSuggestions) {
+        suggestions.clear();
+        if (newSuggestions != null) {
+            suggestions.addAll(newSuggestions);
+        }
+        notifyDataSetChanged();
     }
 
     private void followUser(FollowUserResponse user, int position, ViewHolder holder) {

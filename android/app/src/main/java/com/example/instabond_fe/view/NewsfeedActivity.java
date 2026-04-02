@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -58,7 +59,7 @@ public class NewsfeedActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
     private PostAdapter adapter;
     private StoryFeedAdapter storyAdapter;
-    private FriendSuggestionCardAdapter suggestionAdapter;
+    private FriendSuggestionSectionAdapter suggestionSectionAdapter;
     private ApiService apiService;
     private SessionManager sessionManager;
     private final Gson gson = new Gson();
@@ -70,6 +71,7 @@ public class NewsfeedActivity extends AppCompatActivity {
     private int currentPage;
     private boolean isRequestInFlight;
     private boolean reachedEnd;
+    private boolean friendSuggestionsDismissed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,7 +90,8 @@ public class NewsfeedActivity extends AppCompatActivity {
 
         adapter = new PostAdapter(new ArrayList<>());
         storyAdapter = new StoryFeedAdapter();
-        suggestionAdapter = new FriendSuggestionCardAdapter(new ArrayList<>(), this, apiService);
+        suggestionSectionAdapter = new FriendSuggestionSectionAdapter(this, apiService);
+        suggestionSectionAdapter.setOnDismissListener(() -> friendSuggestionsDismissed = true);
 
         storyAdapter.setListener(new StoryFeedAdapter.Listener() {
             @Override
@@ -202,15 +205,11 @@ public class NewsfeedActivity extends AppCompatActivity {
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         LinearLayoutManager storyLayoutManager =
                 new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
-        LinearLayoutManager suggestionLayoutManager =
-                new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
 
         binding.rvFeed.setLayoutManager(layoutManager);
-        binding.rvFeed.setAdapter(adapter);
+        binding.rvFeed.setAdapter(new ConcatAdapter(suggestionSectionAdapter, adapter));
         binding.rvStories.setLayoutManager(storyLayoutManager);
         binding.rvStories.setAdapter(storyAdapter);
-        binding.rvFriendSuggestions.setLayoutManager(suggestionLayoutManager);
-        binding.rvFriendSuggestions.setAdapter(suggestionAdapter);
         binding.rvFeed.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
@@ -242,18 +241,21 @@ public class NewsfeedActivity extends AppCompatActivity {
     }
 
     private void loadFriendSuggestions() {
+        if (friendSuggestionsDismissed) {
+            suggestionSectionAdapter.submitSuggestions(List.of());
+            return;
+        }
         apiService.getFriendSuggestions(10).enqueue(new Callback<List<FollowUserResponse>>() {
             @Override
             public void onResponse(Call<List<FollowUserResponse>> call, Response<List<FollowUserResponse>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    suggestionAdapter = new FriendSuggestionCardAdapter(response.body(), NewsfeedActivity.this, apiService);
-                    binding.rvFriendSuggestions.setAdapter(suggestionAdapter);
+                    suggestionSectionAdapter.submitSuggestions(response.body());
                 }
             }
 
             @Override
             public void onFailure(Call<List<FollowUserResponse>> call, Throwable t) {
-                // Silent fail
+                suggestionSectionAdapter.submitSuggestions(List.of());
             }
         });
     }
