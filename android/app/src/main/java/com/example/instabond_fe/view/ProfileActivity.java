@@ -23,6 +23,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiListParser;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -79,9 +80,17 @@ public class ProfileActivity extends AppCompatActivity {
         gridAdapter = new ProfileGridAdapter();
         binding.rvProfileGrid.setAdapter(gridAdapter);
         gridAdapter.setListener((allPosts, clickedPosition) -> {
-            Intent intent = new Intent(this, ProfilePostDetailActivity.class);
-            intent.putExtra("targetUserId", currentUserId);
-            intent.putExtra("scrollToPosition", clickedPosition);
+            if (clickedPosition < 0 || clickedPosition >= allPosts.size()) {
+                return;
+            }
+
+            PostResponse selectedPost = allPosts.get(clickedPosition);
+            if (selectedPost == null || selectedPost.getId() == null || selectedPost.getId().trim().isEmpty()) {
+                return;
+            }
+
+            Intent intent = new Intent(this, CommentActivity.class);
+            intent.putExtra("postId", selectedPost.getId());
             startActivity(intent);
         });
 
@@ -299,11 +308,7 @@ public class ProfileActivity extends AppCompatActivity {
         binding.tvFriendsCount.setText(formatCount(profile.getFollowersCount()));
         binding.tvLikesCount.setText(formatCount(profile.getFollowingCount()));
 
-        Glide.with(this)
-                .load(profile.getAvatarUrl())
-                .placeholder(R.drawable.profile_placeholder_bg)
-                .error(R.drawable.profile_placeholder_bg)
-                .into(binding.ivAvatar);
+        AvatarLoader.load(binding.ivAvatar, profile.getAvatarUrl());
 
         String relStatus = profile.getRelationshipStatus();
         boolean isPrivate = profile.isPrivate();

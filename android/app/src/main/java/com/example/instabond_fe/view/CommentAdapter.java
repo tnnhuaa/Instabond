@@ -29,12 +29,17 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
     }
 
     private final List<CommentResponse> comments = new ArrayList<>();
-    private final String postAuthorUsername;
+    private String postAuthorUsername;
     private final OnCommentInteractionListener listener;
 
     public CommentAdapter(String postAuthorUsername, OnCommentInteractionListener listener) {
         this.postAuthorUsername = postAuthorUsername == null ? "" : postAuthorUsername.trim().toLowerCase(Locale.US);
         this.listener = listener;
+    }
+
+    public void setPostAuthorUsername(String postAuthorUsername) {
+        this.postAuthorUsername = postAuthorUsername == null ? "" : postAuthorUsername.trim().toLowerCase(Locale.US);
+        notifyDataSetChanged();
     }
 
     public void setComments(List<CommentResponse> newComments) {

@@ -16,6 +16,7 @@ import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityStoryViewerBinding;
 import com.example.instabond_fe.model.StoryItem;
 import com.example.instabond_fe.network.ApiClient;
+import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.utils.TimeUtils;
 
 import java.util.ArrayList;
@@ -123,11 +124,7 @@ public class StoryViewerActivity extends AppCompatActivity {
                 .error(R.drawable.create_post_preview_placeholder)
                 .into(binding.ivStoryMedia);
 
-        Glide.with(this)
-                .load(normalizeUrl(story.getAvatarUrl()))
-                .placeholder(R.drawable.profile_placeholder_bg)
-                .error(R.drawable.profile_placeholder_bg)
-                .into(binding.ivStoryAvatar);
+        AvatarLoader.load(binding.ivStoryAvatar, normalizeUrl(story.getAvatarUrl()));
 
         binding.tvStoryUsername.setText(story.getUsername());
         binding.tvStoryMeta.setText(formatStoryMeta(story.getCreatedAt()));

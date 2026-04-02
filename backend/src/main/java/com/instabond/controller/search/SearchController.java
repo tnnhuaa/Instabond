@@ -1,4 +1,4 @@
-package com.instabond.controller;
+package com.instabond.controller.search;
 
 import com.instabond.service.search.SearchContext;
 import io.swagger.v3.oas.annotations.Operation;

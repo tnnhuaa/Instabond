@@ -18,6 +18,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.Post;
+import com.example.instabond_fe.utils.TimeUtils;
+import com.example.instabond_fe.utils.AvatarLoader;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -92,7 +94,12 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         holder.tvLikeCount.setText(numberFormat.format(post.getLikesCount()));
         holder.tvCommentCount.setText(numberFormat.format(post.getCommentsCount()));
         holder.tvViewComments.setText("View all " + numberFormat.format(post.getCommentsCount()) + " comments");
-        holder.tvTimeAgo.setText(TIME_FALLBACKS[position % TIME_FALLBACKS.length]);
+        String compactTime = TimeUtils.getCompactRelativeTime(post.getCreatedAt());
+        holder.tvTimeAgo.setText(
+                post.getCreatedAt() == null || post.getCreatedAt().trim().isEmpty()
+                        ? TIME_FALLBACKS[position % TIME_FALLBACKS.length]
+                        : compactTime
+        );
         holder.tvCaption.setText(buildCaption(post));
         holder.tvImageCount.setVisibility(position == 0 ? View.VISIBLE : View.GONE);
         holder.tvImageCount.setText("1/3");
@@ -103,11 +110,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         holder.btnComment.setColorFilter(defaultColor);
         holder.btnBookmark.setColorFilter(defaultColor);
 
-        Glide.with(holder.itemView)
-                .load(post.getAvatarUrl())
-                .placeholder(R.drawable.avatar_circle_bg)
-                .error(R.drawable.avatar_circle_bg)
-                .into(holder.ivAvatar);
+        AvatarLoader.load(holder.ivAvatar, post.getAvatarUrl());
 
         holder.btnLike.setOnClickListener(v -> {
             if (listener != null) listener.onLikeClicked(post, position);

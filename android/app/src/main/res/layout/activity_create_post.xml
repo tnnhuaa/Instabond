@@ -208,6 +208,8 @@
                         android:id="@+id/iv_user_avatar"
                         android:layout_width="40dp"
                         android:layout_height="40dp"
+                        android:background="@drawable/avatar_circle_bg"
+                        android:clipToOutline="true"
                         android:contentDescription="@string/cd_user_avatar"
                         android:scaleType="centerCrop"
                         android:src="@drawable/profile_placeholder_bg" />

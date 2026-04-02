@@ -4,6 +4,20 @@
 <resources>
     <string name="app_name">InstaBond</string>
 
+    <string name="forgot_password_title">Forgot Password</string>
+    <string name="forgot_password_subtitle">Enter your email to receive an OTP code.</string>
+    <string name="forgot_password_send_otp">Send OTP</string>
+
+    <string name="reset_password_title">Verify Code</string>
+    <string name="reset_password_subtitle">An OTP code has been sent to your email.</string>
+    <string name="reset_password_otp_label">OTP CODE</string>
+    <string name="reset_password_otp_hint">Enter 6-digit OTP</string>
+    <string name="reset_password_new_password_label">NEW PASSWORD</string>
+    <string name="reset_password_new_password_hint_mask">********</string>
+    <string name="reset_password_confirm">Confirm</string>
+    <string name="reset_password_resend_prompt">Didn\'t receive the code?</string>
+    <string name="reset_password_resend_action">Resend code</string>
+
     <!-- Toolbar -->
     <string name="cd_menu">Menu</string>
     <string name="cd_qr_code">QR Code</string>
@@ -80,6 +94,11 @@
     <string name="privacy_label">Quyền riêng tư</string>
     <string name="allow_tagging_label">Cho phép gắn thẻ</string>
     <string name="theme_label">Giao diện</string>
+    <string name="settings_section_personal_info">Thông tin cá nhân</string>
+    <string name="settings_section_security">Bảo mật</string>
+    <string name="settings_brand_name">Instabond</string>
+    <string name="settings_help_fab_desc">Hỗ trợ nhanh</string>
+    <string name="settings_feature_soon">Tính năng này sẽ sớm có</string>
     <string name="msg_user_id_missing">Không tìm thấy user id</string>
     <string name="msg_profile_update_failed">Cập nhật profile thất bại</string>
     <string name="msg_profile_updated">Đã cập nhật profile</string>
@@ -132,14 +151,17 @@
     <string name="signup_failed">Sign up failed</string>
     <string name="signup_loading">Signing up...</string>
     <string name="signup_connection_error">Could not reach the server: %1$s</string>
+
+
     <string name="feed_story_your_story">Your Story</string>
     <string name="feed_story_user_1">elara_designs</string>
     <string name="feed_story_user_2">marcus_v</string>
     <string name="feed_story_user_3">sara.ink</string>
     <string name="feed_story_user_4">lens.craft</string>
-    <string name="story_create_title">New Story</string>
+    <string name="story_create_title">Create Story</string>
     <string name="story_create_share">Share</string>
     <string name="story_create_posting">Sharing...</string>
+    <string name="story_create_post_action">Post</string>
     <string name="story_create_cta">Create story</string>
     <string name="story_create_preview_title">Spotlight your next moment</string>
     <string name="story_create_preview_subtitle">Choose a photo, keep it playful, and let it live for 24 hours in your story ring.</string>
@@ -153,6 +175,16 @@
     <string name="story_create_image_error">Could not prepare the selected image</string>
     <string name="story_create_success">Story shared successfully</string>
     <string name="story_create_failed">Could not share the story</string>
+    <string name="story_create_mode_post">POST</string>
+    <string name="story_create_mode_story">STORY</string>
+    <string name="story_create_destination_story">YOUR STORY</string>
+    <string name="story_create_tool_text_label">T</string>
+    <string name="story_create_tools_soon">Story tools are coming soon</string>
+    <string name="cd_story_settings">Story settings</string>
+    <string name="cd_story_gallery">Choose from gallery</string>
+    <string name="cd_story_flash">Flash options</string>
+    <string name="cd_story_tool_comment">Story sticker tools</string>
+    <string name="cd_story_tool_effects">Story effects</string>
     <string name="story_view_reply_hint">Send message</string>
     <string name="story_view_more_soon">Story options are coming soon</string>
     <string name="story_view_react_soon">Reactions are coming soon</string>
