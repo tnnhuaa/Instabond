@@ -109,6 +109,10 @@
     <string name="msg_update_error">Lỗi cập nhật: %1$s</string>
     <string name="btn_save_profile_loading">Đang lưu...</string>
 
+    <string name="tag_preference_everyone">Mọi người</string>
+    <string name="tag_preference_none">Không ai cả</string>
+    <string name="tag_preference_dialog_title">Ai có thể gắn thẻ bạn?</string>
+
     <!-- Sign-Up screen extras -->
     <string name="hint_email">Email</string>
     <string name="hint_confirm_password">Nhập lại mật khẩu</string>

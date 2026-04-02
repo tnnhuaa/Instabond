@@ -31,6 +31,7 @@ import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityCreatePostBinding;
 import com.example.instabond_fe.databinding.DialogEditPhotoBinding;
+import com.example.instabond_fe.model.CreatePostRequest;
 import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
@@ -41,6 +42,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.gson.Gson;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -732,9 +734,16 @@ public class CreatePostActivity extends AppCompatActivity {
 
         setLoading(true);
 
+        CreatePostRequest request = CreatePostRequest.fromCaptionAndMedia(
+                caption,
+                null, // media processed via multipart files
+                0, 0,
+                parseTags(tagsText)
+        );
+
         RequestBody requestPart = RequestBody.create(
                 MediaType.parse("application/json"),
-                buildRequestJson(caption, tagsText)
+                new Gson().toJson(request)
         );
 
         List<MultipartBody.Part> fileParts = new ArrayList<>();
@@ -794,26 +803,6 @@ public class CreatePostActivity extends AppCompatActivity {
         return null;
     }
 
-    private String buildRequestJson(String caption, String rawTags) {
-        StringBuilder json = new StringBuilder("{");
-        json.append("\"caption\":\"").append(escapeJson(caption)).append("\"");
-
-        List<String> tags = parseTags(rawTags);
-        if (!tags.isEmpty()) {
-            json.append(",\"tagged_users\":[");
-            for (int i = 0; i < tags.size(); i++) {
-                if (i > 0) {
-                    json.append(",");
-                }
-                json.append("{\"user_id\":\"").append(escapeJson(tags.get(i))).append("\"}");
-            }
-            json.append("]");
-        }
-
-        json.append("}");
-        return json.toString();
-    }
-
     private List<String> parseTags(String rawTags) {
         List<String> result = new ArrayList<>();
         if (rawTags == null || rawTags.trim().isEmpty()) {
@@ -863,16 +852,6 @@ public class CreatePostActivity extends AppCompatActivity {
             }
         }
         return null;
-    }
-
-    private String escapeJson(String input) {
-        if (input == null) {
-            return "";
-        }
-        return input.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r");
     }
 
     private String textOf(EditText editText) {

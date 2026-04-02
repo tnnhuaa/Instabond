@@ -4,6 +4,7 @@ import com.instabond.dto.FollowUserResponse;
 import com.instabond.dto.ProfileResponse;
 import com.instabond.dto.ProfileShareResponse;
 import com.instabond.dto.ResolveProfileRequest;
+import com.instabond.dto.UpdateAllowTaggingResponse;
 import com.instabond.dto.UpdatePrivacyRequest;
 import com.instabond.dto.UpdateProfileRequest;
 import com.instabond.exception.ForbiddenOperationException;
@@ -719,5 +720,26 @@ public class UserController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         return ResponseEntity.ok(userService.getShareProfile(id, userDetails.getUsername()));
+    }
+
+    // Update allow_tagging setting
+
+    @Operation(
+            summary = "Update my allow_tagging setting",
+            description = "Updates only `settings.allow_tagging` for the authenticated user via query param `value` (`everyone` or `none`)."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "allow_tagging updated successfully",
+                    content = @Content(schema = @Schema(implementation = UpdateAllowTaggingResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid value (must be everyone or none)"),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token")
+    })
+    @PatchMapping("/me/allow-tagging")
+    public ResponseEntity<UpdateAllowTaggingResponse> updateMyAllowTagging(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Parameter(description = "Allowed values: everyone or none", example = "everyone")
+            @RequestParam String value) {
+
+        return ResponseEntity.ok(userService.updateMyAllowTagging(userDetails.getUsername(), value));
     }
 }

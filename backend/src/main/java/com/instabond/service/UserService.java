@@ -4,6 +4,7 @@ import com.instabond.dto.UserMeResponse;
 import com.instabond.dto.FollowUserResponse;
 import com.instabond.dto.ProfileResponse;
 import com.instabond.dto.ProfileShareResponse;
+import com.instabond.dto.UpdateAllowTaggingResponse;
 import com.instabond.dto.UpdateProfileRequest;
 import com.instabond.entity.Post;
 import com.instabond.entity.Relationship;
@@ -689,6 +690,28 @@ public class UserService {
 
         return toProfileResponse(savedUser);
     }
+
+    public UpdateAllowTaggingResponse updateMyAllowTagging(String callerPrincipal, String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("value is required");
+        }
+
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        if (!"everyone".equals(normalized) && !"none".equals(normalized)) {
+            throw new IllegalArgumentException("value must be one of: everyone, none");
+        }
+
+        User user = resolveUserFromPrincipal(callerPrincipal);
+        User.Setting setting = user.getSettings() != null ? user.getSettings() : new User.Setting();
+        setting.setAllow_tagging(normalized);
+        user.setSettings(setting);
+        userRepository.save(user);
+
+        return UpdateAllowTaggingResponse.builder()
+                .allow_tagging(normalized)
+                .build();
+    }
+
     private ProfileResponse toProfileResponseWithStatus(User target, String callerPrincipal) {
         ProfileResponse response = toProfileResponse(target);
 
@@ -797,7 +820,7 @@ public class UserService {
                 .toList();
     }
 
-    private boolean isBlocked(String userId1, String userId2) {
+    public boolean isBlocked(String userId1, String userId2) {
         Query q1 = new Query(new Criteria().andOperator(
                 idCriteria("requester_id", userId1),
                 idCriteria("recipient_id", userId2),

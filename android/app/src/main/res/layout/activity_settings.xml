@@ -337,21 +337,21 @@
                         android:textColor="@color/login_text_primary"
                         android:textSize="16sp" />
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/sw_private_account"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:minWidth="44dp"
                         android:minHeight="24dp"
-                        android:text=""
+                        android:showText="false"
                         app:thumbTint="@color/settings_switch_thumb"
                         app:trackTint="@color/settings_switch_track"
-                        app:showText="false"
                         app:useMaterialThemeColors="false" />
 
                 </LinearLayout>
 
                 <LinearLayout
+                    android:id="@+id/btn_tag_preference"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
@@ -359,7 +359,10 @@
                     android:paddingStart="20dp"
                     android:paddingTop="12dp"
                     android:paddingEnd="20dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="12dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
 
                     <FrameLayout
                         android:layout_width="40dp"
@@ -376,29 +379,36 @@
 
                     </FrameLayout>
 
-                    <TextView
-                        android:id="@+id/tv_allow_tagging_label"
+                    <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
                         android:layout_weight="1"
-                        android:fontFamily="sans-serif-medium"
-                        android:text="@string/allow_tagging_label"
-                        android:textColor="@color/login_text_primary"
-                        android:textSize="16sp" />
+                        android:orientation="vertical">
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/sw_allow_tagging"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minWidth="44dp"
-                        android:minHeight="24dp"
-                        android:checked="true"
-                        android:text=""
-                        app:thumbTint="@color/settings_switch_thumb"
-                        app:trackTint="@color/settings_switch_track"
-                        app:showText="false"
-                        app:useMaterialThemeColors="false" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="@string/allow_tagging_label"
+                            android:textColor="@color/login_text_primary"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:id="@+id/tv_tag_preference_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="Everyone"
+                            android:textColor="@color/login_text_secondary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_arrow_right_small"
+                        app:tint="@color/settings_muted_label" />
 
                 </LinearLayout>
 
@@ -437,16 +447,15 @@
                         android:textColor="@color/login_text_primary"
                         android:textSize="16sp" />
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/sw_theme"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:minWidth="44dp"
                         android:minHeight="24dp"
-                        android:text=""
+                        android:showText="false"
                         app:thumbTint="@color/settings_switch_thumb"
                         app:trackTint="@color/settings_switch_track"
-                        app:showText="false"
                         app:useMaterialThemeColors="false" />
 
                 </LinearLayout>
