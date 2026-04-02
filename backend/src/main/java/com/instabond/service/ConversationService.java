@@ -44,6 +44,16 @@ public class ConversationService {
                 });
     }
 
+    public ConversationDTO getOrCreateDirectConversationDto(String currentUserId, String partnerId) {
+        Conversation conversation = getOrCreateDirectConversation(currentUserId, partnerId);
+        Map<String, User> userMap = new HashMap<>();
+        if (conversation.getParticipants() != null && !conversation.getParticipants().isEmpty()) {
+            userRepository.findAllById(conversation.getParticipants())
+                    .forEach(user -> userMap.put(user.getId(), user));
+        }
+        return toConversationDTO(conversation, userMap);
+    }
+
     public List<String> getParticipantEmail(String conversationId) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conversation not found: " + conversationId));
@@ -127,6 +137,7 @@ public class ConversationService {
                         dto.setId(pId);
 
                         dto.setUsername(u != null && u.getUsername() != null ? u.getUsername() : "Unknown User");
+                        dto.setEmail(u != null ? u.getEmail() : "");
                         dto.setAvatar_url(u != null ? u.getAvatar_url() : "");
                         return dto;
                     })
@@ -135,6 +146,7 @@ public class ConversationService {
 
         return ConversationDTO.builder()
                 .id(conversation.getId())
+                .title(conversation.getTitle())
                 .participants(participantDTOs)
                 .last_message(lastMessageDTO)
                 .theme(conversation.getTheme())

@@ -21,6 +21,15 @@ public class StoryResponse {
     @SerializedName(value = "expires_at", alternate = {"expiresAt"})
     private String expiresAt;
 
+    @SerializedName(value = "viewed_by_me", alternate = {"viewedByMe"})
+    private boolean viewedByMe;
+
+    @SerializedName(value = "liked_by_me", alternate = {"likedByMe"})
+    private boolean likedByMe;
+
+    @SerializedName(value = "viewer_count", alternate = {"viewerCount"})
+    private int viewerCount;
+
     public String getId() {
         return id;
     }
@@ -43,6 +52,18 @@ public class StoryResponse {
 
     public String getExpiresAt() {
         return expiresAt;
+    }
+
+    public boolean isViewedByMe() {
+        return viewedByMe;
+    }
+
+    public boolean isLikedByMe() {
+        return likedByMe;
+    }
+
+    public int getViewerCount() {
+        return viewerCount;
     }
 
     public static class AuthorInfo {

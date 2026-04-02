@@ -10,6 +10,9 @@ public class StoryItem implements Serializable {
     private final String mediaUrl;
     private final String createdAt;
     private final boolean createCard;
+    private boolean viewedByMe;
+    private boolean likedByMe;
+    private int viewerCount;
 
     public StoryItem(String id,
                      String authorId,
@@ -17,7 +20,10 @@ public class StoryItem implements Serializable {
                      String avatarUrl,
                      String mediaUrl,
                      String createdAt,
-                     boolean createCard) {
+                     boolean createCard,
+                     boolean viewedByMe,
+                     boolean likedByMe,
+                     int viewerCount) {
         this.id = id;
         this.authorId = authorId;
         this.username = username;
@@ -25,6 +31,9 @@ public class StoryItem implements Serializable {
         this.mediaUrl = mediaUrl;
         this.createdAt = createdAt;
         this.createCard = createCard;
+        this.viewedByMe = viewedByMe;
+        this.likedByMe = likedByMe;
+        this.viewerCount = viewerCount;
     }
 
     public String getId() {
@@ -57,5 +66,29 @@ public class StoryItem implements Serializable {
 
     public boolean hasMedia() {
         return mediaUrl != null && !mediaUrl.trim().isEmpty();
+    }
+
+    public boolean isViewedByMe() {
+        return viewedByMe;
+    }
+
+    public void setViewedByMe(boolean viewedByMe) {
+        this.viewedByMe = viewedByMe;
+    }
+
+    public boolean isLikedByMe() {
+        return likedByMe;
+    }
+
+    public void setLikedByMe(boolean likedByMe) {
+        this.likedByMe = likedByMe;
+    }
+
+    public int getViewerCount() {
+        return viewerCount;
+    }
+
+    public void setViewerCount(int viewerCount) {
+        this.viewerCount = viewerCount;
     }
 }

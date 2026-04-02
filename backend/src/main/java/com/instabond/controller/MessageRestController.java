@@ -1,5 +1,6 @@
 package com.instabond.controller;
 
+import com.instabond.dto.ChatMessageRequest;
 import com.instabond.dto.ChatMessageResponse;
 import com.instabond.dto.WsEvent;
 import com.instabond.entity.Message;
@@ -26,6 +27,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 
@@ -70,6 +72,25 @@ public class MessageRestController {
                 return ResponseEntity.ok(history);
         }
 
+        @Operation(summary = "Send text or rich chat message", description = "Stores a text or rich-content message, then emits a CHAT event to `/user/queue/events`.")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "201", description = "Message created successfully", content = @Content(schema = @Schema(implementation = ChatMessageResponse.class))),
+                        @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+                        @ApiResponse(responseCode = "403", description = "User is not a participant of this conversation"),
+                        @ApiResponse(responseCode = "404", description = "Conversation not found"),
+                        @ApiResponse(responseCode = "400", description = "Invalid request data")
+        })
+        @PostMapping("/text")
+        public ResponseEntity<ChatMessageResponse> sendTextMessage(
+                        @Valid @RequestBody ChatMessageRequest request,
+                        @AuthenticationPrincipal UserDetails userDetails) {
+
+                Message saved = messageService.saveTextMessage(request, userDetails.getUsername());
+                ChatMessageResponse response = messageService.toResponse(saved);
+                dispatchChatEvent(saved, response, userDetails.getUsername(), response.getPreviewText());
+                return ResponseEntity.status(201).body(response);
+        }
+
         @Operation(summary = "Upload chat image", description = "Uploads an image file, stores it as a chat message, then emits a CHAT event to `/user/queue/events`.")
         @ApiResponses({
                         @ApiResponse(responseCode = "201", description = "Image message created successfully", content = @Content(schema = @Schema(implementation = ChatMessageResponse.class))),
@@ -86,33 +107,7 @@ public class MessageRestController {
 
                 Message saved = messageService.saveImageMessage(conversationId, file, userDetails.getUsername());
                 ChatMessageResponse response = messageService.toResponse(saved);
-                WsEvent<ChatMessageResponse> chatEvent = WsEvent.of(WsEvent.TYPE_CHAT, response);
-
-                List<String> participants = conversationService.getParticipantEmail(saved.getConversation_id());
-                for (String participant : participants) {
-                        messagingTemplate.convertAndSendToUser(
-                                        participant,
-                                        EVENTS_DESTINATION,
-                                        chatEvent);
-
-                        if (userDetails.getUsername().equals(participant)) {
-                                continue;
-                        }
-
-                        String recipientId = userService.getUserIdByEmail(participant);
-                        notificationService.saveAndSendChatNotification(
-                                        saved.getSender_id(),
-                                        recipientId,
-                                        saved.getConversation_id(),
-                                        "sent a photo");
-
-                        if (!presenceService.isOnline(participant)) {
-                                notificationService.sendPushNotification(
-                                                recipientId,
-                                                "New message",
-                                                "You received a photo");
-                        }
-                }
+                dispatchChatEvent(saved, response, userDetails.getUsername(), response.getPreviewText());
 
                 return ResponseEntity.status(201).body(response);
         }
@@ -134,5 +129,37 @@ public class MessageRestController {
                 return ResponseEntity.ok(Map.of(
                                 "conversation_id", conversationId,
                                 "updated_count", updated));
+        }
+
+        private void dispatchChatEvent(Message saved,
+                                       ChatMessageResponse response,
+                                       String senderPrincipal,
+                                       String previewText) {
+                WsEvent<ChatMessageResponse> chatEvent = WsEvent.of(WsEvent.TYPE_CHAT, response);
+                List<String> participants = conversationService.getParticipantEmail(saved.getConversation_id());
+
+                for (String participant : participants) {
+                        messagingTemplate.convertAndSendToUser(participant, EVENTS_DESTINATION, chatEvent);
+
+                        if (senderPrincipal.equals(participant)) {
+                                continue;
+                        }
+
+                        String recipientId = userService.getUserIdByEmail(participant);
+                        String safePreview = previewText == null || previewText.isBlank() ? "New message" : previewText;
+
+                        notificationService.saveAndSendChatNotification(
+                                        saved.getSender_id(),
+                                        recipientId,
+                                        saved.getConversation_id(),
+                                        safePreview);
+
+                        if (!presenceService.isOnline(participant)) {
+                                notificationService.sendPushNotification(
+                                                recipientId,
+                                                "New message",
+                                                safePreview);
+                        }
+                }
         }
 }

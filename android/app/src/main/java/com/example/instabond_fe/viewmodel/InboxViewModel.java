@@ -14,6 +14,7 @@ import com.example.instabond_fe.model.LastMessage;
 import com.example.instabond_fe.model.OnlineStatusEvent;
 import com.example.instabond_fe.repository.ChatRepository;
 import com.example.instabond_fe.repository.WebSocketManager;
+import com.example.instabond_fe.utils.RichMessageUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -182,7 +183,7 @@ public class InboxViewModel extends AndroidViewModel {
             last = new LastMessage();
             conversation.setLastMessage(last);
         }
-        last.setContent(message.getContent());
+        last.setContent(RichMessageUtils.getConversationPreview(message));
         last.setSenderId(message.getSenderId());
         last.setSentAt(message.getCreatedAt());
         conversation.setUpdatedAt(message.getCreatedAt());

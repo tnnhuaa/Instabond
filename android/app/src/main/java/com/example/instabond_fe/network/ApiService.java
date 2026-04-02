@@ -11,6 +11,7 @@ import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.model.StoryResponse;
 import com.example.instabond_fe.model.ResetPasswordRequest;
 import com.example.instabond_fe.model.UpdateAllowTaggingResponse;
+import com.example.instabond_fe.model.StoryViewersResponse;
 import com.example.instabond_fe.model.UpdateProfileRequest;
 import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.model.ChatMessageResponse;
@@ -66,6 +67,18 @@ public interface ApiService {
     @Multipart
     @POST("api/stories/images")
     Call<StoryResponse> createStory(@Part MultipartBody.Part file);
+
+    @POST("api/stories/{storyId}/view")
+    Call<StoryResponse> markStoryViewed(@Path("storyId") String storyId);
+
+    @POST("api/stories/{storyId}/like")
+    Call<StoryResponse> likeStory(@Path("storyId") String storyId);
+
+    @DELETE("api/stories/{storyId}/like")
+    Call<StoryResponse> unlikeStory(@Path("storyId") String storyId);
+
+    @GET("api/stories/{storyId}/viewers")
+    Call<StoryViewersResponse> getStoryViewers(@Path("storyId") String storyId);
 
     @GET("api/posts/user/{userId}")
     Call<JsonElement> getPostsByUserId(@Path("userId") String userId);

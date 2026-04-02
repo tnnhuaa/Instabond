@@ -1,6 +1,7 @@
 package com.instabond.controller;
 
 import com.instabond.dto.StoryResponse;
+import com.instabond.dto.StoryViewersResponse;
 import com.instabond.service.StoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -16,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -66,6 +69,80 @@ public class StoryController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         return ResponseEntity.ok(storyService.getActiveFeed(getUserId(userDetails)));
+    }
+
+    @Operation(
+            summary = "Mark a story as viewed",
+            description = "Creates or updates the viewer entry for the authenticated user on the given active story."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Story view tracked successfully",
+                    content = @Content(schema = @Schema(implementation = StoryResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "404", description = "Story not found or expired")
+    })
+    @PostMapping("/{storyId}/view")
+    public ResponseEntity<StoryResponse> markStoryViewed(
+            @PathVariable String storyId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(storyService.markStoryViewed(storyId, getUserId(userDetails)));
+    }
+
+    @Operation(
+            summary = "Heart a story",
+            description = "Marks the active story as liked by the authenticated user and ensures they are stored as a viewer."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Story liked successfully",
+                    content = @Content(schema = @Schema(implementation = StoryResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "403", description = "The authenticated user cannot like their own story"),
+            @ApiResponse(responseCode = "404", description = "Story not found or expired")
+    })
+    @PostMapping("/{storyId}/like")
+    public ResponseEntity<StoryResponse> likeStory(
+            @PathVariable String storyId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(storyService.setStoryLiked(storyId, getUserId(userDetails), true));
+    }
+
+    @Operation(
+            summary = "Remove story heart",
+            description = "Removes the authenticated user's heart reaction from the active story while keeping the viewer record."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Story like removed successfully",
+                    content = @Content(schema = @Schema(implementation = StoryResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "404", description = "Story not found or expired")
+    })
+    @DeleteMapping("/{storyId}/like")
+    public ResponseEntity<StoryResponse> unlikeStory(
+            @PathVariable String storyId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(storyService.setStoryLiked(storyId, getUserId(userDetails), false));
+    }
+
+    @Operation(
+            summary = "Get viewers for one story",
+            description = "Returns the viewers of an active story, including which viewers hearted it. Only the story author may access this."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Story viewers returned successfully",
+                    content = @Content(schema = @Schema(implementation = StoryViewersResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "403", description = "The authenticated user is not the story author"),
+            @ApiResponse(responseCode = "404", description = "Story not found or expired")
+    })
+    @GetMapping("/{storyId}/viewers")
+    public ResponseEntity<StoryViewersResponse> getStoryViewers(
+            @PathVariable String storyId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(storyService.getStoryViewers(storyId, getUserId(userDetails)));
     }
 
     private String getUserId(UserDetails userDetails) {
