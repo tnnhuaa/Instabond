@@ -35,6 +35,9 @@ public class UserProfileResponse {
 
     @SerializedName("relationship_status")
     private String relationshipStatus;
+
+    @SerializedName("allow_tagging")
+    private String allowTagging; // everyone or none
     
     public boolean isPrivate() {
         return isPrivate;
@@ -86,5 +89,8 @@ public class UserProfileResponse {
     public void setRelationshipStatus(String relationshipStatus) {
         this.relationshipStatus = relationshipStatus;
     }
-}
 
+    public String getAllowTagging() {
+        return allowTagging;
+    }
+}

@@ -131,7 +131,7 @@
                         android:maxLines="1"
                         android:textColor="@color/login_text_secondary"
                         android:textSize="14sp"
-                        tools:text="@john_doe" />
+                        tools:text="\@john_doe" />
 
                 </LinearLayout>
 
@@ -337,21 +337,21 @@
                         android:textColor="@color/login_text_primary"
                         android:textSize="16sp" />
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/sw_private_account"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:minWidth="44dp"
                         android:minHeight="24dp"
-                        android:text=""
+                        android:showText="false"
                         app:thumbTint="@color/settings_switch_thumb"
                         app:trackTint="@color/settings_switch_track"
-                        app:showText="false"
                         app:useMaterialThemeColors="false" />
 
                 </LinearLayout>
 
                 <LinearLayout
+                    android:id="@+id/btn_tag_preference"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
@@ -359,7 +359,10 @@
                     android:paddingStart="20dp"
                     android:paddingTop="12dp"
                     android:paddingEnd="20dp"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="12dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
 
                     <FrameLayout
                         android:layout_width="40dp"
@@ -376,29 +379,36 @@
 
                     </FrameLayout>
 
-                    <TextView
-                        android:id="@+id/tv_allow_tagging_label"
+                    <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
                         android:layout_weight="1"
-                        android:fontFamily="sans-serif-medium"
-                        android:text="@string/allow_tagging_label"
-                        android:textColor="@color/login_text_primary"
-                        android:textSize="16sp" />
+                        android:orientation="vertical">
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/sw_allow_tagging"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minWidth="44dp"
-                        android:minHeight="24dp"
-                        android:checked="true"
-                        android:text=""
-                        app:thumbTint="@color/settings_switch_thumb"
-                        app:trackTint="@color/settings_switch_track"
-                        app:showText="false"
-                        app:useMaterialThemeColors="false" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="@string/allow_tagging_label"
+                            android:textColor="@color/login_text_primary"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:id="@+id/tv_tag_preference_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="Everyone"
+                            android:textColor="@color/login_text_secondary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_arrow_right_small"
+                        app:tint="@color/settings_muted_label" />
 
                 </LinearLayout>
 
@@ -437,17 +447,145 @@
                         android:textColor="@color/login_text_primary"
                         android:textSize="16sp" />
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
+                    <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/sw_theme"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:minWidth="44dp"
                         android:minHeight="24dp"
-                        android:text=""
+                        android:showText="false"
                         app:thumbTint="@color/settings_switch_thumb"
                         app:trackTint="@color/settings_switch_track"
-                        app:showText="false"
                         app:useMaterialThemeColors="false" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="sans-serif-black"
+                    android:text="Tiện ích"
+                    android:textColor="@color/login_text_primary"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/settings_panel_card_bg"
+                android:elevation="3dp"
+                android:orientation="vertical"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <LinearLayout
+                    android:id="@+id/btn_bookmarks"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:minHeight="72dp"
+                    android:paddingStart="20dp"
+                    android:paddingTop="12dp"
+                    android:paddingEnd="20dp"
+                    android:paddingBottom="12dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <FrameLayout
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/settings_chip_yellow_bg"
+                        android:padding="10dp">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_bookmark"
+                            app:tint="@color/settings_chip_yellow_icon" />
+
+                    </FrameLayout>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="@string/bookmarks_title"
+                        android:textColor="@color/login_text_primary"
+                        android:textSize="16sp" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_arrow_right_small"
+                        app:tint="@color/settings_muted_label" />
+
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="76dp"
+                    android:background="@color/feed_topbar_overlay" />
+
+                <LinearLayout
+                    android:id="@+id/btn_blocked_users"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:minHeight="72dp"
+                    android:paddingStart="20dp"
+                    android:paddingTop="12dp"
+                    android:paddingEnd="20dp"
+                    android:paddingBottom="12dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <FrameLayout
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/settings_chip_purple_bg"
+                        android:padding="10dp">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_block"
+                            app:tint="@color/settings_chip_purple_icon" />
+
+                    </FrameLayout>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="@string/settings_blocked_users"
+                        android:textColor="@color/login_text_primary"
+                        android:textSize="16sp" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_arrow_right_small"
+                        app:tint="@color/settings_muted_label" />
 
                 </LinearLayout>
 
@@ -475,7 +613,7 @@
 
     </ScrollView>
 
-    <TextView
+    <ImageButton
         android:id="@+id/btn_help_fab"
         android:layout_width="56dp"
         android:layout_height="56dp"
@@ -485,10 +623,8 @@
         android:background="@drawable/settings_fab_bg"
         android:contentDescription="@string/settings_help_fab_desc"
         android:elevation="8dp"
-        android:fontFamily="sans-serif-black"
-        android:gravity="center"
-        android:text="?"
-        android:textColor="@android:color/white"
-        android:textSize="22sp" />
+        android:padding="14dp"
+        android:src="@android:drawable/ic_menu_help"
+        app:tint="@android:color/white" />
 
 </FrameLayout>

@@ -154,6 +154,87 @@ public class NotificationService {
         return savedNotification;
     }
 
+    public Notification sendReplyCommentNotification(String senderId, String recipientId, String postId, String commentId, String commentContent) {
+        User sender = userRepository.findById(senderId).orElse(null);
+        String senderName = sender != null ? sender.getUsername() : "Someone";
+        String truncatedContent = commentContent != null && commentContent.length() > 50
+                ? commentContent.substring(0, 50) + "..."
+                : commentContent;
+
+        Notification savedNotification = notificationRepository.save(
+                Notification.builder()
+                        .sender_id(senderId)
+                        .recipient_id(recipientId)
+                        .type("REPLY_COMMENT")
+                        .content(senderName + " replied to your comment: " + truncatedContent)
+                        .is_read(false)
+                        .metadata(Notification.Metadata.builder()
+                                .post_id(postId)
+                                .comment_id(commentId)
+                                .sender_image_url(
+                                        userRepository.findById(senderId)
+                                                .map(User::getAvatar_url)
+                                                .orElse("")
+                                )
+                                .post_image_url(
+                                        postRepository.findById(postId)
+                                                .map(post -> {
+                                                    List<Post.Media> mediaList = post.getMedia();
+                                                    if (mediaList != null && !mediaList.isEmpty()) {
+                                                        return mediaList.get(0).getUrl();
+                                                    }
+                                                    return "";
+                                                })
+                                                .orElse("")
+                                )
+                                .build())
+                        .created_at(Instant.now())
+                        .build()
+        );
+
+        sendNotificationViaWebSocket(savedNotification, recipientId);
+        return savedNotification;
+    }
+
+    public Notification sendLikeCommentNotification(String senderId, String recipientId, String postId, String commentId) {
+        User sender = userRepository.findById(senderId).orElse(null);
+        String senderName = sender != null ? sender.getUsername() : "Someone";
+
+        Notification savedNotification = notificationRepository.save(
+                Notification.builder()
+                        .sender_id(senderId)
+                        .recipient_id(recipientId)
+                        .type("LIKE_COMMENT")
+                        .content(senderName + " liked your comment")
+                        .is_read(false)
+                        .metadata(Notification.Metadata.builder()
+                                .post_id(postId)
+                                .comment_id(commentId)
+                                .sender_image_url(
+                                        userRepository.findById(senderId)
+                                                .map(User::getAvatar_url)
+                                                .orElse("")
+                                )
+                                .post_image_url(
+                                        postRepository.findById(postId)
+                                                .map(post -> {
+                                                    List<Post.Media> mediaList = post.getMedia();
+                                                    if (mediaList != null && !mediaList.isEmpty()) {
+                                                        return mediaList.get(0).getUrl();
+                                                    }
+                                                    return "";
+                                                })
+                                                .orElse("")
+                                )
+                                .build())
+                        .created_at(Instant.now())
+                        .build()
+        );
+
+        sendNotificationViaWebSocket(savedNotification, recipientId);
+        return savedNotification;
+    }
+
     public Notification sendFollowNotification(String senderId, String recipientId, String status) {
         User sender = userRepository.findById(senderId).orElse(null);
         String senderName = sender != null ? sender.getUsername() : "Someone";

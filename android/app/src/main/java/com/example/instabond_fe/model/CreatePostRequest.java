@@ -12,17 +12,29 @@ public class CreatePostRequest {
     @SerializedName("media")
     private final List<MediaRequest> media;
 
-    public CreatePostRequest(String caption, List<MediaRequest> media) {
+    @SerializedName("tagged_users")
+    private final List<TaggedUserRequest> taggedUsers;
+
+    public CreatePostRequest(String caption, List<MediaRequest> media, List<TaggedUserRequest> taggedUsers) {
         this.caption = caption;
         this.media = media;
+        this.taggedUsers = taggedUsers;
     }
 
-    public static CreatePostRequest fromCaptionAndMedia(String caption, String mediaUrl, int width, int height) {
+    public static CreatePostRequest fromCaptionAndMedia(String caption, String mediaUrl, int width, int height, List<String> taggedUserIds) {
         List<MediaRequest> media = new ArrayList<>();
         if (mediaUrl != null && !mediaUrl.trim().isEmpty()) {
             media.add(new MediaRequest(mediaUrl, width, height));
         }
-        return new CreatePostRequest(caption, media);
+        
+        List<TaggedUserRequest> taggedUsers = new ArrayList<>();
+        if (taggedUserIds != null) {
+            for (String id : taggedUserIds) {
+                taggedUsers.add(new TaggedUserRequest(id));
+            }
+        }
+        
+        return new CreatePostRequest(caption, media, taggedUsers);
     }
 
     public static class MediaRequest {
@@ -41,5 +53,13 @@ public class CreatePostRequest {
             this.height = height;
         }
     }
-}
 
+    public static class TaggedUserRequest {
+        @SerializedName("user_id")
+        private final String userId;
+
+        public TaggedUserRequest(String userId) {
+            this.userId = userId;
+        }
+    }
+}

@@ -12,12 +12,14 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityProfileBinding;
 import com.example.instabond_fe.model.FollowUserResponse;
 import com.example.instabond_fe.model.PostResponse;
+import com.example.instabond_fe.model.ProfileShareResponse;
 import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiListParser;
@@ -105,10 +107,14 @@ public class ProfileActivity extends AppCompatActivity {
         bindHighlightImages();
 
         Uri data = getIntent().getData();
+        boolean isResolvingDeepLink = false;
         if (data != null && "instabond".equals(data.getScheme())) {
-            String deepLinkUserId = data.getLastPathSegment();
+            String deepLinkUserId = extractDirectUserId(data);
             if (deepLinkUserId != null) {
                 getIntent().putExtra("targetUserId", deepLinkUserId);
+            } else if (isProfilePayload(data)) {
+                isResolvingDeepLink = true;
+                resolveProfileFromPayload(data.toString());
             }
         }
 
@@ -116,19 +122,23 @@ public class ProfileActivity extends AppCompatActivity {
         android.util.Log.d("PROFILE_DEBUG", "Nhận được targetUserId từ Intent: " + targetUserId);
         isOwnProfileView = targetUserId == null || targetUserId.equals(sessionManager.getUserId());
 
-        if (isOwnProfileView) {
-            configureOwnProfileView();
-            loadMyProfile();
-        } else {
-            configureExternalProfileView(targetUserId);
-            loadUserProfile(targetUserId);
+        if (!isResolvingDeepLink) {
+            if (isOwnProfileView) {
+                configureOwnProfileView();
+                loadMyProfile();
+            } else {
+                configureExternalProfileView(targetUserId);
+                loadUserProfile(targetUserId);
+            }
         }
         barcodeLauncher = registerForActivityResult(
                 new com.journeyapps.barcodescanner.ScanContract(),
                 result -> {
                     if (result.getContents() != null) {
                         String scannedData = result.getContents();
-                        if (scannedData.startsWith("instabond://user/")) {
+                        if (scannedData.startsWith("instabond://profile")) {
+                            resolveProfileFromPayload(scannedData);
+                        } else if (scannedData.startsWith("instabond://user/")) {
                             String targetId = scannedData.replace("instabond://user/", "").trim();
                             Intent intent = new Intent(this, ProfileActivity.class);
                             intent.putExtra("targetUserId", targetId);
@@ -188,9 +198,9 @@ public class ProfileActivity extends AppCompatActivity {
         binding.btnEditAvatar.setVisibility(View.GONE);
 
         binding.btnSettings.setVisibility(View.VISIBLE);
-        binding.btnSettings.setImageResource(R.drawable.ic_arrow_back);
-        binding.btnSettings.setContentDescription(getString(R.string.cd_back));
-        binding.btnSettings.setOnClickListener(v -> finish());
+        binding.btnSettings.setImageResource(R.drawable.ic_menu);
+        binding.btnSettings.setContentDescription(getString(R.string.cd_more));
+        binding.btnSettings.setOnClickListener(v -> showProfileOptionsMenu(targetUserId));
 
         binding.btnPrimaryAction.setText(R.string.profile_action_follow);
         binding.btnPrimaryAction.setOnClickListener(v -> toggleFollow(targetUserId));
@@ -234,6 +244,7 @@ public class ProfileActivity extends AppCompatActivity {
         }
     }
 
+
     private void loadMyProfile() {
         apiService.getMe().enqueue(new Callback<UserProfileResponse>() {
             @Override
@@ -251,6 +262,11 @@ public class ProfileActivity extends AppCompatActivity {
         apiService.getUserProfile(userId).enqueue(new Callback<UserProfileResponse>() {
             @Override
             public void onResponse(Call<UserProfileResponse> call, Response<UserProfileResponse> response) {
+                if (response.code() == 404) {
+                    Toast.makeText(ProfileActivity.this, "Không tìm thấy người dùng", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
                 if (!response.isSuccessful()) {
                     android.util.Log.e("API_ERROR", "Code: " + response.code() + " Message: " + response.message());
                 }
@@ -422,14 +438,113 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void shareProfile() {
-        String username = binding.tvFullname.getText().toString().trim();
-        String deepLink = "instabond://user/" + currentUserId;
-        String shareText = "Check out " + username + " on Instabond: " + deepLink;
+        apiService.getMyShareProfile().enqueue(new Callback<ProfileShareResponse>() {
+            @Override
+            public void onResponse(Call<ProfileShareResponse> call, Response<ProfileShareResponse> response) {
+                String shareText = null;
+                if (response.isSuccessful() && response.body() != null) {
+                    shareText = response.body().getShareText();
+                }
 
-        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        shareIntent.setType("text/plain");
-        shareIntent.putExtra(Intent.EXTRA_TEXT, shareText);
-        startActivity(Intent.createChooser(shareIntent, getString(R.string.profile_action_share)));
+                if (shareText == null || shareText.trim().isEmpty()) {
+                    String username = binding.tvFullname.getText().toString().trim();
+                    String deepLink = "instabond://profile?uid=" + currentUserId;
+                    shareText = "Check out " + username + " on Instabond: " + deepLink;
+                }
+
+                Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                shareIntent.setType("text/plain");
+                shareIntent.putExtra(Intent.EXTRA_TEXT, shareText);
+                startActivity(Intent.createChooser(shareIntent, getString(R.string.profile_action_share)));
+            }
+
+            @Override
+            public void onFailure(Call<ProfileShareResponse> call, Throwable t) {
+                String username = binding.tvFullname.getText().toString().trim();
+                String deepLink = "instabond://profile?uid=" + currentUserId;
+                String shareText = "Check out " + username + " on Instabond: " + deepLink;
+
+                Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                shareIntent.setType("text/plain");
+                shareIntent.putExtra(Intent.EXTRA_TEXT, shareText);
+                startActivity(Intent.createChooser(shareIntent, getString(R.string.profile_action_share)));
+            }
+        });
+    }
+
+    private boolean isProfilePayload(Uri data) {
+        return data.getQueryParameter("uid") != null
+                || "profile".equalsIgnoreCase(data.getHost())
+                || data.toString().contains("instabond://profile");
+    }
+
+    private String extractDirectUserId(Uri data) {
+        if (data == null) {
+            return null;
+        }
+
+        if ("user".equalsIgnoreCase(data.getHost())) {
+            String segment = data.getLastPathSegment();
+            if (segment != null && !segment.trim().isEmpty()) {
+                return segment.trim();
+            }
+        }
+
+        String legacyPrefix = "instabond://user/";
+        String raw = data.toString();
+        if (raw.startsWith(legacyPrefix)) {
+            String targetId = raw.substring(legacyPrefix.length()).trim();
+            if (!targetId.isEmpty()) {
+                return targetId;
+            }
+        }
+
+        String userId = data.getQueryParameter("userId");
+        if (userId != null && !userId.trim().isEmpty()) {
+            return userId.trim();
+        }
+
+        return null;
+    }
+
+    private void resolveProfileFromPayload(String payload) {
+        apiService.resolveProfile(payload).enqueue(new Callback<UserProfileResponse>() {
+            @Override
+            public void onResponse(Call<UserProfileResponse> call, Response<UserProfileResponse> response) {
+                if (response.code() == 401) {
+                    handleUnauthorized();
+                    return;
+                }
+
+                if (response.code() == 404) {
+                    Toast.makeText(ProfileActivity.this, "Không tìm thấy người dùng", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
+
+                if (!response.isSuccessful() || response.body() == null) {
+                    Toast.makeText(ProfileActivity.this, "Không thể mở hồ sơ từ QR", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                UserProfileResponse profile = response.body();
+                currentUserId = profile.getId();
+                isOwnProfileView = currentUserId != null && currentUserId.equals(sessionManager.getUserId());
+
+                if (isOwnProfileView) {
+                    configureOwnProfileView();
+                } else {
+                    configureExternalProfileView(currentUserId);
+                }
+
+                bindProfile(profile);
+            }
+
+            @Override
+            public void onFailure(Call<UserProfileResponse> call, Throwable t) {
+                Toast.makeText(ProfileActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void handleUnauthorized() {
@@ -551,5 +666,112 @@ public class ProfileActivity extends AppCompatActivity {
             return currentUserId;
         }
         return null;
+    }
+
+    private void showProfileOptionsMenu(String targetUserId) {
+        android.view.View menuView = getLayoutInflater().inflate(R.layout.menu_profile_options, null);
+        
+        android.widget.LinearLayout itemBlock = menuView.findViewById(R.id.menu_block_user);
+        android.widget.LinearLayout itemBack = menuView.findViewById(R.id.menu_back);
+        
+        com.google.android.material.bottomsheet.BottomSheetDialog dialog = 
+            new com.google.android.material.bottomsheet.BottomSheetDialog(this);
+        dialog.setContentView(menuView);
+        
+        itemBlock.setOnClickListener(v -> {
+            dialog.dismiss();
+            showBlockUserConfirmation(targetUserId);
+        });
+        
+        itemBack.setOnClickListener(v -> {
+            dialog.dismiss();
+            finish();
+        });
+        
+        dialog.show();
+    }
+
+    private void showBlockUserConfirmation(String userId) {
+        android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(this)
+            .setTitle("Chặn người dùng")
+            .setMessage("Bạn có chắc muốn chặn người dùng này?")
+            .setPositiveButton("Chặn", (dialogInterface, which) -> blockUser(userId))
+            .setNegativeButton("Hủy", null)
+            .create();
+
+        dialog.setOnShowListener(d -> {
+            int textColor = ContextCompat.getColor(this, R.color.settings_text_primary);
+            android.widget.Button negativeButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE);
+            android.widget.Button positiveButton = dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE);
+            if (negativeButton != null) {
+                negativeButton.setTextColor(textColor);
+            }
+            if (positiveButton != null) {
+                positiveButton.setTextColor(textColor);
+            }
+        });
+
+        dialog.show();
+    }
+
+    private void blockUser(String userId) {
+        apiService.blockUser(userId).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful()) {
+                    Toast.makeText(ProfileActivity.this, "Đã chặn người dùng", Toast.LENGTH_SHORT).show();
+                    finish();
+                } else {
+                    Toast.makeText(ProfileActivity.this, "Chặn thất bại", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                Toast.makeText(ProfileActivity.this, "Lỗi: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void showFriendSuggestions(String userId) {
+        apiService.getFriendSuggestions(10).enqueue(new Callback<java.util.List<FollowUserResponse>>() {
+            @Override
+            public void onResponse(Call<java.util.List<FollowUserResponse>> call, 
+                                 Response<java.util.List<FollowUserResponse>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    showSuggestionsDialog(response.body(), userId);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<java.util.List<FollowUserResponse>> call, Throwable t) {
+                Toast.makeText(ProfileActivity.this, "Lỗi tải gợi ý", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void showSuggestionsDialog(java.util.List<FollowUserResponse> suggestions, String userId) {
+        android.view.View dialogView = getLayoutInflater().inflate(R.layout.dialog_friend_suggestions, null);
+        androidx.recyclerview.widget.RecyclerView recyclerView = dialogView.findViewById(R.id.rv_suggestions);
+
+        recyclerView.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
+        FriendSuggestionAdapter adapter = new FriendSuggestionAdapter(suggestions, this);
+        recyclerView.setAdapter(adapter);
+        
+        android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(this)
+            .setTitle("Gợi ý kết bạn")
+            .setView(dialogView)
+            .setNegativeButton("Đóng", null)
+            .create();
+
+        dialog.setOnShowListener(d -> {
+            int textColor = ContextCompat.getColor(this, R.color.settings_text_primary);
+            android.widget.Button negativeButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE);
+            if (negativeButton != null) {
+                negativeButton.setTextColor(textColor);
+            }
+        });
+        
+        dialog.show();
     }
 }

@@ -77,6 +77,24 @@
         tools:listitem="@layout/item_story_feed"
         tools:orientation="horizontal" />
 
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_friend_suggestions"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:clipToPadding="false"
+        android:overScrollMode="never"
+        android:paddingStart="16dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="12dp"
+        android:scrollbars="none"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/rv_stories"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        tools:listitem="@layout/item_friend_suggestion_card"
+        tools:orientation="horizontal" />
+
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh_feed"
         android:layout_width="0dp"
@@ -84,7 +102,7 @@
         app:layout_constraintBottom_toTopOf="@id/bottom_nav"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/rv_stories">
+        app:layout_constraintTop_toBottomOf="@id/rv_friend_suggestions">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_feed"

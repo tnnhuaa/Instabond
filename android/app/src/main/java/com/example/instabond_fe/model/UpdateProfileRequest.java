@@ -12,6 +12,9 @@ public class UpdateProfileRequest {
     @SerializedName("phone_number")
     private String phoneNumber;
 
+    @SerializedName("settings")
+    private SettingsRequest settings;
+
     public void setFullName(String fullName) {
         this.fullName = fullName;
     }
@@ -23,5 +26,31 @@ public class UpdateProfileRequest {
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
     }
-}
 
+    public void setSettings(SettingsRequest settings) {
+        this.settings = settings;
+    }
+
+    public static class SettingsRequest {
+        @SerializedName("allow_tagging")
+        private String allowTagging;
+
+        @SerializedName("is_private")
+        private Boolean isPrivate;
+
+        @SerializedName("theme")
+        private String theme;
+
+        public void setAllowTagging(String allowTagging) {
+            this.allowTagging = allowTagging;
+        }
+
+        public void setIsPrivate(Boolean isPrivate) {
+            this.isPrivate = isPrivate;
+        }
+
+        public void setTheme(String theme) {
+            this.theme = theme;
+        }
+    }
+}

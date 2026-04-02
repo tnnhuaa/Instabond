@@ -1,10 +1,16 @@
 package com.example.instabond_fe.view;
 
+import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import com.example.instabond_fe.databinding.ActivityProfilePostDetailBinding;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.Post;
 import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.network.ApiClient;
@@ -12,31 +18,15 @@ import com.example.instabond_fe.network.ApiListParser;
 import com.example.instabond_fe.network.ApiService;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+
 import java.util.ArrayList;
 import java.util.List;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import com.google.android.material.bottomsheet.BottomSheetDialog;
-import com.example.instabond_fe.model.FollowUserResponse;
-import com.example.instabond_fe.model.Conversation;
-import com.example.instabond_fe.model.ChatMessageRequest;
-import com.example.instabond_fe.model.ChatMessageResponse;
-import com.example.instabond_fe.network.SessionManager;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.LayoutInflater;
-import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.Button;
-import com.bumptech.glide.Glide;
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
-import com.example.instabond_fe.R;
-import com.example.instabond_fe.model.ChatMessageRequest;
-public class ProfilePostDetailActivity extends AppCompatActivity {
 
-    private ActivityProfilePostDetailBinding binding;
+public class BookmarksActivity extends AppCompatActivity {
     private PostAdapter adapter;
     private ApiService apiService;
     private final Gson gson = new Gson();
@@ -44,28 +34,25 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = ActivityProfilePostDetailBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
+        setContentView(R.layout.activity_bookmarks);
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
 
         apiService = ApiClient.getApiService(this);
 
-        setSupportActionBar(binding.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("");
+            getSupportActionBar().setTitle("Bookmarks");
         }
-        binding.toolbar.setNavigationOnClickListener(v -> finish());
+        toolbar.setNavigationContentDescription(getString(R.string.cd_back));
+        toolbar.setNavigationOnClickListener(v -> finish());
 
         adapter = new PostAdapter(new ArrayList<>());
-        binding.rvPosts.setLayoutManager(new LinearLayoutManager(this));
-        binding.rvPosts.setAdapter(adapter);
+        RecyclerView rvBookmarks = findViewById(R.id.rv_bookmarks);
+        rvBookmarks.setLayoutManager(new LinearLayoutManager(this));
+        rvBookmarks.setAdapter(adapter);
 
-        String userId = getIntent().getStringExtra("targetUserId");
-        int startPosition = getIntent().getIntExtra("scrollToPosition", 0);
-
-        if (userId != null) {
-            loadPosts(userId, startPosition);
-        }
         adapter.setListener(new PostAdapter.OnPostInteractionListener() {
             @Override
             public void onLikeClicked(Post post, int position) {
@@ -78,7 +65,6 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(Call<PostResponse> call, Response<PostResponse> response) {
                         if (!response.isSuccessful()) {
-                            // Revert on failure
                             post.setLiked(isCurrentlyLiked);
                             post.setLikesCount(post.getLikesCount() + (isCurrentlyLiked ? 1 : -1));
                             adapter.notifyItemChanged(position);
@@ -87,7 +73,6 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
 
                     @Override
                     public void onFailure(Call<PostResponse> call, Throwable t) {
-                        // Revert on failure
                         post.setLiked(isCurrentlyLiked);
                         post.setLikesCount(post.getLikesCount() + (isCurrentlyLiked ? 1 : -1));
                         adapter.notifyItemChanged(position);
@@ -103,7 +88,7 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
 
             @Override
             public void onCommentClicked(Post post, int position) {
-                android.content.Intent intent = new android.content.Intent(ProfilePostDetailActivity.this, CommentActivity.class);
+                Intent intent = new Intent(BookmarksActivity.this, CommentActivity.class);
                 intent.putExtra("postId", post.getId());
                 intent.putExtra("postUsername", post.getUsername());
                 intent.putExtra("postCaption", post.getCaption());
@@ -111,6 +96,7 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
                 intent.putExtra("postCreatedAt", post.getCreatedAt());
                 startActivity(intent);
             }
+
             @Override
             public void onShareClicked(Post post, int position) {
                 apiService.sharePost(post.getId()).enqueue(new Callback<PostResponse>() {
@@ -121,16 +107,22 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
                             adapter.notifyItemChanged(position);
                         }
                     }
+
                     @Override
                     public void onFailure(Call<PostResponse> call, Throwable t) {}
                 });
 
-                com.example.instabond_fe.network.SessionManager sessionManager = new com.example.instabond_fe.network.SessionManager(ProfilePostDetailActivity.this);
-                com.example.instabond_fe.utils.ShareUtils.showShareBottomSheet(ProfilePostDetailActivity.this, post, apiService, sessionManager.getUserId());
+                com.example.instabond_fe.utils.ShareUtils.showShareBottomSheet(
+                    BookmarksActivity.this, post, apiService,
+                    new com.example.instabond_fe.network.SessionManager(BookmarksActivity.this).getUserId()
+                );
             }
+
             @Override
             public void onUserClicked(Post post, int position) {
-                finish();
+                Intent intent = new Intent(BookmarksActivity.this, ProfileActivity.class);
+                intent.putExtra("targetUserId", post.getAuthorId());
+                startActivity(intent);
             }
 
             @Override
@@ -162,26 +154,24 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
                 }
             }
         });
+
+        loadBookmarkedPosts();
     }
 
-    private void loadPosts(String userId, int startPosition) {
-        apiService.getPostsByUserId(userId).enqueue(new Callback<JsonElement>() {
+    private void loadBookmarkedPosts() {
+        apiService.getBookmarkedPosts().enqueue(new Callback<JsonElement>() {
             @Override
             public void onResponse(Call<JsonElement> call, Response<JsonElement> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     List<PostResponse> postResponses = ApiListParser.parsePostList(gson, response.body());
-                    List<Post> postsForAdapter = mapResponseToModel(postResponses);
-
-                    adapter.setPosts(postsForAdapter);
-
-
-                    binding.rvPosts.scrollToPosition(startPosition);
+                    List<Post> posts = mapResponseToModel(postResponses);
+                    adapter.setPosts(posts);
                 }
             }
 
             @Override
             public void onFailure(Call<JsonElement> call, Throwable t) {
-                Toast.makeText(ProfilePostDetailActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+                Toast.makeText(BookmarksActivity.this, "Lỗi tải bookmarks", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -212,7 +202,7 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
                     id, authorId, username, caption,
                     r.getCreatedAt(),
                     likes, comments, shares,
-                    avatar, image, hasMusic, isLiked, r.isBookmarked()
+                    avatar, image, hasMusic, isLiked, true
             );
 
             list.add(p);

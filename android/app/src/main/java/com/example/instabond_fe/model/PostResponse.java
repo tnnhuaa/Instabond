@@ -10,10 +10,20 @@ public class PostResponse {
     @SerializedName("is_liked")
     private boolean isLiked;
 
+    @SerializedName("is_bookmarked")
+    private boolean isBookmarked;
+
     public boolean isLiked() {
         return isLiked;
     }
 
+    public boolean isBookmarked() {
+        return isBookmarked;
+    }
+
+    public void setBookmarked(boolean bookmarked) {
+        isBookmarked = bookmarked;
+    }
     @SerializedName("author")
     private AuthorInfo author;
 

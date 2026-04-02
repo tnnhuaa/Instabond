@@ -22,6 +22,7 @@
     <string name="cd_menu">Menu</string>
     <string name="cd_qr_code">QR Code</string>
     <string name="cd_messages">Messages</string>
+    <string name="cd_add">Add</string>
 
     <!-- Post card -->
     <string name="cd_user_avatar">User avatar</string>
@@ -108,6 +109,10 @@
     <string name="msg_update_error">Lỗi cập nhật: %1$s</string>
     <string name="btn_save_profile_loading">Đang lưu...</string>
 
+    <string name="tag_preference_everyone">Mọi người</string>
+    <string name="tag_preference_none">Không ai cả</string>
+    <string name="tag_preference_dialog_title">Ai có thể gắn thẻ bạn?</string>
+
     <!-- Sign-Up screen extras -->
     <string name="hint_email">Email</string>
     <string name="hint_confirm_password">Nhập lại mật khẩu</string>
@@ -137,7 +142,7 @@
     <string name="signup_subtitle">Join the curated community of vibrant connections.</string>
     <string name="signup_username_label">USERNAME</string>
     <string name="signup_username_hint">vivid_curator</string>
-    <string name="signup_username_icon">@</string>
+    <string name="signup_username_icon">\@</string>
     <string name="signup_email_label">EMAIL ADDRESS</string>
     <string name="signup_email_hint">hello@instabond.com</string>
     <string name="signup_password_label">PASSWORD</string>
@@ -231,6 +236,11 @@
     <string name="profile_action_edit">Edit Profile</string>
     <string name="profile_action_share">Share</string>
     <string name="profile_action_following">Following</string>
+    <string name="profile_action_block">Block</string>
+    <string name="settings_blocked_users">Blocked users</string>
+    <string name="blocked_users_title">Blocked users</string>
+    <string name="blocked_users_empty">You have not blocked anyone yet.</string>
+    <string name="blocked_users_unblock">Unblock</string>
     <string name="profile_highlight_process">Process</string>
     <string name="profile_highlight_vibe">Vibe</string>
     <string name="profile_highlight_travel">Travel</string>
@@ -269,7 +279,7 @@
     <string name="create_post_dialog_location">Add location</string>
     <string name="create_post_dialog_tag">Tag people</string>
     <string name="create_post_dialog_hint_location">City, venue, or your favorite spot</string>
-    <string name="create_post_dialog_hint_tag">@username1, @username2</string>
+    <string name="create_post_dialog_hint_tag">\@username1, \@username2</string>
     <string name="create_post_choose_gallery">Choose from gallery</string>
     <string name="create_post_take_photo">Take photo</string>
     <string name="create_post_crop_resize">Crop &amp; resize</string>
@@ -345,4 +355,12 @@
         <item quantity="one">%1$d viewer</item>
         <item quantity="other">%1$d viewers</item>
     </plurals>
+     <string name="image_editor_text_required">Please enter some text</string>
+
+     <!-- Social Network Features -->
+     <string name="block_user">Chặn người dùng</string>
+     <string name="friend_suggestion">Gợi ý kết bạn</string>
+     <string name="cd_more">Thêm tuỳ chọn</string>
+     <string name="profile_avatar">Ảnh đại diện</string>
+     <string name="bookmarks_title">Bookmarks</string>
 </resources>

@@ -6,9 +6,11 @@ import com.example.instabond_fe.model.CreatePostRequest;
 import com.example.instabond_fe.model.ForgotPasswordRequest;
 import com.example.instabond_fe.model.Notification;
 import com.example.instabond_fe.model.NotificationPageResponse;
+import com.example.instabond_fe.model.ProfileShareResponse;
 import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.model.StoryResponse;
 import com.example.instabond_fe.model.ResetPasswordRequest;
+import com.example.instabond_fe.model.UpdateAllowTaggingResponse;
 import com.example.instabond_fe.model.StoryViewersResponse;
 import com.example.instabond_fe.model.UpdateProfileRequest;
 import com.example.instabond_fe.model.UserProfileResponse;
@@ -27,6 +29,7 @@ import retrofit2.http.DELETE;
 import retrofit2.http.GET;
 import retrofit2.http.Headers;
 import retrofit2.http.Multipart;
+import retrofit2.http.PATCH;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Part;
@@ -230,4 +233,43 @@ public interface ApiService {
 
     @POST("/api/auth/reset-password")
     Call<ResponseBody> resetPassword(@Body ResetPasswordRequest request);
+
+    // Bookmark
+    @Headers("Content-Type: application/json")
+    @POST("api/posts/{postId}/bookmark")
+    Call<PostResponse> bookmarkPost(@Path("postId") String postId);
+
+    @DELETE("api/posts/{postId}/bookmark")
+    Call<PostResponse> unbookmarkPost(@Path("postId") String postId);
+
+    @GET("api/posts/bookmarks")
+    Call<JsonElement> getBookmarkedPosts();
+
+    // Block User
+    @Headers("Content-Type: application/json")
+    @POST("api/users/{id}/block")
+    Call<Void> blockUser(@Path("id") String userId);
+
+    @DELETE("api/users/{id}/block")
+    Call<Void> unblockUser(@Path("id") String userId);
+
+    @GET("api/users/blocked")
+    Call<List<FollowUserResponse>> getBlockedUsers();
+
+        @GET("api/users/me/share-profile")
+        Call<ProfileShareResponse> getMyShareProfile();
+
+        @GET("api/users/{id}/share-profile")
+        Call<ProfileShareResponse> getShareProfile(@Path("id") String userId);
+
+    // Friend Suggestions
+    @GET("api/users/suggestions")
+    Call<List<FollowUserResponse>> getFriendSuggestions(@Query("limit") int limit);
+
+    // QR Resolve
+    @GET("api/users/resolve")
+        Call<UserProfileResponse> resolveProfile(@Query("payload") String payload);
+
+    @PATCH("api/users/me/allow-tagging")
+    Call<UpdateAllowTaggingResponse> updateAllowTagging(@Query("value") String value);
 }

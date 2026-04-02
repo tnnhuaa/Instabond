@@ -13,4 +13,12 @@ public interface SearchStrategy {
     List<?> search(String keyword, Pageable pageable);
 
     List<?> suggest(String keyword);
+
+    default List<?> search(String keyword, Pageable pageable, String callerPrincipal) {
+        return search(keyword, pageable);
+    }
+
+    default List<?> suggest(String keyword, String callerPrincipal) {
+        return suggest(keyword);
+    }
 }

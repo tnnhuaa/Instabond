@@ -207,10 +207,16 @@ public class NotificationsActivity extends AppCompatActivity {
     private void handleNotificationClick(Notification notification) {
         String type = notification.getType();
 
-        if ("LIKE".equals(type) || "COMMENT".equals(type)) {
+        if ("LIKE".equals(type) || "COMMENT".equals(type) || "REPLY_COMMENT".equals(type) || "LIKE_COMMENT".equals(type)) {
             String postId = notification.getPostId();
             if (postId != null) {
-                Toast.makeText(this, "Opening post " + postId, Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(this, CommentActivity.class);
+                intent.putExtra("postId", postId);
+
+                if (!"LIKE".equals(type)) {
+                    intent.putExtra("focusComment", true);
+                }
+                startActivity(intent);
             }
         } else if ("FOLLOW".equals(type)) {
             String content = notification.getContent();
@@ -340,6 +346,50 @@ public class NotificationsActivity extends AppCompatActivity {
                     binding.largeChip.setVisibility(View.VISIBLE);
                     binding.ivLargeIcon.setImageResource(R.drawable.ic_user_plus);
                     binding.ivPreview.setVisibility(View.GONE);
+                }
+                else if ("LIKE_COMMENT".equals(type)) {
+                    binding.smallChip.setVisibility(View.VISIBLE);
+                    binding.ivSmallIcon.setImageResource(R.drawable.ic_heart);
+                    binding.largeChip.setVisibility(View.GONE);
+                    binding.ivPreview.setVisibility(View.VISIBLE);
+
+                    String postImageUrl = null;
+                    if (item.getMetadata() != null && item.getMetadata().containsKey("post_image_url")) {
+                        postImageUrl = item.getMetadata().get("post_image_url");
+                    }
+
+                    if (postImageUrl != null && !postImageUrl.isEmpty()) {
+                        Glide.with(binding.getRoot().getContext())
+                                .load(postImageUrl)
+                                .placeholder(R.drawable.notification_preview_placeholder)
+                                .error(R.drawable.notification_preview_placeholder)
+                                .into(binding.ivPreview);
+                    } else {
+                        binding.ivPreview.setImageResource(R.drawable.notification_preview_placeholder);
+                    }
+                } else if ("REPLY_COMMENT".equals(type)){
+                    binding.smallChip.setVisibility(View.VISIBLE);
+                    binding.ivSmallIcon.setImageResource(R.drawable.ic_message_circle);
+                    binding.largeChip.setVisibility(View.GONE);
+                    binding.ivPreview.setVisibility(View.VISIBLE);
+                    binding.ivPreview.setImageResource(R.drawable.notification_preview_placeholder);
+
+                    binding.ivPreview.setVisibility(View.VISIBLE);
+
+                    String postImageUrl = null;
+                    if (item.getMetadata() != null && item.getMetadata().containsKey("post_image_url")) {
+                        postImageUrl = item.getMetadata().get("post_image_url");
+                    }
+
+                    if (postImageUrl != null && !postImageUrl.isEmpty()) {
+                        Glide.with(binding.getRoot().getContext())
+                                .load(postImageUrl)
+                                .placeholder(R.drawable.notification_preview_placeholder)
+                                .error(R.drawable.notification_preview_placeholder)
+                                .into(binding.ivPreview);
+                    } else {
+                        binding.ivPreview.setImageResource(R.drawable.notification_preview_placeholder);
+                    }
                 } else {
                     binding.smallChip.setVisibility(View.GONE);
                     binding.largeChip.setVisibility(View.GONE);
