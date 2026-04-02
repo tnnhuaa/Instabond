@@ -143,8 +143,6 @@ public class StoryViewerActivity extends AppCompatActivity {
         binding.storyTapLeft.setOnClickListener(v -> showPreviousStory());
         binding.storyTapRight.setOnClickListener(v -> showNextStoryOrFinish());
         binding.btnStoryMore.setOnClickListener(v -> showStoryOptions());
-        binding.btnStoryMore.setOnClickListener(v ->
-                Toast.makeText(this, R.string.story_view_more_soon, Toast.LENGTH_SHORT).show());
         binding.btnStoryLike.setOnClickListener(v -> toggleLikeCurrentStory());
         binding.btnStorySend.setOnClickListener(v -> sendStoryReply());
         binding.tvStoryViewersSummary.setOnClickListener(v -> showViewersBottomSheet());

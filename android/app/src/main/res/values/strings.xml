@@ -355,7 +355,6 @@
         <item quantity="one">%1$d viewer</item>
         <item quantity="other">%1$d viewers</item>
     </plurals>
-     <string name="image_editor_text_required">Please enter some text</string>
 
      <!-- Social Network Features -->
      <string name="block_user">Chặn người dùng</string>
