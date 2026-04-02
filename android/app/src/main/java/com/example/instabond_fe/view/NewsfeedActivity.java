@@ -33,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import retrofit2.Call;
@@ -57,12 +58,16 @@ public class NewsfeedActivity extends AppCompatActivity {
     private static final int VISIBLE_THRESHOLD = 2;
 
     private ActivityMainBinding binding;
-    private PostAdapter adapter;
+    private PostAdapter topPostsAdapter;
+    private PostAdapter bottomPostsAdapter;
     private StoryFeedAdapter storyAdapter;
+    private StorySectionAdapter storySectionAdapter;
     private FriendSuggestionSectionAdapter suggestionSectionAdapter;
+    private ConcatAdapter feedAdapter;
     private ApiService apiService;
     private SessionManager sessionManager;
     private final Gson gson = new Gson();
+    private final Random random = new Random();
     private final List<StoryItem> storyFeedItems = new ArrayList<>();
     private final Map<String, List<StoryItem>> storiesByAuthor = new LinkedHashMap<>();
     private UserProfileResponse currentUserProfile;
@@ -88,8 +93,10 @@ public class NewsfeedActivity extends AppCompatActivity {
             repository.subscribeGlobalChannels();
         }
 
-        adapter = new PostAdapter(new ArrayList<>());
+        topPostsAdapter = new PostAdapter(new ArrayList<>());
+        bottomPostsAdapter = new PostAdapter(new ArrayList<>());
         storyAdapter = new StoryFeedAdapter();
+        storySectionAdapter = new StorySectionAdapter(storyAdapter);
         suggestionSectionAdapter = new FriendSuggestionSectionAdapter(this, apiService);
         suggestionSectionAdapter.setOnDismissListener(() -> friendSuggestionsDismissed = true);
 
@@ -104,13 +111,13 @@ public class NewsfeedActivity extends AppCompatActivity {
                 openStoryViewer(item);
             }
         });
-        adapter.setListener(new PostAdapter.OnPostInteractionListener() {
+        PostAdapter.OnPostInteractionListener postInteractionListener = new PostAdapter.OnPostInteractionListener() {
             @Override
             public void onLikeClicked(Post post, int position) {
                 boolean isCurrentlyLiked = post.isLiked();
                 post.setLiked(!isCurrentlyLiked);
                 post.setLikesCount(post.getLikesCount() + (isCurrentlyLiked ? -1 : 1));
-                adapter.notifyItemChanged(position);
+                notifyPostChanged(post);
 
                 Callback<PostResponse> cb = new Callback<PostResponse>() {
                     @Override
@@ -119,14 +126,14 @@ public class NewsfeedActivity extends AppCompatActivity {
                             // Revert on failure
                             post.setLiked(isCurrentlyLiked);
                             post.setLikesCount(post.getLikesCount() + (isCurrentlyLiked ? 1 : -1));
-                            adapter.notifyItemChanged(position);
+                            notifyPostChanged(post);
                         }
                     }
                     @Override
                     public void onFailure(Call<PostResponse> call, Throwable t) {
                         post.setLiked(isCurrentlyLiked);
                         post.setLikesCount(post.getLikesCount() + (isCurrentlyLiked ? 1 : -1));
-                        adapter.notifyItemChanged(position);
+                        notifyPostChanged(post);
                     }
                 };
 
@@ -155,7 +162,7 @@ public class NewsfeedActivity extends AppCompatActivity {
                     public void onResponse(Call<PostResponse> call, Response<PostResponse> response) {
                         if (response.isSuccessful()) {
                             post.setSharesCount(post.getSharesCount() + 1);
-                            adapter.notifyItemChanged(position);
+                            notifyPostChanged(post);
                         }
                     }
                     @Override
@@ -177,7 +184,7 @@ public class NewsfeedActivity extends AppCompatActivity {
                 // Handle bookmark action
                 boolean isCurrentlyBookmarked = post.isBookmarked();
                 post.setBookmarked(!isCurrentlyBookmarked);
-                adapter.notifyItemChanged(position);
+                notifyPostChanged(post);
 
                 Callback<PostResponse> cb = new Callback<PostResponse>() {
                     @Override
@@ -185,13 +192,13 @@ public class NewsfeedActivity extends AppCompatActivity {
                         if (!response.isSuccessful()) {
                             // Revert on failure
                             post.setBookmarked(isCurrentlyBookmarked);
-                            adapter.notifyItemChanged(position);
+                            notifyPostChanged(post);
                         }
                     }
                     @Override
                     public void onFailure(Call<PostResponse> call, Throwable t) {
                         post.setBookmarked(isCurrentlyBookmarked);
-                        adapter.notifyItemChanged(position);
+                        notifyPostChanged(post);
                     }
                 };
 
@@ -201,15 +208,14 @@ public class NewsfeedActivity extends AppCompatActivity {
                     apiService.bookmarkPost(post.getId()).enqueue(cb);
                 }
             }
-        });
+        };
+        topPostsAdapter.setListener(postInteractionListener);
+        bottomPostsAdapter.setListener(postInteractionListener);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        LinearLayoutManager storyLayoutManager =
-                new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
 
         binding.rvFeed.setLayoutManager(layoutManager);
-        binding.rvFeed.setAdapter(new ConcatAdapter(suggestionSectionAdapter, adapter));
-        binding.rvStories.setLayoutManager(storyLayoutManager);
-        binding.rvStories.setAdapter(storyAdapter);
+        feedAdapter = new ConcatAdapter(storySectionAdapter, topPostsAdapter, suggestionSectionAdapter, bottomPostsAdapter);
+        binding.rvFeed.setAdapter(feedAdapter);
         binding.rvFeed.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
@@ -218,7 +224,7 @@ public class NewsfeedActivity extends AppCompatActivity {
                     return;
                 }
                 int lastVisible = layoutManager.findLastVisibleItemPosition();
-                int total = adapter.getItemCount();
+                int total = binding.rvFeed.getAdapter() == null ? 0 : binding.rvFeed.getAdapter().getItemCount();
                 if (lastVisible >= total - 1 - VISIBLE_THRESHOLD) {
                     loadNextPage();
                 }
@@ -289,7 +295,11 @@ public class NewsfeedActivity extends AppCompatActivity {
         currentPage = 0;
         reachedEnd = false;
         loadedPostIds.clear();
-        adapter.setPosts(new ArrayList<>());
+        topPostsAdapter.setPosts(new ArrayList<>());
+        bottomPostsAdapter.setPosts(new ArrayList<>());
+        friendSuggestionsDismissed = false;
+        suggestionSectionAdapter.submitSuggestions(List.of());
+        suggestionSectionAdapter.restoreSection();
         loadStories();
         loadFriendSuggestions();
         loadPage(true);
@@ -328,9 +338,9 @@ public class NewsfeedActivity extends AppCompatActivity {
                 List<Post> mappedPosts = mapToUiPosts(uniquePosts);
 
                 if (fromRefresh) {
-                    adapter.setPosts(mappedPosts);
+                    applyFeedPostsForRefresh(mappedPosts);
                 } else {
-                    adapter.appendPosts(mappedPosts);
+                    bottomPostsAdapter.appendPosts(mappedPosts);
                 }
 
                 if (pagePosts.size() < PAGE_SIZE || uniquePosts.isEmpty()) {
@@ -430,6 +440,26 @@ public class NewsfeedActivity extends AppCompatActivity {
             ));
         }
         return result;
+    }
+
+    private void notifyPostChanged(Post post) {
+        topPostsAdapter.notifyPostChanged(post);
+        bottomPostsAdapter.notifyPostChanged(post);
+    }
+
+    private void applyFeedPostsForRefresh(List<Post> mappedPosts) {
+        int insertionIndex = resolveSuggestionInsertIndex(mappedPosts.size());
+        List<Post> topPosts = new ArrayList<>(mappedPosts.subList(0, insertionIndex));
+        List<Post> bottomPosts = new ArrayList<>(mappedPosts.subList(insertionIndex, mappedPosts.size()));
+        topPostsAdapter.setPosts(topPosts);
+        bottomPostsAdapter.setPosts(bottomPosts);
+    }
+
+    private int resolveSuggestionInsertIndex(int postCount) {
+        if (postCount <= 1) {
+            return postCount;
+        }
+        return 1 + random.nextInt(postCount - 1);
     }
 
     private String normalizeUrl(String rawUrl) {
@@ -533,7 +563,7 @@ public class NewsfeedActivity extends AppCompatActivity {
 
         storyFeedItems.add(buildCreateCard(ownStoryPreview));
         storyFeedItems.addAll(followerStoryPreviews.values());
-        storyAdapter.submitItems(storyFeedItems);
+        storySectionAdapter.submitItems(storyFeedItems);
     }
 
     private StoryItem buildCreateCard(StoryItem ownStoryPreview) {

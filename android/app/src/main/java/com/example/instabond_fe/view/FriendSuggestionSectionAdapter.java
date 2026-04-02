@@ -44,6 +44,16 @@ public class FriendSuggestionSectionAdapter extends RecyclerView.Adapter<FriendS
         notifyDataSetChanged();
     }
 
+    public void restoreSection() {
+        boolean wasVisible = getItemCount() > 0;
+        dismissed = false;
+        if (!wasVisible && !suggestions.isEmpty()) {
+            notifyItemInserted(0);
+        } else {
+            notifyDataSetChanged();
+        }
+    }
+
     public boolean isDismissed() {
         return dismissed;
     }

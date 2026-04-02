@@ -79,6 +79,16 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         notifyItemRangeInserted(start, morePosts.size());
     }
 
+    public void notifyPostChanged(Post post) {
+        if (post == null) {
+            return;
+        }
+        int index = posts.indexOf(post);
+        if (index >= 0) {
+            notifyItemChanged(index);
+        }
+    }
+
     @NonNull
     @Override
     public PostViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
