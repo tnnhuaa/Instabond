@@ -3,6 +3,7 @@ package com.instabond.service;
 import com.instabond.dto.UserMeResponse;
 import com.instabond.dto.FollowUserResponse;
 import com.instabond.dto.ProfileResponse;
+import com.instabond.dto.ProfileShareResponse;
 import com.instabond.dto.UpdateProfileRequest;
 import com.instabond.entity.Post;
 import com.instabond.entity.Relationship;
@@ -13,6 +14,7 @@ import com.instabond.repository.RelationshipRepository;
 import com.instabond.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -21,9 +23,14 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +41,10 @@ public class UserService {
     private final FileService fileService;
     private final MongoTemplate mongoTemplate;
     private final NotificationService notificationService;
+
+    private static final int DEFAULT_PAGE = 0;
+    private static final int DEFAULT_LIMIT = 20;
+    private static final int MAX_LIMIT = 100;
 
     // GET id
     public String getUserIdByEmail(String email) {
@@ -69,34 +80,56 @@ public class UserService {
     // Profile queries
 
     public List<ProfileResponse> getAllUsers(int page, int limit) {
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, limit);
+        int safePage = sanitizePage(page);
+        int safeLimit = sanitizeLimit(limit);
+        org.springframework.data.domain.Pageable pageable = PageRequest.of(safePage, safeLimit);
         return userRepository.findAll(pageable).stream()
                 .map(this::toProfileResponse)
                 .toList();
     }
 
-    private boolean hasAcceptedFollow(String requesterId, String recipientId) {
-        Query query = new Query(new Criteria().andOperator(
-                idCriteria("requester_id", requesterId),
-                idCriteria("recipient_id", recipientId),
-                Criteria.where("status").is("accepted")));
-        return mongoTemplate.exists(query, Relationship.class);
+    public ProfileShareResponse getMyShareProfile(String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        return toProfileShareResponse(ensureQrCodeUid(caller));
     }
 
-
-    public ProfileResponse getProfile(String userId, String callerPrincipal) {
-        if ("me".equalsIgnoreCase(userId)) {
-            return toProfileResponseWithStatus(resolveUserFromPrincipal(callerPrincipal), callerPrincipal);
+    public ProfileShareResponse getShareProfile(String userId, String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        String targetId = "me".equalsIgnoreCase(userId) ? caller.getId() : userId;
+        User target = userRepository.findById(targetId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + targetId));
+        if (!caller.getId().equals(target.getId()) && isBlocked(caller.getId(), target.getId())) {
+            throw new ResourceNotFoundException("User not found: " + targetId);
         }
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
-        return toProfileResponseWithStatus(user, callerPrincipal);
+        return toProfileShareResponse(ensureQrCodeUid(target));
     }
 
-    public ProfileResponse getProfileByUsername(String username, String callerPrincipal) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
-        return toProfileResponseWithStatus(user, callerPrincipal);
+    public ProfileResponse resolveProfilePayload(String payload, String callerPrincipal) {
+        if (payload == null || payload.isBlank()) {
+            throw new IllegalArgumentException("payload is required");
+        }
+        String normalized = payload.trim();
+        User target = resolveTargetFromPayload(normalized);
+        return toProfileResponseWithStatus(target, callerPrincipal);
+    }
+
+    public ProfileResponse resolveProfileQuery(String userId, String username, String qrUid, String payload, String callerPrincipal) {
+        User target;
+        if (payload != null && !payload.isBlank()) {
+            target = resolveTargetFromPayload(payload.trim());
+        } else if (qrUid != null && !qrUid.isBlank()) {
+            target = userRepository.findByQrCodeUid(qrUid.trim())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found: " + qrUid));
+        } else if (username != null && !username.isBlank()) {
+            target = userRepository.findByUsername(username.trim())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        } else if (userId != null && !userId.isBlank()) {
+            target = userRepository.findById(userId.trim())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+        } else {
+            throw new IllegalArgumentException("At least one of userId, username, qrUid or payload is required");
+        }
+        return toProfileResponseWithStatus(target, callerPrincipal);
     }
 
     // Profile updates
@@ -203,6 +236,10 @@ public class UserService {
     }
 
     public List<FollowUserResponse> getFollowers(String userId, String callerPrincipal) {
+        return getFollowers(userId, callerPrincipal, DEFAULT_PAGE, DEFAULT_LIMIT);
+    }
+
+    public List<FollowUserResponse> getFollowers(String userId, String callerPrincipal, int page, int limit) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
         String targetId = "me".equalsIgnoreCase(userId) ? caller.getId() : userId;
         userRepository.findById(targetId).orElseThrow(() -> new ResourceNotFoundException("User not found: " + targetId));
@@ -210,6 +247,7 @@ public class UserService {
         Query query = new Query(new Criteria().andOperator(
                 idCriteria("recipient_id", targetId),
                 Criteria.where("status").is("accepted"))).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+        applyPaging(query, page, limit);
 
         java.util.Set<String> myFollowing = getMyFollowingUserIds(caller.getId());
         java.util.Set<String> myFollowers = getMyFollowerUserIds(caller.getId());
@@ -222,6 +260,10 @@ public class UserService {
     }
 
     public List<FollowUserResponse> getFollowing(String userId, String callerPrincipal) {
+        return getFollowing(userId, callerPrincipal, DEFAULT_PAGE, DEFAULT_LIMIT);
+    }
+
+    public List<FollowUserResponse> getFollowing(String userId, String callerPrincipal, int page, int limit) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
         String targetId = "me".equalsIgnoreCase(userId) ? caller.getId() : userId;
         userRepository.findById(targetId).orElseThrow(() -> new ResourceNotFoundException("User not found: " + targetId));
@@ -229,6 +271,7 @@ public class UserService {
         Query query = new Query(new Criteria().andOperator(
                 idCriteria("requester_id", targetId),
                 Criteria.where("status").is("accepted"))).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+        applyPaging(query, page, limit);
 
         java.util.Set<String> myFollowing = getMyFollowingUserIds(caller.getId());
         java.util.Set<String> myFollowers = getMyFollowerUserIds(caller.getId());
@@ -241,6 +284,10 @@ public class UserService {
     }
 
     public List<FollowUserResponse> getFriends(String userId, String callerPrincipal) {
+        return getFriends(userId, callerPrincipal, DEFAULT_PAGE, DEFAULT_LIMIT);
+    }
+
+    public List<FollowUserResponse> getFriends(String userId, String callerPrincipal, int page, int limit) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
         String targetId = "me".equalsIgnoreCase(userId) ? caller.getId() : userId;
         userRepository.findById(targetId).orElseThrow(() -> new ResourceNotFoundException("User not found: " + targetId));
@@ -256,6 +303,7 @@ public class UserService {
                 idCriteria("recipient_id", targetId),
                 Criteria.where("status").is("accepted"),
                 Criteria.where("requester_id").in(followingIds))).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+        applyPaging(followersQuery, page, limit);
 
         java.util.Set<String> myFollowing = getMyFollowingUserIds(caller.getId());
         java.util.Set<String> myFollowers = getMyFollowerUserIds(caller.getId());
@@ -353,11 +401,16 @@ public class UserService {
     }
 
     public List<FollowUserResponse> getIncomingFollowRequests(String callerPrincipal) {
+        return getIncomingFollowRequests(callerPrincipal, DEFAULT_PAGE, DEFAULT_LIMIT);
+    }
+
+    public List<FollowUserResponse> getIncomingFollowRequests(String callerPrincipal, int page, int limit) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
 
         Query query = new Query(new Criteria().andOperator(
                 idCriteria("recipient_id", caller.getId()),
                 Criteria.where("status").is("pending"))).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+        applyPaging(query, page, limit);
 
         return mongoTemplate.find(query, Relationship.class).stream()
                 .map(rel -> toFollowUserResponse(userRepository.findById(rel.getRequester_id()).orElse(null),
@@ -367,11 +420,16 @@ public class UserService {
     }
 
     public List<FollowUserResponse> getSentFollowRequests(String callerPrincipal) {
+        return getSentFollowRequests(callerPrincipal, DEFAULT_PAGE, DEFAULT_LIMIT);
+    }
+
+    public List<FollowUserResponse> getSentFollowRequests(String callerPrincipal, int page, int limit) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
 
         Query query = new Query(new Criteria().andOperator(
                 idCriteria("requester_id", caller.getId()),
                 Criteria.where("status").is("pending"))).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+        applyPaging(query, page, limit);
 
         return mongoTemplate.find(query, Relationship.class).stream()
                 .map(rel -> toFollowUserResponse(userRepository.findById(rel.getRecipient_id()).orElse(null),
@@ -461,6 +519,10 @@ public class UserService {
     }
 
     public List<FollowUserResponse> getCloseFriends(String userId, String callerPrincipal) {
+        return getCloseFriends(userId, callerPrincipal, DEFAULT_PAGE, DEFAULT_LIMIT);
+    }
+
+    public List<FollowUserResponse> getCloseFriends(String userId, String callerPrincipal, int page, int limit) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
@@ -469,6 +531,7 @@ public class UserService {
                 idCriteria("requester_id", userId),
                 Criteria.where("status").is("accepted"),
                 Criteria.where("type").is("close_friend"))).with(Sort.by(Sort.Direction.DESC, "updated_at"));
+        applyPaging(query, page, limit);
 
         java.util.Set<String> myFollowing = getMyFollowingUserIds(caller.getId());
         java.util.Set<String> myFollowers = getMyFollowerUserIds(caller.getId());
@@ -641,6 +704,10 @@ public class UserService {
             return response;
         }
 
+        if (isBlocked(caller.getId(), target.getId())) {
+            throw new ResourceNotFoundException("User not found: " + target.getId());
+        }
+
         Relationship relationship = mongoTemplate.findOne(
                 relationshipQuery(caller.getId(), target.getId()),
                 Relationship.class);
@@ -652,5 +719,260 @@ public class UserService {
         }
 
         return response;
+    }
+
+    // Block User
+
+    public void blockUser(String targetUserId, String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + targetUserId));
+
+        if (caller.getId().equals(target.getId())) {
+            throw new ForbiddenOperationException("Forbidden - you cannot block yourself");
+        }
+
+        // Remove any existing follow relationships in both directions
+        Relationship callerToTarget = mongoTemplate.findOne(
+                relationshipQuery(caller.getId(), target.getId()), Relationship.class);
+        if (callerToTarget != null) {
+            relationshipRepository.deleteById(callerToTarget.getId());
+        }
+
+        Relationship targetToCaller = mongoTemplate.findOne(
+                relationshipQuery(target.getId(), caller.getId()), Relationship.class);
+        if (targetToCaller != null) {
+            relationshipRepository.deleteById(targetToCaller.getId());
+        }
+
+        // Create block relationship
+        Relationship blockRel = Relationship.builder()
+                .requester_id(caller.getId())
+                .recipient_id(target.getId())
+                .status("blocked")
+                .type("block")
+                .friendship_level("none")
+                .intimacy_score(0)
+                .created_at(Instant.now())
+                .updated_at(Instant.now())
+                .build();
+        relationshipRepository.save(blockRel);
+    }
+
+    public void unblockUser(String targetUserId, String callerPrincipal) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        userRepository.findById(targetUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + targetUserId));
+
+        Query query = new Query(new Criteria().andOperator(
+                idCriteria("requester_id", caller.getId()),
+                idCriteria("recipient_id", targetUserId),
+                Criteria.where("status").is("blocked")));
+
+        Relationship block = mongoTemplate.findOne(query, Relationship.class);
+        if (block == null) {
+            throw new ResourceNotFoundException("Block relationship not found");
+        }
+
+        relationshipRepository.deleteById(block.getId());
+    }
+
+    public List<FollowUserResponse> getBlockedUsers(String callerPrincipal) {
+        return getBlockedUsers(callerPrincipal, DEFAULT_PAGE, DEFAULT_LIMIT);
+    }
+
+    public List<FollowUserResponse> getBlockedUsers(String callerPrincipal, int page, int limit) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+
+        Query query = new Query(new Criteria().andOperator(
+                idCriteria("requester_id", caller.getId()),
+                Criteria.where("status").is("blocked")))
+                .with(Sort.by(Sort.Direction.DESC, "updated_at"));
+        applyPaging(query, page, limit);
+
+        return mongoTemplate.find(query, Relationship.class).stream()
+                .map(rel -> toFollowUserResponse(
+                        userRepository.findById(rel.getRecipient_id()).orElse(null), "blocked"))
+                .filter(r -> r != null)
+                .toList();
+    }
+
+    private boolean isBlocked(String userId1, String userId2) {
+        Query q1 = new Query(new Criteria().andOperator(
+                idCriteria("requester_id", userId1),
+                idCriteria("recipient_id", userId2),
+                Criteria.where("status").is("blocked")));
+        Query q2 = new Query(new Criteria().andOperator(
+                idCriteria("requester_id", userId2),
+                idCriteria("recipient_id", userId1),
+                Criteria.where("status").is("blocked")));
+        return mongoTemplate.exists(q1, Relationship.class) || mongoTemplate.exists(q2, Relationship.class);
+    }
+
+    // Friend Suggestions
+
+    public List<FollowUserResponse> getFriendSuggestions(String callerPrincipal, int limit) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        int safeLimit = sanitizeLimit(limit);
+        java.util.Set<String> myFollowing = getMyFollowingUserIds(caller.getId());
+
+        java.util.Set<String> suggestions = new java.util.LinkedHashSet<>();
+
+        for (String followingId : myFollowing) {
+            java.util.Set<String> theirFollowing = getMyFollowingUserIds(followingId);
+            for (String candidate : theirFollowing) {
+                if (!candidate.equals(caller.getId())
+                        && !myFollowing.contains(candidate)
+                        && !isBlocked(caller.getId(), candidate)) {
+                    suggestions.add(candidate);
+                }
+                if (suggestions.size() >= safeLimit) {
+                    break;
+                }
+            }
+            if (suggestions.size() >= safeLimit) {
+                break;
+            }
+        }
+
+        if (suggestions.size() < safeLimit) {
+            Query randomQuery = new Query()
+                    .with(PageRequest.of(0, safeLimit * 2));
+            List<User> randomUsers = mongoTemplate.find(randomQuery, User.class);
+            for (User u : randomUsers) {
+                if (!u.getId().equals(caller.getId())
+                        && !myFollowing.contains(u.getId())
+                        && !isBlocked(caller.getId(), u.getId())
+                        && !suggestions.contains(u.getId())) {
+                    suggestions.add(u.getId());
+                }
+                if (suggestions.size() >= safeLimit) {
+                    break;
+                }
+            }
+        }
+
+        java.util.Set<String> myFollowers = getMyFollowerUserIds(caller.getId());
+        java.util.Set<String> myCloseFriends = getMyCloseFriendIds(caller.getId());
+
+        return suggestions.stream()
+                .map(uid -> userRepository.findById(uid).orElse(null))
+                .filter(u -> u != null)
+                .map(u -> buildFollowUserResponse(u, myFollowing, myFollowers, myCloseFriends))
+                .filter(r -> r != null)
+                .toList();
+    }
+
+    private ProfileShareResponse toProfileShareResponse(User user) {
+        String qrUid = user.getQr_code_uid();
+        String deepLink = "instabond://profile?uid=" + qrUid;
+        String shareText = "Check out @" + user.getUsername() + " on Instabond: " + deepLink;
+
+        return ProfileShareResponse.builder()
+                .user_id(user.getId())
+                .username(user.getUsername())
+                .qr_code_uid(qrUid)
+                .deep_link(deepLink)
+                .share_text(shareText)
+                .build();
+    }
+
+    private User ensureQrCodeUid(User user) {
+        if (user.getQr_code_uid() != null && !user.getQr_code_uid().isBlank()) {
+            return user;
+        }
+        user.setQr_code_uid("qr_" + UUID.randomUUID());
+        return userRepository.save(user);
+    }
+
+    private User resolveTargetFromPayload(String payload) {
+        if (payload == null || payload.isBlank()) {
+            throw new IllegalArgumentException("payload is required");
+        }
+
+        String trimmed = payload.trim();
+
+        if (trimmed.startsWith("instabond://")) {
+            String uid = getQueryParam(trimmed, "uid");
+            if (uid != null && !uid.isBlank()) {
+                return userRepository.findByQrCodeUid(uid)
+                        .orElseThrow(() -> new ResourceNotFoundException("User not found: " + uid));
+            }
+            String userId = getQueryParam(trimmed, "userId");
+            if (userId != null && !userId.isBlank()) {
+                return userRepository.findById(userId)
+                        .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+            }
+            String username = getQueryParam(trimmed, "username");
+            if (username != null && !username.isBlank()) {
+                return userRepository.findByUsername(username)
+                        .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+            }
+            throw new ResourceNotFoundException("Cannot resolve profile from deep-link");
+        }
+
+        if (trimmed.toLowerCase(Locale.ROOT).startsWith("qr:")) {
+            String qrUid = trimmed.substring(3).trim();
+            return userRepository.findByQrCodeUid(qrUid)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found: " + qrUid));
+        }
+
+        if (trimmed.contains("uid=") || trimmed.contains("userId=") || trimmed.contains("username=")) {
+            return resolveTargetFromPayload("instabond://profile?" + trimmed);
+        }
+
+        return userRepository.findByQrCodeUid(trimmed)
+                .or(() -> userRepository.findById(trimmed))
+                .or(() -> userRepository.findByUsername(trimmed))
+                .or(() -> userRepository.findByEmail(trimmed))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + trimmed));
+    }
+
+    private String getQueryParam(String uriString, String key) {
+        try {
+            URI uri = URI.create(uriString);
+            String query = uri.getQuery();
+            if (query == null || query.isBlank()) {
+                return null;
+            }
+            for (String pair : query.split("&")) {
+                String[] parts = pair.split("=", 2);
+                if (parts.length == 2 && key.equals(parts[0])) {
+                    return URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private int sanitizePage(int page) {
+        return page < 0 ? DEFAULT_PAGE : page;
+    }
+
+    private int sanitizeLimit(int limit) {
+        if (limit <= 0) {
+            return DEFAULT_LIMIT;
+        }
+        return Math.min(limit, MAX_LIMIT);
+    }
+
+    private void applyPaging(Query query, int page, int limit) {
+        query.with(PageRequest.of(sanitizePage(page), sanitizeLimit(limit)));
+    }
+
+    public ProfileResponse getProfile(String userId, String callerPrincipal) {
+        if ("me".equalsIgnoreCase(userId)) {
+            return toProfileResponseWithStatus(resolveUserFromPrincipal(callerPrincipal), callerPrincipal);
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+        return toProfileResponseWithStatus(user, callerPrincipal);
+    }
+
+    public ProfileResponse getProfileByUsername(String username, String callerPrincipal) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        return toProfileResponseWithStatus(user, callerPrincipal);
     }
 }

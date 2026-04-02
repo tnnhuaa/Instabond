@@ -12,6 +12,9 @@ public interface UserRepository extends MongoRepository<User, String> {
     Optional<User> findByEmail(String email);
     Optional<User> findByUsername(String username);
 
+    @Query("{ 'qr_code_uid': ?0 }")
+    Optional<User> findByQrCodeUid(String qrCodeUid);
+
     // Logic search
     @Query("{ '$or': [ { 'username': { $regex: ?0, $options: 'i' } }, { 'full_name': { $regex: ?0, $options: 'i' } } ] }")
     List<User> searchUsers(String keyword, Pageable pageable);

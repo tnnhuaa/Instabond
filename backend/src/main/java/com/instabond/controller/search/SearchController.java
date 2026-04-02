@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -35,10 +37,12 @@ public class SearchController {
             @RequestParam(defaultValue = "0") int page,
 
             @Parameter(description = "Number of items per page")
-            @RequestParam(defaultValue = "20") int size) {
+                        @RequestParam(defaultValue = "20") int size,
+
+                        @AuthenticationPrincipal UserDetails userDetails) {
 
         Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(searchContext.executeSearch(type, q, pageable));
+                return ResponseEntity.ok(searchContext.executeSearch(type, q, pageable, userDetails != null ? userDetails.getUsername() : null));
     }
 
     @GetMapping("/suggestions")
@@ -51,9 +55,11 @@ public class SearchController {
             @RequestParam(defaultValue = "USER") String type,
 
             @Parameter(description = "Current input string in the search bar", example = "pen")
-            @RequestParam String q) {
+                        @RequestParam String q,
 
-        return ResponseEntity.ok(searchContext.executeSuggest(type, q));
+                        @AuthenticationPrincipal UserDetails userDetails) {
+
+                return ResponseEntity.ok(searchContext.executeSuggest(type, q, userDetails != null ? userDetails.getUsername() : null));
     }
 
     @GetMapping("/explore")

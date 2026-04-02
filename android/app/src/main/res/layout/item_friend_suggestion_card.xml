@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="100dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp">
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_marginBottom="8dp"
+        app:cardBackgroundColor="@color/bg_avatar_placeholder"
+        app:cardCornerRadius="40dp"
+        app:cardElevation="0dp">
+
+        <ImageView
+            android:id="@+id/iv_user_avatar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/cd_user_avatar"
+            android:scaleType="centerCrop" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <TextView
+        android:id="@+id/tv_username"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:fontFamily="sans-serif-black"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textColor="@color/login_text_primary"
+        android:textSize="12sp"
+        android:layout_marginBottom="4dp" />
+
+    <Button
+        android:id="@+id/btn_follow"
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:minHeight="0dp"
+        android:minWidth="0dp"
+        android:background="@drawable/search_follow_button_bg"
+        android:text="@string/profile_action_follow"
+        android:textColor="@color/login_text_primary"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:textAllCaps="false"
+        android:gravity="center"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp" />
+
+</LinearLayout>
+

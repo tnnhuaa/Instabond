@@ -44,6 +44,10 @@ public class PostService {
     private final InteractionRepository interactionRepository;
     private final NotificationService notificationService;
 
+    private static final int DEFAULT_PAGE = 0;
+    private static final int DEFAULT_SIZE = 20;
+    private static final int MAX_SIZE = 100;
+
     private User resolveUserFromPrincipal(String principal) {
         if (principal == null || principal.isBlank()) {
             throw new IllegalArgumentException("Invalid user principal");
@@ -64,6 +68,10 @@ public class PostService {
 
     // Helper
     private List<Post> findPostsByAuthorId(String authorId) {
+        return findPostsByAuthorId(authorId, DEFAULT_PAGE, DEFAULT_SIZE);
+    }
+
+    private List<Post> findPostsByAuthorId(String authorId, int page, int size) {
         ObjectId oid;
         try {
             oid = new ObjectId(authorId);
@@ -75,7 +83,8 @@ public class PostService {
                 new Criteria().orOperator(
                         Criteria.where("author_id").is(oid),
                         Criteria.where("author_id").is(authorId)))
-                .with(Sort.by(Sort.Direction.DESC, "created_at"));
+                .with(Sort.by(Sort.Direction.DESC, "created_at"))
+                .with(org.springframework.data.domain.PageRequest.of(sanitizePage(page), sanitizeSize(size)));
         return mongoTemplate.find(query, Post.class);
     }
 
@@ -172,6 +181,8 @@ public class PostService {
     // Get all posts sorted by newest first
     public List<PostResponse> getFeed(String callerPrincipal, int page, int size) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
+        int safePage = sanitizePage(page);
+        int safeSize = sanitizeSize(size);
 
         // Find users the caller is following
         Query followingQuery = new Query(new Criteria().andOperator(
@@ -203,7 +214,7 @@ public class PostService {
 
         Query postQuery = new Query(Criteria.where("author_id").in(inClauseArgs))
                 .with(Sort.by(Sort.Direction.DESC, "created_at"))
-                .with(org.springframework.data.domain.PageRequest.of(page, size));
+                .with(org.springframework.data.domain.PageRequest.of(safePage, safeSize));
 
         return mongoTemplate.find(postQuery, Post.class).stream()
                 .map(post -> {
@@ -214,33 +225,45 @@ public class PostService {
 
     // Get all posts by userId
     public List<PostResponse> getPostsByUserId(String userId, String callerPrincipal) {
+        return getPostsByUserId(userId, callerPrincipal, DEFAULT_PAGE, DEFAULT_SIZE);
+    }
+
+    public List<PostResponse> getPostsByUserId(String userId, String callerPrincipal, int page, int size) {
         User author = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
         User caller = resolveUserFromPrincipal(callerPrincipal);
         assertCanViewAuthorContent(author, callerPrincipal);
-        return findPostsByAuthorId(author.getId()).stream()
+        return findPostsByAuthorId(author.getId(), page, size).stream()
                 .map(post -> toPostResponse(post, author, caller))
                 .toList();
     }
 
     // Get all posts by username
     public List<PostResponse> getPostsByUsername(String username, String callerPrincipal) {
+        return getPostsByUsername(username, callerPrincipal, DEFAULT_PAGE, DEFAULT_SIZE);
+    }
+
+    public List<PostResponse> getPostsByUsername(String username, String callerPrincipal, int page, int size) {
         User author = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
         User caller = resolveUserFromPrincipal(callerPrincipal);
         assertCanViewAuthorContent(author, callerPrincipal);
-        return findPostsByAuthorId(author.getId()).stream()
+        return findPostsByAuthorId(author.getId(), page, size).stream()
                 .map(post -> toPostResponse(post, author, caller))
                 .toList();
     }
 
     // Get all posts by email
     public List<PostResponse> getPostsByEmail(String email, String callerPrincipal) {
+        return getPostsByEmail(email, callerPrincipal, DEFAULT_PAGE, DEFAULT_SIZE);
+    }
+
+    public List<PostResponse> getPostsByEmail(String email, String callerPrincipal, int page, int size) {
         User author = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
         User caller = resolveUserFromPrincipal(callerPrincipal);
         assertCanViewAuthorContent(author, callerPrincipal);
-        return findPostsByAuthorId(author.getId()).stream()
+        return findPostsByAuthorId(author.getId(), page, size).stream()
                 .map(post -> toPostResponse(post, author, caller))
                 .toList();
     }
@@ -376,6 +399,69 @@ public class PostService {
         return getPostById(postId, callerPrincipal);
     }
 
+    // Bookmark
+    public PostResponse bookmarkPost(String postId, String callerPrincipal) {
+        postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
+
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        boolean alreadyBookmarked = interactionRepository
+                .findOne(caller.getId(), postId, "post", "bookmark")
+                .isPresent();
+
+        if (!alreadyBookmarked) {
+            Interaction interaction = Interaction.builder()
+                    .user_id(caller.getId())
+                    .target_id(postId)
+                    .target_type("post")
+                    .type("bookmark")
+                    .created_at(Instant.now())
+                    .build();
+            interactionRepository.save(interaction);
+        }
+
+        return getPostById(postId, callerPrincipal);
+    }
+
+    public PostResponse unbookmarkPost(String postId, String callerPrincipal) {
+        postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
+
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        interactionRepository.findOne(caller.getId(), postId, "post", "bookmark")
+                .ifPresent(interaction -> interactionRepository.deleteById(interaction.getId()));
+
+        return getPostById(postId, callerPrincipal);
+    }
+
+    public List<PostResponse> getBookmarkedPosts(String callerPrincipal) {
+        return getBookmarkedPosts(callerPrincipal, DEFAULT_PAGE, DEFAULT_SIZE);
+    }
+
+    public List<PostResponse> getBookmarkedPosts(String callerPrincipal, int page, int size) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+
+        Query query = new Query(new Criteria().andOperator(
+                Criteria.where("user_id").is(caller.getId()),
+                Criteria.where("target_type").is("post"),
+                Criteria.where("type").is("bookmark")))
+                .with(Sort.by(Sort.Direction.DESC, "created_at"));
+
+        query.with(org.springframework.data.domain.PageRequest.of(sanitizePage(page), sanitizeSize(size)));
+
+        List<Interaction> bookmarks = mongoTemplate.find(query, Interaction.class);
+        List<String> postIds = bookmarks.stream().map(Interaction::getTarget_id).toList();
+
+        return postIds.stream()
+                .map(pid -> postRepository.findById(pid).orElse(null))
+                .filter(p -> p != null)
+                .map(post -> {
+                    User author = resolveAuthorById(post.getAuthor_id());
+                    return toPostResponse(post, author, caller);
+                })
+                .toList();
+    }
+
     public CommentResponse addComment(String postId, String callerPrincipal, CreateCommentRequest request) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
@@ -399,16 +485,32 @@ public class PostService {
         Interaction saved = interactionRepository.save(interaction);
         incrementPostStat(postId, "stats.comments", 1);
 
-        // Send notification to post author
+        // Send notification
         String postAuthorId = post.getAuthor_id();
-        if (postAuthorId != null && !postAuthorId.equals(caller.getId())) {
-            notificationService.sendCommentNotification(caller.getId(), postAuthorId, postId, request.getContent());
+        if (request.getParent_id() != null && !request.getParent_id().isBlank()) {
+            // This is a reply to a comment
+            Interaction parentComment = interactionRepository.findById(request.getParent_id())
+                    .orElseThrow(() -> new ResourceNotFoundException("Parent comment not found: " + request.getParent_id()));
+            String parentCommentAuthorId = parentComment.getUser_id();
+
+            if (parentCommentAuthorId != null && !parentCommentAuthorId.equals(caller.getId())) {
+                notificationService.sendReplyCommentNotification(caller.getId(), parentCommentAuthorId, postId, request.getParent_id(), request.getContent());
+            }
+        } else {
+            // This is a top-level comment on a post
+            if (postAuthorId != null && !postAuthorId.equals(caller.getId())) {
+                notificationService.sendCommentNotification(caller.getId(), postAuthorId, postId, request.getContent());
+            }
         }
 
         return toCommentResponse(saved, caller, 0, false);
     }
 
     public List<CommentResponse> getComments(String postId, String callerPrincipal) {
+        return getComments(postId, callerPrincipal, DEFAULT_PAGE, DEFAULT_SIZE);
+    }
+
+    public List<CommentResponse> getComments(String postId, String callerPrincipal, int page, int size) {
         postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
 
@@ -477,7 +579,12 @@ public class PostService {
             flattenReplies(parent.getId(), repliesMap, sortedComments);
         }
 
-        return sortedComments;
+        int from = sanitizePage(page) * sanitizeSize(size);
+        if (from >= sortedComments.size()) {
+            return List.of();
+        }
+        int to = Math.min(from + sanitizeSize(size), sortedComments.size());
+        return sortedComments.subList(from, to);
     }
 
     private void flattenReplies(String commentId, Map<String, List<CommentResponse>> repliesMap, List<CommentResponse> result) {
@@ -514,7 +621,7 @@ public class PostService {
     }
 
     public void likeComment(String postId, String commentId, String callerPrincipal) {
-        interactionRepository.findById(commentId)
+        Interaction comment = interactionRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found: " + commentId));
 
         User caller = resolveUserFromPrincipal(callerPrincipal);
@@ -531,6 +638,12 @@ public class PostService {
                     .created_at(Instant.now())
                     .build();
             interactionRepository.save(interaction);
+
+            // Send notification to comment author
+            String commentAuthorId = comment.getUser_id();
+            if (commentAuthorId != null && !commentAuthorId.equals(caller.getId())) {
+                notificationService.sendLikeCommentNotification(caller.getId(), commentAuthorId, postId, commentId);
+            }
         }
     }
 
@@ -593,9 +706,13 @@ public class PostService {
         }
 
         boolean isLiked = false;
+        boolean isBookmarked = false;
         if (caller != null && post.getId() != null) {
             isLiked = interactionRepository
                     .findOne(caller.getId(), post.getId(), "post", "like")
+                    .isPresent();
+            isBookmarked = interactionRepository
+                    .findOne(caller.getId(), post.getId(), "post", "bookmark")
                     .isPresent();
         }
 
@@ -610,6 +727,7 @@ public class PostService {
                 .stats(post.getStats())
                 .created_at(post.getCreated_at())
                 .isLiked(isLiked)
+                .isBookmarked(isBookmarked)
                 .build();
     }
 
@@ -650,5 +768,16 @@ public class PostService {
         if (!hasAcceptedFollow(caller.getId(), author.getId())) {
             throw new ForbiddenOperationException("Forbidden - this account is private");
         }
+    }
+
+    private int sanitizePage(int page) {
+        return Math.max(page, 0);
+    }
+
+    private int sanitizeSize(int size) {
+        if (size <= 0) {
+            return DEFAULT_SIZE;
+        }
+        return Math.min(size, MAX_SIZE);
     }
 }
