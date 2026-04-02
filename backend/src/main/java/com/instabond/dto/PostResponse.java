@@ -64,5 +64,8 @@ public class PostResponse {
 
         @Schema(description = "Author's avatar URL", example = "https://res.cloudinary.com/instabond/image/upload/avatar.jpg")
         private String avatar_url;
+
+        @Schema(description = "Intimacy score with the caller", example = "300")
+        private Integer intimacy_score;
     }
 }

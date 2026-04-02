@@ -14,6 +14,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.ChatRepository;
+import com.example.instabond_fe.utils.AvatarFrameResolver;
 import com.example.instabond_fe.utils.AvatarLoader;
 
 import retrofit2.Call;
@@ -34,6 +35,8 @@ public class SettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivitySettingsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        applyAvatarFrame();
 
         apiService = ApiClient.getApiService(this);
         sessionManager = new SessionManager(this);
@@ -258,5 +261,13 @@ public class SettingsActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+
+    private void applyAvatarFrame() {
+        AvatarFrameResolver.AvatarFrame frame = AvatarFrameResolver.resolveSettingsAvatarFrame();
+        binding.avatarRingContainer.setBackgroundResource(frame.ringBackgroundRes);
+        binding.ivAvatar.setBackgroundResource(frame.avatarBackgroundRes);
+        int paddingPx = Math.round(getResources().getDisplayMetrics().density * frame.ringPaddingDp);
+        binding.avatarRingContainer.setPadding(paddingPx, paddingPx, paddingPx, paddingPx);
     }
 }

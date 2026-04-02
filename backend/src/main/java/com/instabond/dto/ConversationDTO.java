@@ -31,6 +31,7 @@ public class ConversationDTO {
         private String username;
         private String email;
         private String avatar_url;
+        private Integer intimacy_score;
     }
 
     @Schema(description = "Latest message preview")

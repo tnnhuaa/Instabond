@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Avatar ring — yellow gradient variant (used for "Tuấn", node 2:657)
+    gradient: 135deg  #F5A623 → #F8E71C → #F5A623
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+
+    <gradient
+        android:angle="135"
+        android:startColor="#F5A623"
+        android:centerColor="#F8E71C"
+        android:endColor="#F5A623"
+        android:type="linear" />
+
+</shape>

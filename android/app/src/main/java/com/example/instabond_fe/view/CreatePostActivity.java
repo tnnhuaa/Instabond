@@ -27,7 +27,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
-import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityCreatePostBinding;
 import com.example.instabond_fe.databinding.DialogEditPhotoBinding;
@@ -36,6 +35,7 @@ import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.AvatarFrameResolver;
 import com.example.instabond_fe.utils.AvatarLoader;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.switchmaterial.SwitchMaterial;
@@ -127,6 +127,8 @@ public class CreatePostActivity extends AppCompatActivity {
         binding = ActivityCreatePostBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        applyAvatarFrame();
+
         apiService = ApiClient.getApiService(this);
         sessionManager = new SessionManager(this);
 
@@ -140,6 +142,10 @@ public class CreatePostActivity extends AppCompatActivity {
         updateOptionSummaries();
         renderEditorState();
         loadCurrentUser();
+    }
+
+    private void applyAvatarFrame() {
+        binding.ivUserAvatar.setBackgroundResource(AvatarFrameResolver.resolveCreatePostAvatarBackground());
     }
 
     private void setupToolbar() {

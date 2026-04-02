@@ -353,6 +353,10 @@ public class NewsfeedActivity extends AppCompatActivity {
                 comments = postResponse.getStats().getComments();
                 shares = postResponse.getStats().getShares();
             }
+            int score = 0;
+            if (postResponse.getAuthor() != null) {
+                score = postResponse.getAuthor().getIntimacyScore();
+            }
 
             result.add(new Post(
                     postId,
@@ -366,7 +370,8 @@ public class NewsfeedActivity extends AppCompatActivity {
                     avatarUrl,
                     imageUrl,
                     postResponse.hasMusicSuggestion(),
-                    postResponse.isLiked()
+                    postResponse.isLiked(),
+                    score
             ));
         }
         return result;

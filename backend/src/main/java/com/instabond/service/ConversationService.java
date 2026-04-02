@@ -8,9 +8,13 @@ import com.instabond.exception.ResourceNotFoundException;
 import com.instabond.repository.ConversationRepository;
 import com.instabond.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.bson.types.ObjectId;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -26,6 +30,8 @@ public class ConversationService {
 
     private final ConversationRepository conversationRepository;
     private final UserRepository userRepository;
+
+    private final MongoTemplate mongoTemplate;
 
     public Conversation getOrCreateDirectConversation(String currentUserId, String partnerId) {
         if (currentUserId.equals(partnerId)) {
@@ -85,6 +91,9 @@ public class ConversationService {
             }
         }
 
+        // Batch query to get intimacy scores for all participants in this page
+        Map<String, Integer> scoreMap = getIntimacyScoresBatch(userId, participantIds);
+
         // Query database to get user details
         Map<String, User> userMap = userRepository.findAllById(participantIds)
                 .stream()
@@ -92,7 +101,7 @@ public class ConversationService {
 
         // Mapping Conversation to ConversationDTO with participant usernames
         List<ConversationDTO> dtoData = data.stream()
-                .map(conv -> toConversationDTO(conv, userMap))
+                .map(conv -> toConversationDTO(conv, userMap, userId, scoreMap))
                 .toList();
 
         return ConversationPageResponse.builder()
@@ -103,7 +112,7 @@ public class ConversationService {
                 .build();
     }
 
-    private ConversationDTO toConversationDTO(Conversation conversation, Map<String, User> userMap) {
+    private ConversationDTO toConversationDTO(Conversation conversation, Map<String, User> userMap, String callerId, Map<String, Integer> scoreMap) {
         if (conversation == null) {
             return null;
         }
@@ -125,9 +134,10 @@ public class ConversationService {
                         User u = userMap.get(pId);
                         ConversationDTO.ParticipantDTO dto = new ConversationDTO.ParticipantDTO();
                         dto.setId(pId);
-
                         dto.setUsername(u != null && u.getUsername() != null ? u.getUsername() : "Unknown User");
                         dto.setAvatar_url(u != null ? u.getAvatar_url() : "");
+                        int score = pId.equals(callerId) ? 0 : scoreMap.getOrDefault(pId, 0);
+                        dto.setIntimacy_score(score);
                         return dto;
                     })
                     .collect(Collectors.toList());
@@ -147,5 +157,50 @@ public class ConversationService {
             return DEFAULT_LIMIT;
         }
         return Math.min(limit, MAX_LIMIT);
+    }
+
+    // BATCH QUERY HELPER
+    private Map<String, Integer> getIntimacyScoresBatch(String callerId, Set<String> targetIds) {
+        Map<String, Integer> scoreMap = new HashMap<>();
+        if (callerId == null || targetIds == null || targetIds.isEmpty()) return scoreMap;
+
+        Set<String> others = targetIds.stream()
+                .filter(id -> id != null && !id.equals(callerId))
+                .collect(Collectors.toSet());
+
+        if (others.isEmpty()) return scoreMap;
+
+        Criteria c1 = new Criteria().andOperator(
+                idCriteria("requester_id", callerId),
+                Criteria.where("recipient_id").in(others)
+        );
+        Criteria c2 = new Criteria().andOperator(
+                Criteria.where("requester_id").in(others),
+                idCriteria("recipient_id", callerId)
+        );
+
+        Query relQuery = new Query(new Criteria().orOperator(c1, c2));
+        List<Map> rels = mongoTemplate.find(relQuery, Map.class, "relationships");
+
+        for (Map rel : rels) {
+            String reqId = rel.get("requester_id").toString();
+            String recId = rel.get("recipient_id").toString();
+            String otherId = reqId.equals(callerId) ? recId : reqId;
+
+            if (rel.get("intimacy_score") != null) {
+                scoreMap.put(otherId, ((Number) rel.get("intimacy_score")).intValue());
+            }
+        }
+        return scoreMap;
+    }
+
+    private Criteria idCriteria(String field, String id) {
+        List<Criteria> items = new ArrayList<>();
+        items.add(Criteria.where(field).is(id));
+        try {
+            items.add(Criteria.where(field).is(new ObjectId(id)));
+        } catch (Exception ignored) {
+        }
+        return new Criteria().orOperator(items.toArray(new Criteria[0]));
     }
 }

@@ -310,16 +310,14 @@
                 android:paddingEnd="16dp">
 
                 <FrameLayout
+                    android:id="@+id/story_composer_avatar_ring"
                     android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/story_create_avatar_ring"
-                    android:padding="2dp">
+                    android:layout_height="32dp">
 
                     <ImageView
                         android:id="@+id/iv_story_composer_avatar"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:background="@drawable/avatar_circle_bg"
                         android:clipToOutline="true"
                         android:contentDescription="@string/cd_user_avatar"
                         android:scaleType="centerCrop"

@@ -23,6 +23,7 @@ import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.AvatarFrameResolver;
 import com.example.instabond_fe.utils.AvatarLoader;
 
 import java.io.File;
@@ -59,6 +60,8 @@ public class CreateStoryActivity extends AppCompatActivity {
         binding = ActivityCreateStoryBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        applyComposerAvatarFrame();
+
         apiService = ApiClient.getApiService(this);
         sessionManager = new SessionManager(this);
 
@@ -67,6 +70,14 @@ public class CreateStoryActivity extends AppCompatActivity {
         setupActions();
         loadCurrentUser();
         renderPreview();
+    }
+
+    private void applyComposerAvatarFrame() {
+        AvatarFrameResolver.AvatarFrame frame = AvatarFrameResolver.resolveCreateStoryComposerAvatarFrame();
+        binding.storyComposerAvatarRing.setBackgroundResource(frame.ringBackgroundRes);
+        binding.ivStoryComposerAvatar.setBackgroundResource(frame.avatarBackgroundRes);
+        int paddingPx = Math.round(getResources().getDisplayMetrics().density * frame.ringPaddingDp);
+        binding.storyComposerAvatarRing.setPadding(paddingPx, paddingPx, paddingPx, paddingPx);
     }
 
     private void setupToolbar() {

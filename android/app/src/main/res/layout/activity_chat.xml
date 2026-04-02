@@ -31,17 +31,15 @@
             android:tint="@color/feed_icon_dark" />
 
         <FrameLayout
+            android:id="@+id/partner_avatar_ring"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/comment_author_ring_gradient"
-            android:padding="2dp">
+            android:layout_marginStart="8dp">
 
             <ImageView
                 android:id="@+id/iv_partner_avatar"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/avatar_circle_bg"
                 android:clipToOutline="true"
                 android:scaleType="centerCrop"
                 tools:src="@drawable/profile_placeholder_bg" />

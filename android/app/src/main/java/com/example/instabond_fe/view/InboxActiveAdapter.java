@@ -14,6 +14,7 @@ import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.Conversation;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.AvatarFrameResolver;
 import com.example.instabond_fe.utils.AvatarLoader;
 
 import java.util.ArrayList;
@@ -87,9 +88,7 @@ public class InboxActiveAdapter extends RecyclerView.Adapter<InboxActiveAdapter.
 
             tvName.setText(name);
             onlineDot.setVisibility(isOnline ? View.VISIBLE : View.GONE);
-            avatarRing.setBackgroundResource(position == 0
-                    ? R.drawable.comment_author_ring_gradient
-                    : R.drawable.bg_active_avatar_ring_neutral);
+            avatarRing.setBackgroundResource(AvatarFrameResolver.resolveInboxActiveRing(position == 0));
 
             AvatarLoader.load(ivAvatar, normalizeUrl(avatarUrl));
 

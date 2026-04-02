@@ -12,13 +12,13 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.StoryItem;
+import com.example.instabond_fe.utils.AvatarFrameResolver;
 import com.example.instabond_fe.utils.AvatarLoader;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class StoryFeedAdapter extends RecyclerView.Adapter<StoryFeedAdapter.StoryViewHolder> {
-    private static final int ACTIVE_STORY_INNER_PADDING_DP = 2;
 
     public interface Listener {
         void onCreateStoryClicked();
@@ -57,18 +57,18 @@ public class StoryFeedAdapter extends RecyclerView.Adapter<StoryFeedAdapter.Stor
                 : item.getUsername());
 
         holder.plusBadge.setVisibility(item.isCreateCard() ? View.VISIBLE : View.GONE);
-        holder.ringFrame.setBackgroundResource(item.isCreateCard() && !hasActiveStory
-                ? R.drawable.feed_story_add_bg
-                : R.drawable.feed_story_active_ring);
-        holder.innerFrame.setBackgroundResource(item.isCreateCard() && !hasActiveStory
-                ? android.R.color.transparent
-                : R.drawable.feed_story_inner_frame_bg);
-        holder.innerFrame.setPadding(0, 0, 0, 0);
-        if (hasActiveStory || !item.isCreateCard()) {
-            int padding = Math.round(holder.itemView.getResources().getDisplayMetrics().density
-                    * ACTIVE_STORY_INNER_PADDING_DP);
-            holder.innerFrame.setPadding(padding, padding, padding, padding);
-        }
+
+        AvatarFrameResolver.StoryFeedFrame frame = AvatarFrameResolver.resolveStoryFeedFrame(
+                item.isCreateCard(),
+                hasActiveStory
+        );
+        holder.ringFrame.setBackgroundResource(frame.ringBackgroundRes);
+        holder.innerFrame.setBackgroundResource(frame.innerBackgroundRes);
+
+        int paddingPx = Math.round(
+                holder.itemView.getResources().getDisplayMetrics().density * frame.innerPaddingDp
+        );
+        holder.innerFrame.setPadding(paddingPx, paddingPx, paddingPx, paddingPx);
 
         AvatarLoader.load(holder.ivAvatar, item.getAvatarUrl());
 

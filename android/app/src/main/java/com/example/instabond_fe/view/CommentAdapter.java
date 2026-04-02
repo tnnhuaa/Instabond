@@ -11,10 +11,10 @@ import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.CommentResponse;
 import com.example.instabond_fe.network.ApiClient;
+import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.utils.TimeUtils;
 
 import java.util.ArrayList;
@@ -102,12 +102,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
             holder.ivLike.setImageResource(R.drawable.ic_heart);
         }
 
-        Glide.with(holder.itemView)
-                .load(normalizeUrl(avatarUrl))
-                .circleCrop()
-                .placeholder(R.drawable.avatar_circle_bg)
-                .error(R.drawable.avatar_circle_bg)
-                .into(holder.ivAvatar);
+        AvatarLoader.loadCircle(holder.ivAvatar, normalizeUrl(avatarUrl), R.drawable.avatar_circle_bg);
 
         // Nested reply margin
         ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams) holder.itemView.getLayoutParams();

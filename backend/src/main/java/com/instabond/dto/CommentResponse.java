@@ -59,6 +59,9 @@ public class CommentResponse {
 
         @Schema(description = "Author avatar URL", example = "https://img.url/avatar1.jpg")
         private String avatar_url;
+
+        @Schema(description = "Intimacy score with the caller", example = "300")
+        private Integer intimacy_score;
     }
 }
 

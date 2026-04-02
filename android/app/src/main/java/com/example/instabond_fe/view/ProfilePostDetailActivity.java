@@ -178,12 +178,16 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
 
             boolean hasMusic = r.hasMusicSuggestion();
             boolean isLiked = r.isLiked();
+            int score = 0;
+            if (r.getAuthor() != null) {
+                score = r.getAuthor().getIntimacyScore();
+            }
 
             Post p = new Post(
                     id, authorId, username, caption,
                     r.getCreatedAt(),
                     likes, comments, shares,
-                    avatar, image, hasMusic, isLiked
+                    avatar, image, hasMusic, isLiked, score
             );
 
             list.add(p);

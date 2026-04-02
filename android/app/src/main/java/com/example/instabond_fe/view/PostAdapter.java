@@ -7,6 +7,7 @@ import android.text.style.StyleSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -18,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.Post;
+import com.example.instabond_fe.utils.AvatarFrameResolver;
 import com.example.instabond_fe.utils.TimeUtils;
 import com.example.instabond_fe.utils.AvatarLoader;
 
@@ -112,6 +114,12 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
 
         AvatarLoader.load(holder.ivAvatar, post.getAvatarUrl());
 
+        AvatarFrameResolver.AvatarFrame frame = AvatarFrameResolver.resolvePostAvatarFrame(post.getIntimacyScore());
+        holder.flAvatarRing.setBackgroundResource(frame.ringBackgroundRes);
+        holder.ivAvatar.setBackgroundResource(frame.avatarBackgroundRes);
+        int paddingPx = (int) (frame.ringPaddingDp * holder.itemView.getContext().getResources().getDisplayMetrics().density);
+        holder.flAvatarRing.setPadding(paddingPx, paddingPx, paddingPx, paddingPx);
+
         holder.btnLike.setOnClickListener(v -> {
             if (listener != null) listener.onLikeClicked(post, position);
         });
@@ -161,6 +169,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     }
 
     static class PostViewHolder extends RecyclerView.ViewHolder {
+        FrameLayout flAvatarRing;
         ImageView ivAvatar;
         ImageView ivPostImage;
         TextView tvUsername;
@@ -179,6 +188,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
 
         PostViewHolder(@NonNull View itemView) {
             super(itemView);
+            flAvatarRing = itemView.findViewById(R.id.fl_avatar_ring);
             ivAvatar = itemView.findViewById(R.id.iv_avatar);
             ivPostImage = itemView.findViewById(R.id.iv_post_image);
             tvUsername = itemView.findViewById(R.id.tv_username);

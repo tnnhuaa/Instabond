@@ -32,6 +32,9 @@ public class PostResponse {
     @SerializedName(value = "created_at", alternate = {"createdAt"})
     private String createdAt;
 
+    @SerializedName("intimacy_score")
+    private int intimacyScore;
+
     public String getId() {
         return id;
     }
@@ -70,6 +73,9 @@ public class PostResponse {
         @SerializedName(value = "avatar_url", alternate = {"avatarUrl", "avatar"})
         private String avatarUrl;
 
+        @SerializedName(value = "intimacy_score", alternate = {"intimacyScore"})
+        private int intimacyScore;
+
         public String getId() {
             return id;
         }
@@ -80,6 +86,10 @@ public class PostResponse {
 
         public String getAvatarUrl() {
             return avatarUrl;
+        }
+
+        public int getIntimacyScore() {
+            return intimacyScore;
         }
     }
 

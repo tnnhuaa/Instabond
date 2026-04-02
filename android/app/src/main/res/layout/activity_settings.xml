@@ -74,16 +74,14 @@
                     android:layout_height="96dp">
 
                     <FrameLayout
+                        android:id="@+id/avatar_ring_container"
                         android:layout_width="96dp"
-                        android:layout_height="96dp"
-                        android:background="@drawable/settings_avatar_ring"
-                        android:padding="3dp">
+                        android:layout_height="96dp">
 
                         <ImageView
                             android:id="@+id/iv_avatar"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:background="@drawable/profile_placeholder_bg"
                             android:clipToOutline="true"
                             android:contentDescription="@string/cd_profile_photo"
                             android:scaleType="centerCrop"

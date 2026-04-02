@@ -16,6 +16,7 @@ import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityStoryViewerBinding;
 import com.example.instabond_fe.model.StoryItem;
 import com.example.instabond_fe.network.ApiClient;
+import com.example.instabond_fe.utils.AvatarFrameResolver;
 import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.utils.TimeUtils;
 
@@ -62,6 +63,8 @@ public class StoryViewerActivity extends AppCompatActivity {
         binding = ActivityStoryViewerBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         getWindow().setStatusBarColor(Color.TRANSPARENT);
+
+        applyAvatarFrame();
 
         progressBars.add(binding.progressStory1);
         progressBars.add(binding.progressStory2);
@@ -189,5 +192,13 @@ public class StoryViewerActivity extends AppCompatActivity {
                     : baseUrl + rawUrl;
         }
         return baseUrl.endsWith("/") ? baseUrl + rawUrl : baseUrl + "/" + rawUrl;
+    }
+
+    private void applyAvatarFrame() {
+        AvatarFrameResolver.AvatarFrame frame = AvatarFrameResolver.resolveStoryViewerAvatarFrame();
+        binding.storyAvatarRing.setBackgroundResource(frame.ringBackgroundRes);
+        binding.ivStoryAvatar.setBackgroundResource(frame.avatarBackgroundRes);
+        int paddingPx = Math.round(getResources().getDisplayMetrics().density * frame.ringPaddingDp);
+        binding.storyAvatarRing.setPadding(paddingPx, paddingPx, paddingPx, paddingPx);
     }
 }

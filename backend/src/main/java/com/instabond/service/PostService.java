@@ -417,7 +417,7 @@ public class PostService {
             }
         }
 
-        return toCommentResponse(saved, caller, 0, false);
+        return toCommentResponse(saved, caller, 0, false, 0);
     }
 
     public List<CommentResponse> getComments(String postId, String callerPrincipal) {
@@ -434,16 +434,17 @@ public class PostService {
         if (!userIds.isEmpty()) {
             userRepository.findAllById(userIds).forEach(user -> usersById.put(user.getId(), user));
         }
-        
+
         Map<String, Long> likeCounts = new LinkedHashMap<>();
         Map<String, Boolean> isLikedByMe = new LinkedHashMap<>();
-        
+        Map<String, Integer> scoreMap = new java.util.HashMap<>();
+
         List<String> commentIds = comments.stream().map(Interaction::getId).toList();
         if (!commentIds.isEmpty()) {
             Query likesQuery = new Query(new Criteria().andOperator(
-                Criteria.where("target_id").in(commentIds),
-                Criteria.where("target_type").is("comment"),
-                Criteria.where("type").is("like")
+                    Criteria.where("target_id").in(commentIds),
+                    Criteria.where("target_type").is("comment"),
+                    Criteria.where("type").is("like")
             ));
             List<Interaction> likesForComments = mongoTemplate.find(likesQuery, Interaction.class);
 
@@ -454,6 +455,9 @@ public class PostService {
             if (callerPrincipal != null && !callerPrincipal.isBlank()) {
                 try {
                     User caller = resolveUserFromPrincipal(callerPrincipal);
+
+                    scoreMap = getIntimacyScoresBatch(caller.getId(), userIds);
+
                     for (Interaction like : likesForComments) {
                         if (caller.getId().equals(like.getUser_id())) {
                             isLikedByMe.put(like.getTarget_id(), true);
@@ -464,10 +468,16 @@ public class PostService {
             }
         }
 
+        final Map<String, Integer> finalScoreMap = scoreMap;
+
         List<CommentResponse> allComments = comments.stream()
-                .map(comment -> toCommentResponse(comment, usersById.get(comment.getUser_id()),
-                     likeCounts.getOrDefault(comment.getId(), 0L).intValue(), 
-                     isLikedByMe.getOrDefault(comment.getId(), false)))
+                .map(comment -> toCommentResponse(
+                        comment,
+                        usersById.get(comment.getUser_id()),
+                        likeCounts.getOrDefault(comment.getId(), 0L).intValue(),
+                        isLikedByMe.getOrDefault(comment.getId(), false),
+                        finalScoreMap.getOrDefault(comment.getUser_id(), 0)
+                ))
                 .collect(Collectors.toList());
 
         List<CommentResponse> topLevel = new ArrayList<>();
@@ -567,7 +577,7 @@ public class PostService {
         mongoTemplate.findAndModify(query, update, FindAndModifyOptions.options().returnNew(true), Post.class);
     }
 
-    private CommentResponse toCommentResponse(Interaction interaction, User author, int likesCount, boolean isLiked) {
+    private CommentResponse toCommentResponse(Interaction interaction, User author, int likesCount, boolean isLiked, int intimacyScore) {
         CommentResponse.AuthorInfo authorInfo = null;
         if (author != null) {
             authorInfo = CommentResponse.AuthorInfo.builder()
@@ -575,6 +585,7 @@ public class PostService {
                     .username(author.getUsername())
                     .full_name(author.getFull_name())
                     .avatar_url(author.getAvatar_url())
+                    .intimacy_score(intimacyScore)
                     .build();
         }
 
@@ -600,6 +611,19 @@ public class PostService {
 
     // Map Post entity to PostResponse DTO
     private PostResponse toPostResponse(Post post, User author, User caller) {
+
+        int intimacyScore = 0;
+        if (caller != null && author != null && !caller.getId().equals(author.getId())) {
+            Criteria c1 = new Criteria().andOperator(idCriteria("requester_id", caller.getId()), idCriteria("recipient_id", author.getId()));
+            Criteria c2 = new Criteria().andOperator(idCriteria("requester_id", author.getId()), idCriteria("recipient_id", caller.getId()));
+            Query relQuery = new Query(new Criteria().orOperator(c1, c2));
+
+            Map relMap = mongoTemplate.findOne(relQuery, Map.class, "relationships");
+            if (relMap != null && relMap.get("intimacy_score") != null) {
+                intimacyScore = ((Number) relMap.get("intimacy_score")).intValue();
+            }
+        }
+
         PostResponse.AuthorInfo authorInfo = null;
         if (author != null) {
             authorInfo = PostResponse.AuthorInfo.builder()
@@ -607,6 +631,7 @@ public class PostService {
                     .username(author.getUsername())
                     .full_name(author.getFull_name())
                     .avatar_url(author.getAvatar_url())
+                    .intimacy_score(intimacyScore)
                     .build();
         }
 
@@ -668,5 +693,40 @@ public class PostService {
         if (!hasAcceptedFollow(caller.getId(), author.getId())) {
             throw new ForbiddenOperationException("Forbidden - this account is private");
         }
+    }
+
+    // BATCH QUERY HELPER
+    private Map<String, Integer> getIntimacyScoresBatch(String callerId, Set<String> authorIds) {
+        Map<String, Integer> scoreMap = new java.util.HashMap<>();
+        if (callerId == null || authorIds == null || authorIds.isEmpty()) return scoreMap;
+
+        Set<String> targetIds = authorIds.stream()
+                .filter(id -> id != null && !id.equals(callerId))
+                .collect(Collectors.toSet());
+
+        if (targetIds.isEmpty()) return scoreMap;
+
+        Criteria c1 = new Criteria().andOperator(
+                idCriteria("requester_id", callerId),
+                Criteria.where("recipient_id").in(targetIds)
+        );
+        Criteria c2 = new Criteria().andOperator(
+                Criteria.where("requester_id").in(targetIds),
+                idCriteria("recipient_id", callerId)
+        );
+
+        Query relQuery = new Query(new Criteria().orOperator(c1, c2));
+        List<Map> rels = mongoTemplate.find(relQuery, Map.class, "relationships");
+
+        for (Map rel : rels) {
+            String reqId = rel.get("requester_id").toString();
+            String recId = rel.get("recipient_id").toString();
+            String otherId = reqId.equals(callerId) ? recId : reqId;
+
+            if (rel.get("intimacy_score") != null) {
+                scoreMap.put(otherId, ((Number) rel.get("intimacy_score")).intValue());
+            }
+        }
+        return scoreMap;
     }
 }

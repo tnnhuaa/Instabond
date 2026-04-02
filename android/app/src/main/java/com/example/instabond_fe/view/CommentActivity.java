@@ -18,7 +18,6 @@ import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.CommentResponse;
 import com.example.instabond_fe.model.CreateCommentRequest;
@@ -28,6 +27,8 @@ import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.AvatarFrameResolver;
+import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.utils.ShareUtils;
 
 import java.util.ArrayList;
@@ -102,6 +103,7 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
         btnPostComment = findViewById(R.id.btn_post_comment);
         progressBar = findViewById(R.id.progress_bar);
         ivCurrentUserAvatar = findViewById(R.id.iv_current_user_avatar);
+        ivCurrentUserAvatar.setBackgroundResource(AvatarFrameResolver.resolveCommentComposerAvatarBackground());
 
         TextView[] emojiButtons = new TextView[]{
                 findViewById(R.id.emoji_heart),
@@ -186,22 +188,21 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
             public void onResponse(@NonNull Call<UserProfileResponse> call,
                                    @NonNull Response<UserProfileResponse> response) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    ivCurrentUserAvatar.setImageResource(R.drawable.profile_placeholder_bg);
+                    AvatarLoader.loadCircle(ivCurrentUserAvatar, null, R.drawable.profile_placeholder_bg);
                     return;
                 }
 
                 String avatarUrl = response.body().getAvatarUrl();
-                Glide.with(CommentActivity.this)
-                        .load(normalizeUrl(avatarUrl))
-                        .circleCrop()
-                        .placeholder(R.drawable.profile_placeholder_bg)
-                        .error(R.drawable.profile_placeholder_bg)
-                        .into(ivCurrentUserAvatar);
+                AvatarLoader.loadCircle(
+                        ivCurrentUserAvatar,
+                        normalizeUrl(avatarUrl),
+                        R.drawable.profile_placeholder_bg
+                );
             }
 
             @Override
             public void onFailure(@NonNull Call<UserProfileResponse> call, @NonNull Throwable t) {
-                ivCurrentUserAvatar.setImageResource(R.drawable.profile_placeholder_bg);
+                AvatarLoader.loadCircle(ivCurrentUserAvatar, null, R.drawable.profile_placeholder_bg);
             }
         });
     }
@@ -321,6 +322,10 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
         int likes = response.getStats() != null ? response.getStats().getLikes() : 0;
         int comments = response.getStats() != null ? response.getStats().getComments() : 0;
         int shares = response.getStats() != null ? response.getStats().getShares() : 0;
+        int score = 0;
+        if (response.getAuthor() != null) {
+            score = response.getAuthor().getIntimacyScore();
+        }
 
         return new Post(
                 valueOrEmpty(response.getId()),
@@ -334,7 +339,8 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
                 avatarUrl,
                 imageUrl,
                 response.hasMusicSuggestion(),
-                response.isLiked()
+                response.isLiked(),
+                score
         );
     }
 

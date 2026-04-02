@@ -15,6 +15,7 @@ import com.example.instabond_fe.databinding.ActivityChatBinding;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.repository.WebSocketManager;
+import com.example.instabond_fe.utils.AvatarFrameResolver;
 import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.viewmodel.ChatViewModel;
 import com.example.instabond_fe.model.UserProfileResponse;
@@ -55,6 +56,8 @@ public class ChatActivity extends AppCompatActivity {
         binding = ActivityChatBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         apiService = ApiClient.getApiService(this);
+
+        applyPartnerAvatarFrame();
 
         readIntent();
 
@@ -264,5 +267,13 @@ public class ChatActivity extends AppCompatActivity {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private void applyPartnerAvatarFrame() {
+        AvatarFrameResolver.AvatarFrame frame = AvatarFrameResolver.resolveChatHeaderAvatarFrame();
+        binding.partnerAvatarRing.setBackgroundResource(frame.ringBackgroundRes);
+        binding.ivPartnerAvatar.setBackgroundResource(frame.avatarBackgroundRes);
+        int paddingPx = Math.round(getResources().getDisplayMetrics().density * frame.ringPaddingDp);
+        binding.partnerAvatarRing.setPadding(paddingPx, paddingPx, paddingPx, paddingPx);
     }
 }

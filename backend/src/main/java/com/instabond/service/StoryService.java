@@ -48,7 +48,7 @@ public class StoryService {
                 .expires_at(createdAt.plus(STORY_TTL))
                 .build();
 
-        return toStoryResponse(storyRepository.save(story), author);
+        return toStoryResponse(storyRepository.save(story), author, 0);
     }
 
     public List<StoryResponse> getActiveFeed(String callerPrincipal) {
@@ -63,8 +63,20 @@ public class StoryService {
         List<Story> stories = mongoTemplate.find(storyQuery, Story.class);
         Map<String, User> authorsById = loadAuthorsById(stories);
 
+        // Batch Intimacy Scores
+        Set<String> uniqueAuthorIds = stories.stream()
+                .map(Story::getAuthor_id)
+                .map(this::normalizeId)
+                .collect(Collectors.toSet());
+        Map<String, Integer> scoreMap = getIntimacyScoresBatch(caller.getId(), uniqueAuthorIds);
+
         return stories.stream()
-                .map(story -> toStoryResponse(story, authorsById.get(normalizeId(story.getAuthor_id()))))
+                .map(story -> {
+                    String aId = normalizeId(story.getAuthor_id());
+                    User author = authorsById.get(aId);
+                    int score = scoreMap.getOrDefault(aId, 0);
+                    return toStoryResponse(story, author, score);
+                })
                 .toList();
     }
 
@@ -125,7 +137,7 @@ public class StoryService {
         return authorsById;
     }
 
-    private StoryResponse toStoryResponse(Story story, User author) {
+    private StoryResponse toStoryResponse(Story story, User author, int intimacyScore) {
         StoryResponse.AuthorInfo authorInfo = null;
         if (author != null) {
             authorInfo = StoryResponse.AuthorInfo.builder()
@@ -133,6 +145,7 @@ public class StoryService {
                     .username(author.getUsername())
                     .full_name(author.getFull_name())
                     .avatar_url(author.getAvatar_url())
+                    .intimacy_score(intimacyScore)
                     .build();
         }
 
@@ -158,5 +171,40 @@ public class StoryService {
 
     private String normalizeId(String id) {
         return id == null ? "" : id.trim();
+    }
+
+    // BATCH QUERY HELPER
+    private Map<String, Integer> getIntimacyScoresBatch(String callerId, Set<String> authorIds) {
+        Map<String, Integer> scoreMap = new java.util.HashMap<>();
+        if (callerId == null || authorIds == null || authorIds.isEmpty()) return scoreMap;
+
+        Set<String> targetIds = authorIds.stream()
+                .filter(id -> id != null && !id.equals(callerId))
+                .collect(Collectors.toSet());
+
+        if (targetIds.isEmpty()) return scoreMap;
+
+        Criteria c1 = new Criteria().andOperator(
+                idCriteria("requester_id", callerId),
+                Criteria.where("recipient_id").in(targetIds)
+        );
+        Criteria c2 = new Criteria().andOperator(
+                Criteria.where("requester_id").in(targetIds),
+                idCriteria("recipient_id", callerId)
+        );
+
+        Query relQuery = new Query(new Criteria().orOperator(c1, c2));
+        List<Map> rels = mongoTemplate.find(relQuery, Map.class, "relationships");
+
+        for (Map rel : rels) {
+            String reqId = rel.get("requester_id").toString();
+            String recId = rel.get("recipient_id").toString();
+            String otherId = reqId.equals(callerId) ? recId : reqId;
+
+            if (rel.get("intimacy_score") != null) {
+                scoreMap.put(otherId, ((Number) rel.get("intimacy_score")).intValue());
+            }
+        }
+        return scoreMap;
     }
 }
