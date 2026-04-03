@@ -4,17 +4,18 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/login_card_surface"
+    android:background="@color/notification_screen_bg"
     tools:context=".view.NotificationsActivity">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
         android:id="@+id/toolbar"
         android:layout_width="0dp"
         android:layout_height="64dp"
-        android:background="@color/bottom_nav_active"
+        android:background="@color/notification_topbar_overlay"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:paddingStart="24dp"
         android:paddingEnd="24dp"
-        android:elevation="4dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -27,23 +28,19 @@
             android:contentDescription="@string/nav_create"
             android:padding="6dp"
             android:src="@drawable/baseline_camera_alt_24"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/login_bg_start" />
+            android:tint="@color/theme_primary" />
 
         <TextView
             android:id="@+id/tv_app_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
             android:fontFamily="sans-serif-black"
             android:text="@string/login_brand_name"
-            android:textColor="@color/login_bg_start"
+            android:textColor="@color/theme_primary"
             android:textSize="24sp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            tools:text="Instabond" />
 
         <ImageButton
             android:id="@+id/btn_inbox"
@@ -53,12 +50,9 @@
             android:contentDescription="@string/cd_messages"
             android:padding="6dp"
             android:src="@drawable/ic_send"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/login_bg_start" />
+            android:tint="@color/theme_primary" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </LinearLayout>
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh"
@@ -78,15 +72,21 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
-                android:paddingBottom="24dp"
-                tools:listitem="@layout/item_notification" />
+                android:overScrollMode="never"
+                android:paddingStart="24dp"
+                android:paddingTop="32dp"
+                android:paddingEnd="24dp"
+                android:paddingBottom="140dp"
+                tools:listitem="@layout/item_notification_section" />
 
             <TextView
                 android:id="@+id/tv_empty"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:text="No notifications yet"
+                android:text="@string/notification_empty"
+                android:textColor="@color/notification_meta_text"
+                android:textSize="15sp"
                 android:visibility="gone" />
 
         </FrameLayout>

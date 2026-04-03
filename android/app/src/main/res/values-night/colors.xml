@@ -53,6 +53,18 @@
     <color name="notification_orange">#FF9C3F</color>
     <color name="notification_green">#38D39F</color>
     <color name="notification_muted_icon">@color/theme_on_surface_subtle</color>
+    <color name="notification_screen_bg">@color/theme_surface_base</color>
+    <color name="notification_topbar_overlay">#B30E0E0E</color>
+    <color name="notification_section_title">@color/theme_on_surface</color>
+    <color name="notification_section_title_muted">#99F9F6F5</color>
+    <color name="notification_group_surface">#1E1C1D</color>
+    <color name="notification_card_surface">#262525</color>
+    <color name="notification_primary_text">@color/theme_on_surface</color>
+    <color name="notification_meta_text">@color/theme_on_surface_muted</color>
+    <color name="notification_placeholder_surface">#2F2E2E</color>
+    <color name="notification_placeholder_stroke">#33474646</color>
+    <color name="notification_placeholder_icon">@color/theme_primary_container</color>
+    <color name="notification_chip_icon">@color/theme_on_primary</color>
 
     <color name="status_bar">@color/theme_surface_base</color>
 
