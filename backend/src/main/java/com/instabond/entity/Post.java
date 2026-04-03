@@ -62,7 +62,7 @@ public class Post {
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
     public static class TaggedUser {
         private String user_id;
-        private String tag_type;
+        private String tag_type;    // auto-ai, user-tag
         private double confidence;
         private Position position;
 
