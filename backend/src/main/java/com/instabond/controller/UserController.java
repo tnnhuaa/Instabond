@@ -37,6 +37,27 @@ public class UserController {
 
     private final UserService userService;
 
+    // Face Detection
+
+    @Operation(
+            summary = "Register face embedding",
+            description = "Uploads face images for the authenticated user, generates a face embedding, and stores it in the database for future face recognition.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Face embedding registered successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid or missing image file"),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
+    })
+    @PostMapping(value = "/register-face", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> registerFace(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Parameter(description = "Array of exactly 3 image files containing the user's face", required = true)
+            @RequestParam("images") List<MultipartFile> images) {
+
+        userService.registerFace(userDetails.getUsername(), images);
+        return ResponseEntity.ok().build();
+    }
+
     // My profile
 
     @Operation(

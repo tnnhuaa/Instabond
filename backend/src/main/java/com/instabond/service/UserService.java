@@ -9,12 +9,14 @@ import com.instabond.dto.UpdateProfileRequest;
 import com.instabond.entity.Post;
 import com.instabond.entity.Relationship;
 import com.instabond.entity.User;
+import com.instabond.exception.AiServiceException;
 import com.instabond.exception.ForbiddenOperationException;
 import com.instabond.exception.ResourceNotFoundException;
 import com.instabond.repository.RelationshipRepository;
 import com.instabond.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -22,16 +24,18 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,11 +51,62 @@ public class UserService {
     private static final int DEFAULT_LIMIT = 20;
     private static final int MAX_LIMIT = 100;
 
+    private final RestTemplate restTemplate;
+
+    @Value("${ai.service.url:http://localhost:8000}")
+    private String aiServiceUrl;
+
     // GET id
     public String getUserIdByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"))
                 .getId();
+    }
+
+    // Face detection
+
+    public void registerFace(String email, List<MultipartFile> images) {
+        if (images == null || images.size() != 3) {
+            throw new IllegalArgumentException("Required exactly 3 images for face registration (front, left, right).");
+        }
+
+        User user = resolveUserFromPrincipal(email);
+
+        // Upload images to Cloudinary
+        ExecutorService ioExecutor = Executors.newFixedThreadPool(10);
+
+        // Parallel upload using CompletableFuture
+        List<CompletableFuture<String>> uploadFutures = images.stream()
+                .map(image -> CompletableFuture.supplyAsync(() -> {
+                    return fileService.uploadImageUrl(image);
+                }, ioExecutor))
+                .collect(Collectors.toList());
+
+        List<String> uploadedUrls = uploadFutures.stream()
+                .map(CompletableFuture::join)
+                .collect(Collectors.toList());
+
+        // Interact with AI service to get face embeddings
+        com.instabond.dto.ai.FaceEmbeddingRequest aiRequest = new com.instabond.dto.ai.FaceEmbeddingRequest(uploadedUrls);
+        String endpoint = aiServiceUrl + "/api/ai/embeddings";
+        com.instabond.dto.ai.FaceEmbeddingResponse aiResponse;
+
+        try {
+            aiResponse = restTemplate.postForObject(endpoint, aiRequest, com.instabond.dto.ai.FaceEmbeddingResponse.class);
+        } catch (Exception e) {
+            throw new AiServiceException("AI Microservice is currently unavailable: " + e.getMessage());
+        }
+
+        if (aiResponse == null || aiResponse.getAverage_embedding() == null) {
+            throw new AiServiceException("AI Service returned an empty embedding result.");
+        }
+
+        List<Double> finalEmbedding = aiResponse.getAverage_embedding();
+
+        // Save to database
+        user.setRegistrationImageUrls(uploadedUrls);
+        user.setFaceEmbedding(finalEmbedding);
+        userRepository.save(user);
     }
 
     // Used by GET /api/users/me
