@@ -6,6 +6,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.time.Instant;
 import java.util.stream.Collectors;
@@ -46,6 +47,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(FileStorageException.class)
     public ResponseEntity<ErrorResponse> handleFileStorageException(FileStorageException ex) {
         return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+    }
+
+    @ExceptionHandler(AiServiceException.class)
+    public ResponseEntity<ErrorResponse> handleAiServiceException(AiServiceException ex) {
+        return buildErrorResponse(HttpStatus.BAD_GATEWAY, ex.getMessage());
+    }
+
+    @ExceptionHandler(RestClientResponseException.class)
+    public ResponseEntity<ErrorResponse> handleRestClientResponseException(RestClientResponseException ex) {
+        String message = "AI Microservice Error: " + ex.getStatusText();
+        return buildErrorResponse(HttpStatus.valueOf(ex.getStatusCode().value()), message);
     }
 
     // Compatibility layer for services still throwing plain RuntimeException.
