@@ -5,3 +5,8 @@ torchvision
 pillow
 httpx
 pydantic
+motor
+deepface 
+tf-keras 
+opencv-python
+python-dotenv

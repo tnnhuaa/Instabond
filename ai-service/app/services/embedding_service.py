@@ -1,3 +1,8 @@
+import os
+from deepface import DeepFace
+import numpy as np
+import requests
+import tempfile
 import httpx
 import asyncio
 import torch
@@ -17,26 +22,27 @@ async def download_and_preprocess_image(client: httpx.AsyncClient, url: str) -> 
     except Exception as e:
         raise ValueError(f"Error processing - {url}: {str(e)}")
 
-async def process_image_batch(urls: list[str]) -> list[list[float]]:
-    if not urls:
-        return []
+async def process_image_batch(image_urls: list):
+    embeddings = []
     
-    # Create headers
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
-    }
-
-    async with httpx.AsyncClient(headers=headers) as client:
-        tasks = [download_and_preprocess_image(client, url) for url in urls]
-        img_tensors = await asyncio.gather(*tasks)
-
-    batch_tensor = torch.stack(img_tensors)
-
-    with torch.no_grad():
-        embeddings = model(batch_tensor)
-
-        avg_embedding = torch.mean(embeddings, dim=0)
-
-    return {
-        "average_embedding": avg_embedding.tolist()
-    }
+    for url in image_urls:
+        response = requests.get(url)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+            tmp.write(response.content)
+            tmp_path = tmp.name
+            
+        try:
+            results = DeepFace.represent(img_path=tmp_path, model_name='Facenet', enforce_detection=False)
+            
+            if results and len(results) > 0 and results[0]['face_confidence'] > 0:
+                embeddings.append(results[0]["embedding"])
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+                print(f"Temporary file deleted: {tmp_path}")
+    if not embeddings:
+        raise ValueError("No valid face embeddings found in the provided images.")
+        
+    avg_embedding = np.mean(embeddings, axis=0).tolist()
+    
+    return {"average_embedding": avg_embedding}
