@@ -17,6 +17,7 @@ import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.viewmodel.InboxViewModel;
 
 import java.util.ArrayList;
@@ -30,6 +31,10 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class InboxActivity extends AppCompatActivity {
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
 
     private static final int LOAD_MORE_THRESHOLD = 4;
 

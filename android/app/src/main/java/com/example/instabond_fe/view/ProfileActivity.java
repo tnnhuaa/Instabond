@@ -26,6 +26,7 @@ import com.example.instabond_fe.network.ApiListParser;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.utils.AvatarLoader;
+import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -45,6 +46,11 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class ProfileActivity extends AppCompatActivity {
+
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
 
     private static final String HIGHLIGHT_PROCESS =
             "https://www.figma.com/api/mcp/asset/5b99f577-4b4d-478f-9713-de1a77a92f1b";

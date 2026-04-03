@@ -17,6 +17,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.ChatRepository;
+import com.example.instabond_fe.utils.LocaleManager;
 
 import org.json.JSONObject;
 
@@ -27,6 +28,10 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class SignInActivity extends AppCompatActivity {
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
 
     private ActivitySigninBinding binding;
     private boolean passwordVisible = false;

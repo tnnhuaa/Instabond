@@ -36,6 +36,7 @@ import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.WebSocketManager;
 import com.example.instabond_fe.utils.AvatarLoader;
+import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.utils.ThemePreferenceManager;
 import com.example.instabond_fe.utils.TimeUtils;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
@@ -56,6 +57,11 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class NotificationsActivity extends AppCompatActivity {
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
+
     private static final String TAG = "NotificationsActivity";
     private static final long DAY_MS = 24L * 60L * 60L * 1000L;
     private static final long WEEK_MS = 7L * DAY_MS;

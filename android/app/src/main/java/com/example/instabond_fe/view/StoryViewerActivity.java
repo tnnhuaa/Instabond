@@ -37,6 +37,7 @@ import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.ChatRepository;
 import com.example.instabond_fe.utils.AvatarLoader;
+import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.utils.RichMessageUtils;
 import com.example.instabond_fe.utils.TimeUtils;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -54,6 +55,11 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class StoryViewerActivity extends AppCompatActivity {
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
+
     public static final String EXTRA_STORIES = "extra_stories";
     public static final String EXTRA_STORY_INDEX = "extra_story_index";
 

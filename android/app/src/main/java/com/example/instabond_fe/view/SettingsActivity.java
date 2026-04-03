@@ -16,6 +16,7 @@ import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.ChatRepository;
 import com.example.instabond_fe.utils.AvatarLoader;
+import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.utils.ThemePreferenceManager;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -24,6 +25,11 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class SettingsActivity extends AppCompatActivity {
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
+
     private ActivitySettingsBinding binding;
     private ApiService apiService;
     private SessionManager sessionManager;
@@ -72,6 +78,7 @@ public class SettingsActivity extends AppCompatActivity {
         binding.btnBookmarks.setOnClickListener(v -> openBookmarks());
         binding.btnBlockedUsers.setOnClickListener(v -> openBlockedUsers());
         binding.btnTagPreference.setOnClickListener(v -> showTagPreferenceDialog());
+        binding.btnLanguage.setOnClickListener(v -> showLanguageDialog());
 
         binding.swPrivateAccount.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (suppressPrivacyToggleListener || isUpdatingPrivacy) {
@@ -357,5 +364,37 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void openBlockedUsers() {
         startActivity(new Intent(this, BlockedUsersActivity.class));
+    }
+
+    private void showLanguageDialog() {
+        String[] options = {
+                getString(R.string.language_vietnamese),
+                getString(R.string.language_english)
+        };
+        String[] values = {"vi", "en"};
+
+        String currentLang = LocaleManager.getLanguage(this);
+        int checkedItem = currentLang.equals("en") ? 1 : 0;
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.language_label)
+                .setSingleChoiceItems(options, checkedItem, (dialog, which) -> {
+                    String newLang = values[which];
+                    if (!newLang.equals(LocaleManager.getLanguage(this))) {
+                        LocaleManager.setLocale(this, newLang);
+                        updateLanguageDisplay();
+                        LocaleManager.restartActivity(this);
+                    }
+                    dialog.dismiss();
+                })
+                .setNegativeButton(R.string.create_post_cancel, null)
+                .show();
+    }
+
+    private void updateLanguageDisplay() {
+        String currentLang = LocaleManager.getLanguage(this);
+        binding.tvLanguageValue.setText(
+                currentLang.equals("en") ? R.string.language_english : R.string.language_vietnamese
+        );
     }
 }

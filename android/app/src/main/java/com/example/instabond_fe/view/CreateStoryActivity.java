@@ -24,6 +24,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.utils.AvatarLoader;
+import com.example.instabond_fe.utils.LocaleManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -39,6 +40,11 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class CreateStoryActivity extends AppCompatActivity {
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
+
     public static final String EXTRA_REFRESH_STORIES = "refresh_stories";
 
     private static final int MAX_SOURCE_EDGE = 1600;

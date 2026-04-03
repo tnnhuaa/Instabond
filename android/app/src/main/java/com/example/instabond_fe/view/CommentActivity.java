@@ -28,6 +28,7 @@ import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.utils.ShareUtils;
 
 import java.util.ArrayList;
@@ -39,6 +40,11 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class CommentActivity extends AppCompatActivity implements CommentAdapter.OnCommentInteractionListener {
+
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
 
     private String postId;
 

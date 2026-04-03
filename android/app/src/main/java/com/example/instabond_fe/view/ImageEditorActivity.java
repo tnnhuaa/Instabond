@@ -28,6 +28,7 @@ import androidx.core.content.ContextCompat;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityImageEditorBinding;
 import com.example.instabond_fe.databinding.DialogImageEditorTextBinding;
+import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.view.editor.TextStickerOverlayView;
 
 import java.io.File;
@@ -35,6 +36,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 public class ImageEditorActivity extends AppCompatActivity {
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
 
     public static final String EXTRA_INPUT_URI = "extra_input_uri";
     public static final String EXTRA_OUTPUT_URI = "extra_output_uri";
