@@ -131,22 +131,6 @@ public class ProfileActivity extends AppCompatActivity {
                 loadUserProfile(targetUserId);
             }
         }
-        barcodeLauncher = registerForActivityResult(
-                new com.journeyapps.barcodescanner.ScanContract(),
-                result -> {
-                    if (result.getContents() != null) {
-                        String scannedData = result.getContents();
-                        if (scannedData.startsWith("instabond://profile")) {
-                            resolveProfileFromPayload(scannedData);
-                        } else if (scannedData.startsWith("instabond://user/")) {
-                            String targetId = scannedData.replace("instabond://user/", "").trim();
-                            Intent intent = new Intent(this, ProfileActivity.class);
-                            intent.putExtra("targetUserId", targetId);
-                            startActivity(intent);
-                        }
-                    }
-                });
-
         binding.btnScanQr.setOnClickListener(v -> {
             com.journeyapps.barcodescanner.ScanOptions options = new com.journeyapps.barcodescanner.ScanOptions();
             options.setPrompt("Quét mã QR");
