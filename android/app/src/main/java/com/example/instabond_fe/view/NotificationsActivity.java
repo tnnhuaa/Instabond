@@ -40,6 +40,8 @@ import retrofit2.Response;
 
 public class NotificationsActivity extends AppCompatActivity {
     private static final String TAG = "NotificationsActivity";
+    private static final String EXTRA_ENTRY_TYPE = "entryType";
+    private static final String EXTRA_FALLBACK_USER_ID = "fallbackUserId";
     private ActivityNotificationsBinding binding;
     private ApiService apiService;
     private NotificationAdapter adapter;
@@ -207,13 +209,18 @@ public class NotificationsActivity extends AppCompatActivity {
     private void handleNotificationClick(Notification notification) {
         String type = notification.getType();
 
-        if ("LIKE".equals(type) || "COMMENT".equals(type) || "REPLY_COMMENT".equals(type) || "LIKE_COMMENT".equals(type)) {
+        if ("LIKE".equals(type) || "COMMENT".equals(type) || "REPLY_COMMENT".equals(type) || "LIKE_COMMENT".equals(type) || "TAG".equals(type)) {
             String postId = notification.getPostId();
             if (postId != null) {
                 Intent intent = new Intent(this, CommentActivity.class);
                 intent.putExtra("postId", postId);
 
-                if (!"LIKE".equals(type)) {
+                if ("TAG".equals(type)) {
+                    intent.putExtra(EXTRA_ENTRY_TYPE, "TAG");
+                    intent.putExtra(EXTRA_FALLBACK_USER_ID, notification.getSenderId());
+                }
+
+                if (!"LIKE".equals(type) && !"TAG".equals(type)) {
                     intent.putExtra("focusComment", true);
                 }
                 startActivity(intent);
@@ -368,6 +375,29 @@ public class NotificationsActivity extends AppCompatActivity {
                         binding.ivPreview.setImageResource(R.drawable.notification_preview_placeholder);
                     }
                 } else if ("REPLY_COMMENT".equals(type)){
+                    binding.smallChip.setVisibility(View.VISIBLE);
+                    binding.ivSmallIcon.setImageResource(R.drawable.ic_message_circle);
+                    binding.largeChip.setVisibility(View.GONE);
+                    binding.ivPreview.setVisibility(View.VISIBLE);
+                    binding.ivPreview.setImageResource(R.drawable.notification_preview_placeholder);
+
+                    binding.ivPreview.setVisibility(View.VISIBLE);
+
+                    String postImageUrl = null;
+                    if (item.getMetadata() != null && item.getMetadata().containsKey("post_image_url")) {
+                        postImageUrl = item.getMetadata().get("post_image_url");
+                    }
+
+                    if (postImageUrl != null && !postImageUrl.isEmpty()) {
+                        Glide.with(binding.getRoot().getContext())
+                                .load(postImageUrl)
+                                .placeholder(R.drawable.notification_preview_placeholder)
+                                .error(R.drawable.notification_preview_placeholder)
+                                .into(binding.ivPreview);
+                    } else {
+                        binding.ivPreview.setImageResource(R.drawable.notification_preview_placeholder);
+                    }
+                } else if ("TAG".equals(type)) {
                     binding.smallChip.setVisibility(View.VISIBLE);
                     binding.ivSmallIcon.setImageResource(R.drawable.ic_message_circle);
                     binding.largeChip.setVisibility(View.GONE);

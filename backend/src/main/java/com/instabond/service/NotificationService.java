@@ -113,6 +113,44 @@ public class NotificationService {
         return savedNotification;
     }
 
+    public Notification sendTagNotification(String senderId, String recipientId, String postId) {
+        User sender = userRepository.findById(senderId).orElse(null);
+        String senderName = sender != null ? sender.getUsername() : "Someone";
+
+        Notification savedNotification = notificationRepository.save(
+                Notification.builder()
+                        .sender_id(senderId)
+                        .recipient_id(recipientId)
+                        .type("TAG")
+                        .content(senderName + " tagged you in a post")
+                        .is_read(false)
+                        .metadata(Notification.Metadata.builder()
+                                .post_id(postId)
+                                .sender_image_url(
+                                        userRepository.findById(senderId)
+                                                .map(User::getAvatar_url)
+                                                .orElse("")
+                                )
+                                .post_image_url(
+                                        postRepository.findById(postId)
+                                                .map(post -> {
+                                                    List<Post.Media> mediaList = post.getMedia();
+                                                    if (mediaList != null && !mediaList.isEmpty()) {
+                                                        return mediaList.get(0).getUrl();
+                                                    }
+                                                    return "";
+                                                })
+                                                .orElse("")
+                                )
+                                .build())
+                        .created_at(Instant.now())
+                        .build()
+        );
+
+        sendNotificationViaWebSocket(savedNotification, recipientId);
+        return savedNotification;
+    }
+
     public Notification sendCommentNotification(String senderId, String recipientId, String postId, String commentContent) {
         User sender = userRepository.findById(senderId).orElse(null);
         String senderName = sender != null ? sender.getUsername() : "Someone";
