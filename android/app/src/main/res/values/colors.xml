@@ -119,6 +119,16 @@
     <color name="create_post_switch_track_off">#E5E2E1</color>
     <color name="create_post_switch_thumb_on">@color/theme_surface_elevated</color>
     <color name="create_post_switch_thumb_off">@color/theme_surface_elevated</color>
+    <color name="create_post_card_surface">#F4EEF3</color>
+    <color name="create_post_preview_start">#F4EBEF</color>
+    <color name="create_post_preview_end">#EEE3EA</color>
+    <color name="create_post_preview_text">#8B7388</color>
+    <color name="create_post_preview_hint">#A58D9B</color>
+    <color name="create_post_filter_start">#F1E7ED</color>
+    <color name="create_post_filter_end">#E8DDE6</color>
+    <color name="create_post_filter_selected_bg">#F7EEF9</color>
+    <color name="create_post_social_icon_surface">#F2EBF5</color>
+    <color name="create_post_edit_badge">#C1B7BD</color>
     <color name="search_section_muted">#99787676</color>
     <color name="search_avatar_ring">#BD73EF</color>
     <color name="search_close_icon">#B8B0B0</color>

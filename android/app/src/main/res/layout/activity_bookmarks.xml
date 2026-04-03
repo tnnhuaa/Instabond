@@ -4,13 +4,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@android:color/white">
+    android:background="@color/login_card_surface">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@android:color/white"
+        android:background="@color/feed_topbar_overlay"
+        app:titleTextColor="@color/login_text_primary"
+        app:navigationIconTint="@color/login_text_primary"
         app:title="Bookmarks"
         app:navigationIcon="@drawable/ic_arrow_back" />
 
