@@ -14,6 +14,7 @@ import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.WebSocketManager;
 import com.example.instabond_fe.utils.MessagePopupHelper;
+import com.example.instabond_fe.utils.ThemePreferenceManager;
 import com.example.instabond_fe.view.ChatActivity;
 
 import retrofit2.Call;
@@ -29,6 +30,7 @@ public class InstabondApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        ThemePreferenceManager.applySavedTheme(this);
         sessionManager = new SessionManager(this);
         apiService = ApiClient.getApiService(this);
 

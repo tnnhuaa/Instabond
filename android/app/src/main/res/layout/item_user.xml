@@ -44,7 +44,7 @@
                 android:layout_height="16dp"
                 android:layout_marginStart="6dp"
                 android:src="@drawable/ic_star"
-                app:tint="#4CAF50"
+                app:tint="@color/theme_success"
                 android:visibility="gone" />
         </LinearLayout>
 
@@ -62,8 +62,8 @@
         android:id="@+id/btn_action"
         android:layout_width="wrap_content"
         android:layout_height="32dp"
-        android:backgroundTint="#262626"
-        android:textColor="@android:color/white"
+        android:backgroundTint="@color/theme_action_button_bg"
+        android:textColor="@color/theme_action_button_text"
         android:textSize="12sp"
         android:text="View"
         android:paddingTop="0dp"

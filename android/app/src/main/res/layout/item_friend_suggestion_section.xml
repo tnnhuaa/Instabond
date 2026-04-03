@@ -10,7 +10,7 @@
     app:cardBackgroundColor="@color/feed_surface"
     app:cardCornerRadius="24dp"
     app:cardElevation="0dp"
-    app:strokeColor="#14AFACAC"
+    app:strokeColor="@color/theme_outline_soft"
     app:strokeWidth="1dp">
 
     <LinearLayout

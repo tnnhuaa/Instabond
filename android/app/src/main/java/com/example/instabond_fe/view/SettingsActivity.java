@@ -16,6 +16,7 @@ import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.ChatRepository;
 import com.example.instabond_fe.utils.AvatarLoader;
+import com.example.instabond_fe.utils.ThemePreferenceManager;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import retrofit2.Call;
@@ -29,6 +30,7 @@ public class SettingsActivity extends AppCompatActivity {
     private String userId;
     private boolean isUpdatingPrivacy;
     private boolean suppressPrivacyToggleListener;
+    private boolean suppressThemeToggleListener;
     private boolean currentPrivacyState;
     private String currentTagPreference = "everyone";
 
@@ -47,7 +49,7 @@ public class SettingsActivity extends AppCompatActivity {
         }
 
         setupListeners();
-        binding.swTheme.setChecked(false);
+        syncThemeToggle();
         setUiEnabled(false);
         loadMe();
     }
@@ -55,6 +57,7 @@ public class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        syncThemeToggle();
         loadMe();
     }
 
@@ -68,18 +71,20 @@ public class SettingsActivity extends AppCompatActivity {
                 Toast.makeText(this, R.string.settings_feature_soon, Toast.LENGTH_SHORT).show());
         binding.btnBookmarks.setOnClickListener(v -> openBookmarks());
         binding.btnBlockedUsers.setOnClickListener(v -> openBlockedUsers());
+        binding.btnTagPreference.setOnClickListener(v -> showTagPreferenceDialog());
+
         binding.swPrivateAccount.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (suppressPrivacyToggleListener || isUpdatingPrivacy) {
                 return;
             }
             updatePrivacy(isChecked);
         });
-        binding.btnTagPreference.setOnClickListener(v -> showTagPreferenceDialog());
+
         binding.swTheme.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (!buttonView.isPressed()) {
+            if (suppressThemeToggleListener) {
                 return;
             }
-            Toast.makeText(this, R.string.settings_feature_soon, Toast.LENGTH_SHORT).show();
+            ThemePreferenceManager.setDarkModeEnabled(this, isChecked);
         });
     }
 
@@ -94,7 +99,9 @@ public class SettingsActivity extends AppCompatActivity {
 
                 if (response.isSuccessful() && response.body() != null) {
                     UserProfileResponse me = response.body();
-                    if (me.getId() != null) userId = me.getId();
+                    if (me.getId() != null) {
+                        userId = me.getId();
+                    }
 
                     String fullName = me.getFullName() != null && !me.getFullName().trim().isEmpty()
                             ? me.getFullName().trim()
@@ -118,13 +125,19 @@ public class SettingsActivity extends AppCompatActivity {
 
                     setUiEnabled(true);
                 } else {
-                    Toast.makeText(SettingsActivity.this, "Không thể tải dữ liệu người dùng", Toast.LENGTH_SHORT).show();
+                    setUiEnabled(true);
+                    Toast.makeText(SettingsActivity.this, "Could not load profile", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<UserProfileResponse> call, Throwable t) {
-                Toast.makeText(SettingsActivity.this, "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                setUiEnabled(true);
+                Toast.makeText(
+                        SettingsActivity.this,
+                        getString(R.string.msg_connection_error, t.getMessage()),
+                        Toast.LENGTH_SHORT
+                ).show();
             }
         });
     }
@@ -136,7 +149,7 @@ public class SettingsActivity extends AppCompatActivity {
         };
         String[] values = {"none", "everyone"};
 
-        int checkedItem = 1; // Default everyone
+        int checkedItem = 1;
         for (int i = 0; i < values.length; i++) {
             if (values[i].equalsIgnoreCase(currentTagPreference)) {
                 checkedItem = i;
@@ -147,8 +160,7 @@ public class SettingsActivity extends AppCompatActivity {
         new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.tag_preference_dialog_title)
                 .setSingleChoiceItems(options, checkedItem, (dialog, which) -> {
-                    String selectedValue = values[which];
-                    updateTagPreferenceInstant(selectedValue);
+                    updateTagPreferenceInstant(values[which]);
                     dialog.dismiss();
                 })
                 .setNegativeButton(R.string.create_post_cancel, null)
@@ -164,27 +176,28 @@ public class SettingsActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     currentTagPreference = response.body().getAllowTagging();
                     updateTagPreferenceUi();
-                    Toast.makeText(SettingsActivity.this, "Đã cập nhật tùy chọn gắn thẻ", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(SettingsActivity.this, "Tag preference updated", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(SettingsActivity.this, "Không thể cập nhật tùy chọn gắn thẻ", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(SettingsActivity.this, "Could not update tag preference", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<UpdateAllowTaggingResponse> call, Throwable t) {
                 setUiEnabled(true);
-                Toast.makeText(SettingsActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+                Toast.makeText(
+                        SettingsActivity.this,
+                        getString(R.string.msg_update_error, t.getMessage()),
+                        Toast.LENGTH_SHORT
+                ).show();
             }
         });
     }
 
     private void updateTagPreferenceUi() {
-        String displayValue;
-        if ("none".equalsIgnoreCase(currentTagPreference)) {
-            displayValue = getString(R.string.tag_preference_none);
-        } else {
-            displayValue = getString(R.string.tag_preference_everyone);
-        }
+        String displayValue = "none".equalsIgnoreCase(currentTagPreference)
+                ? getString(R.string.tag_preference_none)
+                : getString(R.string.tag_preference_everyone);
         binding.tvTagPreferenceValue.setText(displayValue);
     }
 
@@ -196,30 +209,37 @@ public class SettingsActivity extends AppCompatActivity {
 
         UpdateProfileRequest.SettingsRequest settings = new UpdateProfileRequest.SettingsRequest();
         settings.setAllowTagging(currentTagPreference.toLowerCase());
+        settings.setTheme(ThemePreferenceManager.isDarkModeEnabled(this) ? "dark" : "light");
         request.setSettings(settings);
 
         return request;
     }
 
     private void updateProfile() {
-        if (userId == null) return;
+        if (userId == null) {
+            return;
+        }
 
         setUiEnabled(false);
         apiService.updateProfile(userId, createRequest()).enqueue(new Callback<UserProfileResponse>() {
             @Override
             public void onResponse(Call<UserProfileResponse> call, Response<UserProfileResponse> response) {
                 setUiEnabled(true);
-                if (response.isSuccessful()) {
-                    Toast.makeText(SettingsActivity.this, "Đã lưu thay đổi", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(SettingsActivity.this, "Lưu thất bại", Toast.LENGTH_SHORT).show();
-                }
+                Toast.makeText(
+                        SettingsActivity.this,
+                        response.isSuccessful() ? R.string.msg_profile_updated : R.string.msg_profile_update_failed,
+                        Toast.LENGTH_SHORT
+                ).show();
             }
 
             @Override
             public void onFailure(Call<UserProfileResponse> call, Throwable t) {
                 setUiEnabled(true);
-                Toast.makeText(SettingsActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+                Toast.makeText(
+                        SettingsActivity.this,
+                        getString(R.string.msg_connection_error, t.getMessage()),
+                        Toast.LENGTH_SHORT
+                ).show();
             }
         });
     }
@@ -248,9 +268,11 @@ public class SettingsActivity extends AppCompatActivity {
                         boolean serverPrivacy = body.isPrivate();
                         applyPrivacyState(serverPrivacy);
                         setPrivacyToggleEnabled(true);
-                        Toast.makeText(SettingsActivity.this,
-                                serverPrivacy ? "Tài khoản đã chuyển sang riêng tư" : "Tài khoản đã chuyển sang công khai",
-                                Toast.LENGTH_SHORT).show();
+                        Toast.makeText(
+                                SettingsActivity.this,
+                                serverPrivacy ? "Private mode enabled" : "Private mode disabled",
+                                Toast.LENGTH_SHORT
+                        ).show();
                     } else {
                         setPrivacyToggleCheckedSilently(currentPrivacyState);
                         setPrivacyToggleEnabled(true);
@@ -258,7 +280,7 @@ public class SettingsActivity extends AppCompatActivity {
                 } else {
                     setPrivacyToggleCheckedSilently(currentPrivacyState);
                     setPrivacyToggleEnabled(true);
-                    Toast.makeText(SettingsActivity.this, "Không thể cập nhật quyền riêng tư", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(SettingsActivity.this, "Could not update privacy", Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -267,7 +289,11 @@ public class SettingsActivity extends AppCompatActivity {
                 isUpdatingPrivacy = false;
                 setPrivacyToggleCheckedSilently(currentPrivacyState);
                 setPrivacyToggleEnabled(true);
-                Toast.makeText(SettingsActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+                Toast.makeText(
+                        SettingsActivity.this,
+                        getString(R.string.msg_connection_error, t.getMessage()),
+                        Toast.LENGTH_SHORT
+                ).show();
             }
         });
     }
@@ -279,8 +305,8 @@ public class SettingsActivity extends AppCompatActivity {
         binding.btnSaveProfile.setEnabled(enabled);
         binding.btnSaveProfile.setAlpha(enabled ? 1.0f : 0.5f);
         binding.btnTagPreference.setEnabled(enabled);
-        binding.swTheme.setEnabled(enabled);
         binding.btnTagPreference.setAlpha(enabled ? 1.0f : 0.7f);
+        binding.swTheme.setEnabled(true);
         binding.swTheme.setAlpha(1.0f);
         setPrivacyToggleEnabled(enabled && !isUpdatingPrivacy);
     }
@@ -299,6 +325,12 @@ public class SettingsActivity extends AppCompatActivity {
     private void applyPrivacyState(boolean isPrivate) {
         currentPrivacyState = isPrivate;
         setPrivacyToggleCheckedSilently(isPrivate);
+    }
+
+    private void syncThemeToggle() {
+        suppressThemeToggleListener = true;
+        binding.swTheme.setChecked(ThemePreferenceManager.isDarkModeEnabled(this));
+        suppressThemeToggleListener = false;
     }
 
     private void handleUnauthorized() {
@@ -320,12 +352,10 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void openBookmarks() {
-        Intent intent = new Intent(this, BookmarksActivity.class);
-        startActivity(intent);
+        startActivity(new Intent(this, BookmarksActivity.class));
     }
 
     private void openBlockedUsers() {
-        Intent intent = new Intent(this, BlockedUsersActivity.class);
-        startActivity(intent);
+        startActivity(new Intent(this, BlockedUsersActivity.class));
     }
 }

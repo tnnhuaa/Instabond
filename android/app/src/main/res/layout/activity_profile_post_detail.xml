@@ -11,8 +11,9 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="52dp"
-        android:background="#F2141419"
-        app:navigationIcon="@drawable/ic_arrow_back">
+        android:background="@color/theme_toolbar_surface"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationIconTint="@color/text_primary">
 
         <TextView
             android:layout_width="wrap_content"

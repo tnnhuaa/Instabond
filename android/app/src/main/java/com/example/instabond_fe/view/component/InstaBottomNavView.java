@@ -58,8 +58,8 @@ public class InstaBottomNavView extends FrameLayout {
     }
 
     public void setActiveTab(Tab activeTab) {
-        int activeColor = ContextCompat.getColor(getContext(), android.R.color.white);
-        int inactiveColor = ContextCompat.getColor(getContext(), android.R.color.white);
+        int activeColor = ContextCompat.getColor(getContext(), R.color.bottom_nav_active);
+        int inactiveColor = ContextCompat.getColor(getContext(), R.color.bottom_nav_inactive);
 
         applyState(binding.navHome, binding.ivNavHome, activeTab == Tab.HOME, activeColor, inactiveColor);
         applyState(binding.navSearch, binding.ivNavSearch, activeTab == Tab.SEARCH, activeColor, inactiveColor);
