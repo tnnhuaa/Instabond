@@ -1,6 +1,9 @@
 package com.example.instabond_fe.viewmodel;
 
 import android.app.Application;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.OpenableColumns;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -17,12 +20,22 @@ import com.example.instabond_fe.repository.WebSocketManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
 
 public class ChatViewModel extends AndroidViewModel {
     private final ChatRepository chatRepository;
     private final MutableLiveData<List<ChatMessageResponse>> messagesLiveData = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<Boolean> partnerOnlineLiveData = new MutableLiveData<>(false);
     private final MutableLiveData<Boolean> connectionLiveData = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> imageUploadingLiveData = new MutableLiveData<>(false);
     private final MutableLiveData<String> errorLiveData = new MutableLiveData<>("");
     private final String currentUserId;
 
@@ -125,6 +138,53 @@ public class ChatViewModel extends AndroidViewModel {
         chatRepository.sendRealtimeMessage(request);
     }
 
+    public void sendImageMessage(Uri imageUri) {
+        if (imageUri == null) {
+            errorLiveData.postValue("Image is not valid");
+            return;
+        }
+        if (activeConversationId == null || activeConversationId.trim().isEmpty()) {
+            errorLiveData.postValue("Missing conversation");
+            return;
+        }
+
+        imageUploadingLiveData.postValue(true);
+        try {
+            File uploadFile = createTempFileFromUri(imageUri);
+            if (uploadFile == null || !uploadFile.exists() || uploadFile.length() == 0L) {
+                imageUploadingLiveData.postValue(false);
+                errorLiveData.postValue("Image is not valid");
+                return;
+            }
+
+            String mime = getApplication().getContentResolver().getType(imageUri);
+            MediaType mediaType = MediaType.parse(mime != null ? mime : "image/*");
+            RequestBody fileBody = RequestBody.create(mediaType, uploadFile);
+            MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", uploadFile.getName(), fileBody);
+
+            chatRepository.uploadChatImage(activeConversationId, filePart, new ApiCallback<>() {
+                @Override
+                public void onSuccess(ChatMessageResponse data) {
+                    imageUploadingLiveData.postValue(false);
+                    if (data != null) {
+                        List<ChatMessageResponse> single = new ArrayList<>();
+                        single.add(data);
+                        mergeAndPublishMessages(single);
+                    }
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    imageUploadingLiveData.postValue(false);
+                    errorLiveData.postValue(t == null ? "Upload image failed" : t.getMessage());
+                }
+            });
+        } catch (IOException e) {
+            imageUploadingLiveData.postValue(false);
+            errorLiveData.postValue("Upload image failed");
+        }
+    }
+
     public void stopChat() {
         activeConversationId = null;
         trackedPartnerEmail = null;
@@ -145,6 +205,10 @@ public class ChatViewModel extends AndroidViewModel {
 
     public LiveData<Boolean> getConnectionLiveData() {
         return connectionLiveData;
+    }
+
+    public LiveData<Boolean> getImageUploadingLiveData() {
+        return imageUploadingLiveData;
     }
 
     public LiveData<String> getErrorLiveData() {
@@ -271,6 +335,39 @@ public class ChatViewModel extends AndroidViewModel {
         String createdAt = message.getCreatedAt() == null ? "" : message.getCreatedAt();
         String content = message.getContent() == null ? "" : message.getContent();
         return conv + "|" + sender + "|" + createdAt + "|" + content;
+    }
+
+    private File createTempFileFromUri(Uri uri) throws IOException {
+        String fileName = queryDisplayName(uri);
+        if (fileName == null || fileName.trim().isEmpty()) {
+            fileName = "chat_" + System.currentTimeMillis() + ".jpg";
+        }
+
+        File tempFile = new File(getApplication().getCacheDir(), fileName);
+        try (InputStream inputStream = getApplication().getContentResolver().openInputStream(uri);
+             OutputStream outputStream = new FileOutputStream(tempFile, false)) {
+            if (inputStream == null) {
+                return null;
+            }
+            byte[] buffer = new byte[4096];
+            int len;
+            while ((len = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, len);
+            }
+        }
+        return tempFile;
+    }
+
+    private String queryDisplayName(Uri uri) {
+        try (Cursor cursor = getApplication().getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (idx >= 0) {
+                    return cursor.getString(idx);
+                }
+            }
+        }
+        return null;
     }
 
     @Override

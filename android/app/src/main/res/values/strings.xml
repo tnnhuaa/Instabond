@@ -316,13 +316,15 @@
     <string name="chat_type_message">Type a message...</string>
     <string name="chat_reconnecting">Reconnecting...</string>
     <string name="chat_missing_conversation">Missing conversation</string>
+    <string name="chat_image_picker_unavailable">Image picker is not available</string>
+    <string name="chat_image_selected">Image selected</string>
     <string name="chat_story_reply_header">Reply to story</string>
     <string name="chat_story_reply_title">Story</string>
     <string name="chat_story_reply_title_named">%1$s\'s story</string>
     <string name="chat_story_reply_empty">Sent a story reply</string>
     <string name="chat_post_share_header">Shared post</string>
     <string name="chat_post_share_title">Post</string>
-    <string name="chat_post_share_title_named">@%1$s</string>
+    <string name="chat_post_share_title_named">\@%1$s</string>
     <string name="chat_post_share_empty">Shared a post</string>
     <string name="image_editor_title">Edit Photo</string>
     <string name="image_editor_done">Done</string>
