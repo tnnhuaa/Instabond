@@ -20,6 +20,15 @@ import java.util.List;
 public class SearchUserAdapter extends RecyclerView.Adapter<SearchUserAdapter.UserViewHolder> {
 
     private List<UserSearchDTO> userList = new ArrayList<>();
+    private OnUserClickListener listener;
+
+    public interface OnUserClickListener {
+        void onUserClick(UserSearchDTO user);
+    }
+
+    public void setOnUserClickListener(OnUserClickListener listener) {
+        this.listener = listener;
+    }
 
     public void setUsers(List<UserSearchDTO> users) {
         this.userList = users;
@@ -45,10 +54,14 @@ public class SearchUserAdapter extends RecyclerView.Adapter<SearchUserAdapter.Us
 
         // EVENT: Click on user suggestion to navigate to their profile
         holder.itemView.setOnClickListener(v -> {
-            Intent intent = new Intent(v.getContext(), ProfileActivity.class);
-            intent.putExtra("targetUserId", user.getId());
-            intent.putExtra(ProfileActivity.EXTRA_PROFILE_NAV_CONTEXT, ProfileActivity.NAV_CONTEXT_SEARCH);
-            v.getContext().startActivity(intent);
+            if (listener != null) {
+                listener.onUserClick(user);
+            } else {
+                Intent intent = new Intent(v.getContext(), ProfileActivity.class);
+                intent.putExtra("targetUserId", user.getId());
+                intent.putExtra(ProfileActivity.EXTRA_PROFILE_NAV_CONTEXT, ProfileActivity.NAV_CONTEXT_SEARCH);
+                v.getContext().startActivity(intent);
+            }
         });
     }
 

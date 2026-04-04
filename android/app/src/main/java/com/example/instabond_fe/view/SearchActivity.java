@@ -12,12 +12,14 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivitySearchBinding;
+import com.example.instabond_fe.model.SearchHistoryDTO;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.viewmodel.SearchViewModel;
@@ -34,6 +36,7 @@ public class SearchActivity extends AppCompatActivity {
     private SearchViewModel searchViewModel;
     private SearchPostAdapter searchPostAdapter;
     private SearchUserAdapter searchUserAdapter;
+    private SearchHistoryAdapter searchHistoryAdapter;
 
     private String currentSearchQuery = "";
     private String currentTab = "POST";
@@ -57,25 +60,57 @@ public class SearchActivity extends AppCompatActivity {
         resetToDefaultExploreState();
     }
 
-    /**
-     * Displaying search results and real-time user suggestions.
-     */
     private void setupRecyclerViews() {
         searchPostAdapter = new SearchPostAdapter();
-        searchUserAdapter = new SearchUserAdapter();
 
+        searchUserAdapter = new SearchUserAdapter();
+        searchUserAdapter.setOnUserClickListener(user -> {
+            // Save history "profile"
+            searchViewModel.saveSearchHistory("PROFILE", null, user.getId());
+
+            Intent intent = new Intent(SearchActivity.this, ProfileActivity.class);
+            intent.putExtra("targetUserId", user.getId());
+            startActivity(intent);
+        });
+
+        searchHistoryAdapter = new SearchHistoryAdapter(new SearchHistoryAdapter.OnHistoryClickListener() {
+            @Override
+            public void onItemClick(SearchHistoryDTO history) {
+                if ("PROFILE".equalsIgnoreCase(history.getType())) {
+                    searchViewModel.saveSearchHistory("PROFILE", null, history.getTargetUserId());
+                    Intent intent = new Intent(SearchActivity.this, ProfileActivity.class);
+                    intent.putExtra("targetUserId", history.getTargetUserId());
+                    startActivity(intent);
+                } else {
+                    binding.etSearch.setText(history.getKeyword());
+                    binding.etSearch.setSelection(history.getKeyword().length());
+                    performSearch(history.getKeyword());
+                }
+            }
+
+            @Override
+            public void onDeleteClick(SearchHistoryDTO history) {
+                searchViewModel.deleteSearchHistory(history.getId());
+            }
+        });
+
+        // Setup LayoutManagers
         StaggeredGridLayoutManager gridLayoutManager = new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL);
         binding.rvSearchResults.setLayoutManager(gridLayoutManager);
         binding.rvSearchResults.setAdapter(searchPostAdapter);
 
+        binding.rvSearchSuggestions.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvSearchSuggestions.setAdapter(searchUserAdapter);
+
+        binding.rvSearchHistory.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvSearchHistory.setAdapter(searchHistoryAdapter);
+
+        // Scroll listener for Explore
         binding.rvSearchResults.addOnScrollListener(new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@androidx.annotation.NonNull androidx.recyclerview.widget.RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
-
-                // scroll down
-                if (dy > 0 && currentSearchQuery.isEmpty()) {
-                    // Load Explore only when search query is empty
+                if (dy > 0 && currentSearchQuery.isEmpty() && binding.rvSearchResults.getVisibility() == View.VISIBLE) {
                     int[] lastVisibleItemPositions = gridLayoutManager.findLastVisibleItemPositions(null);
                     int lastVisibleItemPosition = Math.max(lastVisibleItemPositions[0], lastVisibleItemPositions[1]);
                     int totalItemCount = gridLayoutManager.getItemCount();
@@ -86,62 +121,65 @@ public class SearchActivity extends AppCompatActivity {
                 }
             }
         });
-
-        binding.rvSearchSuggestions.setLayoutManager(new LinearLayoutManager(this));
-        binding.rvSearchSuggestions.setAdapter(searchUserAdapter);
     }
 
-    /**
-     * Switching between different layouts and data sets seamlessly.
-     */
     private void setupTabs() {
-        // Click to Tab Posts
-        binding.chipPosts.setOnClickListener(v -> {
-            if (!currentTab.equals("POST")) {
-                currentTab = "POST";
-                updateTabUI();
+        binding.chipPosts.setOnClickListener(v -> switchTab("POST"));
+        binding.chipUsers.setOnClickListener(v -> switchTab("USER"));
+    }
 
+    private void switchTab(String tabName) {
+        if (!currentTab.equals(tabName)) {
+            currentTab = tabName;
+            updateTabUI();
+
+            if (currentTab.equals("POST")) {
                 binding.rvSearchResults.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
                 binding.rvSearchResults.setAdapter(searchPostAdapter);
-
-                // Fetch API
-                searchViewModel.fetchResults(currentSearchQuery, "POST", 0);
-            }
-        });
-
-        // Click to Tab Users
-        binding.chipUsers.setOnClickListener(v -> {
-            if (!currentTab.equals("USER")) {
-                currentTab = "USER";
-                updateTabUI();
-
+            } else {
                 binding.rvSearchResults.setLayoutManager(new LinearLayoutManager(this));
                 binding.rvSearchResults.setAdapter(searchUserAdapter);
-
-                // Fetch API
-                searchViewModel.fetchResults(currentSearchQuery, "USER", 0);
             }
-        });
-    }
-
-    /**
-     * Updates the visual state of the filter tabs (background colors) to indicate which tab is currently active.
-     */
-    private void updateTabUI() {
-        if (currentTab.equals("POST")) {
-            binding.chipPosts.setBackgroundResource(R.drawable.search_filter_chip_active_bg);
-            binding.chipUsers.setBackgroundResource(R.drawable.search_filter_chip_inactive_bg);
-        } else {
-            binding.chipPosts.setBackgroundResource(R.drawable.search_filter_chip_inactive_bg);
-            binding.chipUsers.setBackgroundResource(R.drawable.search_filter_chip_active_bg);
+            searchViewModel.fetchResults(currentSearchQuery, currentTab, 0);
         }
     }
 
-    /**
-     * Configures the search input field, including real-time typing detection for
-     * suggestions (debounce) and keyboard action handling for submitting the search.
-     */
+    private void updateTabUI() {
+        // Get text color
+        int colorActive = ContextCompat.getColor(this, R.color.theme_on_primary);
+        int colorInactive = ContextCompat.getColor(this, R.color.theme_on_surface_muted);
+
+        if (currentTab.equals("POST")) {
+            binding.chipPosts.setBackgroundResource(R.drawable.search_filter_chip_active_bg);
+            binding.chipPosts.setTextColor(colorActive);
+
+            binding.chipUsers.setBackgroundResource(R.drawable.search_filter_chip_inactive_bg);
+            binding.chipUsers.setTextColor(colorInactive);
+        } else {
+            binding.chipPosts.setBackgroundResource(R.drawable.search_filter_chip_inactive_bg);
+            binding.chipPosts.setTextColor(colorInactive);
+
+            binding.chipUsers.setBackgroundResource(R.drawable.search_filter_chip_active_bg);
+            binding.chipUsers.setTextColor(colorActive);
+        }
+    }
+
     private void setupSearchInput() {
+        // Focus on Search Box
+        binding.etSearch.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                showHistoryMode();
+            }
+        });
+
+        // Cancel button
+        binding.tvCancel.setOnClickListener(v -> {
+            binding.etSearch.setText("");
+            binding.etSearch.clearFocus();
+            hideKeyboard();
+            resetToDefaultExploreState();
+        });
+
         binding.etSearch.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -149,78 +187,86 @@ public class SearchActivity extends AppCompatActivity {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 String query = s.toString().trim();
-                searchViewModel.onSearchQueryChanged(s.toString());
+                searchViewModel.onSearchQueryChanged(query);
 
-                // Hide tabs while typing
                 binding.chipsScroll.setVisibility(View.GONE);
 
                 if (query.length() > 0) {
                     binding.rvSearchResults.setVisibility(View.GONE);
+                    binding.rvSearchHistory.setVisibility(View.GONE);
                     binding.rvSearchSuggestions.setVisibility(View.VISIBLE);
-                } else {
-                    resetToDefaultExploreState();
+                } else if (binding.etSearch.hasFocus()) {
+                    showHistoryMode();
                 }
             }
-
             @Override
             public void afterTextChanged(Editable s) {}
         });
 
         binding.etSearch.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                currentSearchQuery = binding.etSearch.getText().toString().trim();
-                hideKeyboard();
-
-                if (currentSearchQuery.isEmpty()) {
-                    resetToDefaultExploreState();
-                    return true;
-                }
-
-                // Enter => Visible Tab, Show Results, Hide Suggestions
-                binding.chipsScroll.setVisibility(View.VISIBLE);
-                binding.rvSearchSuggestions.setVisibility(View.GONE);
-                binding.rvSearchResults.setVisibility(View.VISIBLE);
-
-                updateTabUI();
-
-                if (currentTab.equals("POST")) {
-                    binding.rvSearchResults.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
-                    binding.rvSearchResults.setAdapter(searchPostAdapter);
-                } else {
-                    binding.rvSearchResults.setLayoutManager(new LinearLayoutManager(this));
-                    binding.rvSearchResults.setAdapter(searchUserAdapter);
-                }
-
-                // Fetch API based on current tab
-                searchViewModel.fetchResults(currentSearchQuery, currentTab, 0);
-
+                String query = binding.etSearch.getText().toString().trim();
+                performSearch(query);
                 return true;
             }
             return false;
         });
     }
 
-    /**
-     * Resets the UI to the default Explore state (empty search query), hiding suggestions and tabs while showing the default post grid.
-     */
+    private void performSearch(String query) {
+        currentSearchQuery = query;
+        hideKeyboard();
+        binding.etSearch.clearFocus();
+
+        if (currentSearchQuery.isEmpty()) {
+            resetToDefaultExploreState();
+            return;
+        }
+
+        binding.chipsScroll.setVisibility(View.VISIBLE);
+        binding.rvSearchSuggestions.setVisibility(View.GONE);
+        binding.rvSearchHistory.setVisibility(View.GONE);
+        binding.rvSearchResults.setVisibility(View.VISIBLE);
+        binding.tvCancel.setVisibility(View.VISIBLE);
+
+        updateTabUI();
+
+        if (currentTab.equals("POST")) {
+            binding.rvSearchResults.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
+            binding.rvSearchResults.setAdapter(searchPostAdapter);
+        } else {
+            binding.rvSearchResults.setLayoutManager(new LinearLayoutManager(this));
+            binding.rvSearchResults.setAdapter(searchUserAdapter);
+        }
+
+        searchViewModel.fetchResults(currentSearchQuery, currentTab, 0);
+    }
+
+    private void showHistoryMode() {
+        binding.tvCancel.setVisibility(View.VISIBLE);
+        binding.chipsScroll.setVisibility(View.GONE);
+        binding.rvSearchResults.setVisibility(View.GONE);
+        binding.rvSearchSuggestions.setVisibility(View.GONE);
+        binding.rvSearchHistory.setVisibility(View.VISIBLE);
+
+        searchViewModel.loadSearchHistory();
+    }
+
     private void resetToDefaultExploreState() {
+        currentSearchQuery = "";
+        binding.tvCancel.setVisibility(View.GONE);
         binding.chipsScroll.setVisibility(View.GONE);
         binding.rvSearchSuggestions.setVisibility(View.GONE);
+        binding.rvSearchHistory.setVisibility(View.GONE);
         binding.rvSearchResults.setVisibility(View.VISIBLE);
 
         binding.rvSearchResults.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
         binding.rvSearchResults.setAdapter(searchPostAdapter);
 
-        // Reset list
         searchPostAdapter.setPosts(new ArrayList<>());
-
-        // Fetch initial explore posts with new random seed
         searchViewModel.fetchInitialExplorePosts();
     }
 
-    /**
-     * Subscribes to LiveData emitted by the ViewModel to automatically update the RecyclerView adapters when new search suggestions or results arrive.
-     */
     private void observeViewModel() {
         searchViewModel.getSuggestionsLiveData().observe(this, users -> {
             if (users != null) {
@@ -229,21 +275,24 @@ public class SearchActivity extends AppCompatActivity {
         });
 
         searchViewModel.getPostResultsLiveData().observe(this, posts -> {
-            if (posts != null) {
+            if (posts != null && !currentSearchQuery.isEmpty() && binding.rvSearchResults.getVisibility() == View.VISIBLE) {
                 searchPostAdapter.setPosts(posts);
             }
         });
 
         searchViewModel.getExploreResultsLiveData().observe(this, posts -> {
-            if (posts != null && currentSearchQuery.isEmpty()) {
+            if (posts != null && currentSearchQuery.isEmpty() && binding.rvSearchResults.getVisibility() == View.VISIBLE) {
                 searchPostAdapter.setPosts(posts);
+            }
+        });
+
+        searchViewModel.getSearchHistoryLiveData().observe(this, histories -> {
+            if (histories != null) {
+                searchHistoryAdapter.setHistoryList(histories);
             }
         });
     }
 
-    /**
-     * Binds click events to the top toolbar actions.
-     */
     private void bindActions() {
         binding.btnCamera.setOnClickListener(v ->
                 startActivity(new Intent(this, CreatePostActivity.class)));
@@ -251,9 +300,6 @@ public class SearchActivity extends AppCompatActivity {
                 Toast.makeText(this, getString(R.string.feed_messages_coming_soon), Toast.LENGTH_SHORT).show());
     }
 
-    /**
-     * Utility method to forcibly hide the software keyboard after a search is submitted or when the user navigates away.
-     */
     private void hideKeyboard() {
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         if (imm != null && getCurrentFocus() != null) {

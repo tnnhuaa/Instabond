@@ -8,6 +8,8 @@ import com.example.instabond_fe.model.Notification;
 import com.example.instabond_fe.model.NotificationPageResponse;
 import com.example.instabond_fe.model.ProfileShareResponse;
 import com.example.instabond_fe.model.PostResponse;
+import com.example.instabond_fe.model.SearchHistoryDTO;
+import com.example.instabond_fe.model.SearchHistoryRequest;
 import com.example.instabond_fe.model.StoryResponse;
 import com.example.instabond_fe.model.ResetPasswordRequest;
 import com.example.instabond_fe.model.UpdateAllowTaggingResponse;
@@ -224,6 +226,16 @@ public interface ApiService {
             @Query("page") int page,
             @Query("size") int size
     );
+
+    // Search History
+    @GET("api/v1/search/history")
+    Call<List<SearchHistoryDTO>> getSearchHistory();
+
+    @POST("api/v1/search/history")
+    Call<Void> saveSearchHistory(@Body SearchHistoryRequest request);
+
+    @DELETE("api/v1/search/history/{id}")
+    Call<Void> deleteSearchHistory(@Path("id") String id);
 
     @POST("api/messages/text")
     Call<ChatMessageResponse> sendTextMessage(@Body ChatMessageRequest request);
