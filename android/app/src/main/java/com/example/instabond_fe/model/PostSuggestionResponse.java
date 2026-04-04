@@ -14,6 +14,9 @@ public class PostSuggestionResponse {
     @SerializedName("music_suggestions")
     private List<MusicSuggestion> musicSuggestions;
 
+    @SerializedName("suggested_tags")
+    private List<SuggestedTag> suggestedTags;
+
     public String getImageUrl() {
         return imageUrl;
     }
@@ -24,5 +27,9 @@ public class PostSuggestionResponse {
 
     public List<MusicSuggestion> getMusicSuggestions() {
         return musicSuggestions;
+    }
+
+    public List<SuggestedTag> getSuggestedTags() {
+        return suggestedTags;
     }
 }

@@ -40,7 +40,6 @@ async def process_face_tagging(image_url: str):
                 source_embedding = np.array(user["face_embedding"])
 
                 if source_embedding.shape != target_embedding.shape:
-                    print(f"Bỏ qua user {user.get('_id')} vì size vector ({source_embedding.shape}) không khớp ({target_embedding.shape})")
                     continue
                 
                 similarity = np.dot(source_embedding, target_embedding) / (

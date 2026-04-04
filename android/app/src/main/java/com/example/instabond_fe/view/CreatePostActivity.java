@@ -35,6 +35,7 @@ import com.example.instabond_fe.model.CreatePostRequest;
 import com.example.instabond_fe.model.MusicSuggestion;
 import com.example.instabond_fe.model.PostSuggestionResponse;
 import com.example.instabond_fe.model.PostResponse;
+import com.example.instabond_fe.model.SuggestedTag;
 import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
@@ -139,6 +140,7 @@ public class CreatePostActivity extends AppCompatActivity {
     private MusicSuggestion selectedMusic;
     private final List<MusicSuggestion> aiMusicSuggestions = new ArrayList<>();
     private boolean isFetchingMusicSuggestions = false;
+    private boolean isSubmittingPost = false;
     private Call<PostSuggestionResponse> postSuggestionCall;
 
     @Override
@@ -157,6 +159,7 @@ public class CreatePostActivity extends AppCompatActivity {
         setupActions();
         styleSwitch(binding.switchFacebook);
         styleSwitch(binding.switchTwitter);
+        updateAiSuggestionUiState();
         updateOptionSummaries();
         renderEditorState();
         loadCurrentUser();
@@ -881,9 +884,7 @@ public class CreatePostActivity extends AppCompatActivity {
         String[] labels = new String[options.size()];
         for (int i = 0; i < options.size(); i++) {
             MusicSuggestion suggestion = options.get(i);
-            String prefix = suggestion.isAiRecommended()
-                    ? getString(R.string.create_post_music_ai_prefix) + ": "
-                    : "";
+            String prefix = suggestion.isAiRecommended() ? "\u2728 AI: " : "";
             labels[i] = prefix + safe(suggestion.getSongName()) + " - " + safe(suggestion.getArtist());
         }
 
@@ -901,9 +902,7 @@ public class CreatePostActivity extends AppCompatActivity {
                     }
                 });
 
-        if (!TextUtils.isEmpty(aiSceneDescription)) {
-            builder.setMessage(getString(R.string.create_post_music_scene_hint, aiSceneDescription));
-        } else if (isFetchingMusicSuggestions) {
+        if (isFetchingMusicSuggestions) {
             builder.setMessage(getString(R.string.create_post_music_summary_loading));
         }
 
@@ -995,17 +994,20 @@ public class CreatePostActivity extends AppCompatActivity {
             imageFile = createUploadFile();
         } catch (IOException e) {
             isFetchingMusicSuggestions = false;
+            updateAiSuggestionUiState();
             updateOptionSummaries();
             return;
         }
 
         if (imageFile == null) {
             isFetchingMusicSuggestions = false;
+            updateAiSuggestionUiState();
             updateOptionSummaries();
             return;
         }
 
         isFetchingMusicSuggestions = true;
+        updateAiSuggestionUiState();
         updateOptionSummaries();
 
         RequestBody fileBody = RequestBody.create(MediaType.parse("image/jpeg"), imageFile);
@@ -1021,6 +1023,7 @@ public class CreatePostActivity extends AppCompatActivity {
                 }
 
                 isFetchingMusicSuggestions = false;
+                updateAiSuggestionUiState();
                 aiMusicSuggestions.clear();
                 if (response.isSuccessful() && response.body() != null) {
                     aiSceneDescription = safe(response.body().getSceneDescription());
@@ -1030,6 +1033,31 @@ public class CreatePostActivity extends AppCompatActivity {
                                 suggestion.setAiRecommended(true);
                                 aiMusicSuggestions.add(suggestion);
                             }
+                        }
+                        android.util.Log.d("AI_DEBUG", "SUCCESS - GET " + aiMusicSuggestions.size() + " music suggestions from AI");
+                    } else {
+                        try {
+                            android.util.Log.e("AI_DEBUG", "ERROR - CODE:" + response.code());
+                            android.util.Log.e("AI_DEBUG", "ERROR DETAILS: " + response.errorBody().string());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    if (response.body().getSuggestedTags() != null
+                            && !response.body().getSuggestedTags().isEmpty()) {
+                        List<String> autoTags = new ArrayList<>();
+                        for (SuggestedTag suggestedTag : response.body().getSuggestedTags()) {
+                            if (suggestedTag == null) {
+                                continue;
+                            }
+                            String username = safe(suggestedTag.getUsername());
+                            if (!username.isEmpty()) {
+                                autoTags.add("@" + username);
+                            }
+                        }
+                        if (!autoTags.isEmpty()) {
+                            tagsText = TextUtils.join(" ", autoTags);
                         }
                     }
                 }
@@ -1043,6 +1071,7 @@ public class CreatePostActivity extends AppCompatActivity {
                 }
 
                 isFetchingMusicSuggestions = false;
+                updateAiSuggestionUiState();
                 aiMusicSuggestions.clear();
                 aiSceneDescription = "";
                 updateOptionSummaries();
@@ -1072,8 +1101,7 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private void setLoading(boolean loading) {
-        binding.btnPost.setEnabled(!loading);
-        binding.btnPost.setAlpha(loading ? 0.5f : 1f);
+        isSubmittingPost = loading;
         binding.btnBack.setEnabled(!loading);
         binding.cardPreview.setEnabled(!loading);
         binding.btnEditImage.setEnabled(!loading);
@@ -1085,6 +1113,14 @@ public class CreatePostActivity extends AppCompatActivity {
         binding.btnPost.setText(loading
                 ? getString(R.string.create_post_posting)
                 : getString(R.string.create_post_post));
+        updateAiSuggestionUiState();
+    }
+
+    private void updateAiSuggestionUiState() {
+        binding.pbAiLoading.setVisibility(isFetchingMusicSuggestions ? View.VISIBLE : View.GONE);
+        boolean enablePost = !isSubmittingPost && !isFetchingMusicSuggestions;
+        binding.btnPost.setEnabled(enablePost);
+        binding.btnPost.setAlpha(enablePost ? 1f : 0.5f);
     }
 
     @Override

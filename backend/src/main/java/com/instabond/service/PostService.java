@@ -82,6 +82,7 @@ public class PostService {
             }
         }, aiExecutor);
 
+        // Call AI Music Suggestion API
         CompletableFuture<AiMusicResponse> musicFuture = CompletableFuture.supplyAsync(() -> {
             try {
                 String musicEndpoint = aiServiceUrl + "/api/ai/suggest-music";

@@ -66,3 +66,12 @@ db.sqlite3-journal
 ### OS-specific files ###
 .DS_Store
 Thumbs.db
+
+### AI/Machine Learning ###
+.torch/
+.huggingface/
+checkpoints/
+models/
+*.pth
+*.onnx
+*.pb

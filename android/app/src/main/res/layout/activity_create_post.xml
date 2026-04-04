@@ -71,6 +71,18 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@id/btn_back" />
 
+            <ProgressBar
+                android:id="@+id/pb_ai_loading"
+                style="?android:attr/progressBarStyleSmall"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginEnd="8dp"
+                android:indeterminate="true"
+                android:visibility="gone"
+                app:layout_constraintBottom_toBottomOf="@id/btn_post"
+                app:layout_constraintEnd_toStartOf="@id/btn_post"
+                app:layout_constraintTop_toTopOf="@id/btn_post" />
+
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.appcompat.widget.Toolbar>
 
