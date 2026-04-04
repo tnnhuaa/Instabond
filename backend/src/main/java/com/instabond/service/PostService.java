@@ -2,6 +2,7 @@ package com.instabond.service;
 
 import com.instabond.dto.*;
 import com.instabond.dto.ai.AiImageAnalyzeRequest;
+import com.instabond.dto.ai.AiMusicResponse;
 import com.instabond.dto.ai.AiTagResponse;
 import com.instabond.entity.Interaction;
 import com.instabond.entity.Post;
@@ -26,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -69,8 +71,6 @@ public class PostService {
         String imageUrl = fileService.uploadImageUrl(imageFile);
         AiImageAnalyzeRequest aiRequest = new AiImageAnalyzeRequest(imageUrl);
 
-        // ------ Call AI API in parallel ------
-
         // Call AI Tag Suggestion API
         CompletableFuture<List<TaggedUserDTO>> tagFuture = CompletableFuture.supplyAsync(() -> {
             try {
@@ -82,35 +82,31 @@ public class PostService {
             }
         }, aiExecutor);
 
-        /* @TODO: Call AI Music Suggestion API in parallel when available
-        CompletableFuture<List<Post.MusicSuggestion>> musicFuture = CompletableFuture.supplyAsync(() -> {
+        CompletableFuture<AiMusicResponse> musicFuture = CompletableFuture.supplyAsync(() -> {
             try {
                 String musicEndpoint = aiServiceUrl + "/api/ai/suggest-music";
                 AiMusicResponse musicResponse = restTemplate.postForObject(musicEndpoint, aiRequest, AiMusicResponse.class);
-                return musicResponse != null ? musicResponse.getSuggestions() : new ArrayList<>();
+                return musicResponse != null
+                        ? musicResponse
+                        : AiMusicResponse.builder().suggestions(Collections.emptyList()).build();
             } catch (Exception e) {
-                return new ArrayList<>();
+                return AiMusicResponse.builder().suggestions(Collections.emptyList()).build();
             }
-        }, aiExecutor);*/
+        }, aiExecutor);
 
-        // -------------------------------------
-
-        // Combine results
-        return CompletableFuture.allOf(tagFuture)
-                .thenApply(v -> PostSuggestionResponse.builder()
-                        .image_url(imageUrl)
-                        .suggested_tags(tagFuture.join())
-                        .build())
+        return CompletableFuture.allOf(tagFuture, musicFuture)
+                .thenApply(v -> {
+                    AiMusicResponse musicResponse = musicFuture.join();
+                    return PostSuggestionResponse.builder()
+                            .image_url(imageUrl)
+                            .scene_description(musicResponse.getScene_description())
+                            .suggested_tags(tagFuture.join())
+                            .music_suggestions(musicResponse.getSuggestions() != null
+                                    ? musicResponse.getSuggestions()
+                                    : Collections.emptyList())
+                            .build();
+                })
                 .join();
-
-        // @TODO: Include music suggestions when that feature is implemented in the AI service
-         /* return CompletableFuture.allOf(tagFuture, musicFuture)
-                    .thenApply(v -> PostSuggestionResponse.builder()
-                        .image_url(imageUrl)
-                        .suggested_tags(tagFuture.join())
-                        .music_suggestions(musicFuture.join())
-                        .build())
-                .join();*/
     }
 
     private User resolveUserFromPrincipal(String principal) {
@@ -131,19 +127,15 @@ public class PostService {
         return userRepository.findById(authorId).orElse(null);
     }
 
-    // Helper
-
     private List<TaggedUserDTO> processAiTags(AiTagResponse aiTagResponse, String currentUserId) {
         if (aiTagResponse == null || aiTagResponse.getDetected_faces() == null) {
             return new ArrayList<>();
         }
 
         return aiTagResponse.getDetected_faces().stream()
-                // Filter confidence > 0.7
                 .filter(face -> face.getConfidence() != null && face.getConfidence() > 0.5)
                 .filter(face -> !face.getMatched_user_id().equals(currentUserId))
                 .map(face -> {
-
                     User user = userRepository.findById(face.getMatched_user_id()).orElse(null);
                     if (user == null) return null;
 

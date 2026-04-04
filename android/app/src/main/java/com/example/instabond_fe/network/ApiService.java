@@ -7,6 +7,7 @@ import com.example.instabond_fe.model.ForgotPasswordRequest;
 import com.example.instabond_fe.model.Notification;
 import com.example.instabond_fe.model.NotificationPageResponse;
 import com.example.instabond_fe.model.ProfileShareResponse;
+import com.example.instabond_fe.model.PostSuggestionResponse;
 import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.model.StoryResponse;
 import com.example.instabond_fe.model.ResetPasswordRequest;
@@ -95,6 +96,10 @@ public interface ApiService {
             @Part("request") RequestBody request,
             @Part List<MultipartBody.Part> files
     );
+
+    @Multipart
+    @POST("api/posts/suggestions")
+    Call<PostSuggestionResponse> getPostSuggestions(@Part MultipartBody.Part image);
 
     @PUT("api/users/{id}")
     Call<UserProfileResponse> updateProfile(@Path("id") String userId, @Body UpdateProfileRequest request);

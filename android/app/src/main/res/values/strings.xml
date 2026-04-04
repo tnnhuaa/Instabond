@@ -273,6 +273,7 @@
     <string name="create_post_caption_hint">Write a caption...</string>
     <string name="create_post_add_location">Add Location</string>
     <string name="create_post_tag_people">Tag People</string>
+    <string name="create_post_add_music">Choose Music</string>
     <string name="create_post_share_facebook">Share to Facebook</string>
     <string name="create_post_share_twitter">Share to Twitter</string>
     <string name="create_post_edit_image">Edit image</string>
@@ -297,6 +298,7 @@
     <string name="create_post_dialog_photo">Photo options</string>
     <string name="create_post_dialog_location">Add location</string>
     <string name="create_post_dialog_tag">Tag people</string>
+    <string name="create_post_dialog_music">Choose music</string>
     <string name="create_post_dialog_hint_location">City, venue, or your favorite spot</string>
     <string name="create_post_dialog_hint_tag">\@username1, \@username2</string>
     <string name="create_post_choose_gallery">Choose from gallery</string>
@@ -313,6 +315,12 @@
     <string name="create_post_failed">Could not create the post</string>
     <string name="create_post_location_summary">%1$s</string>
     <string name="create_post_tags_summary">%1$s</string>
+    <string name="create_post_music_summary">%1$s - %2$s</string>
+    <string name="create_post_music_summary_loading">Finding music suggestions...</string>
+    <string name="create_post_music_summary_ready">%1$d AI suggestions ready</string>
+    <string name="create_post_music_clear">Clear music</string>
+    <string name="create_post_music_ai_prefix">AI pick</string>
+    <string name="create_post_music_scene_hint">Scene: %1$s</string>
     <string name="create_post_rotation_value">Current rotation: %1$d°</string>
     <string name="create_post_loading_user">Loading profile...</string>
     <string name="comment_title">Comments</string>

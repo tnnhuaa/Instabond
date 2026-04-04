@@ -15,6 +15,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.text.InputType;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -31,6 +32,8 @@ import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityCreatePostBinding;
 import com.example.instabond_fe.databinding.DialogEditPhotoBinding;
 import com.example.instabond_fe.model.CreatePostRequest;
+import com.example.instabond_fe.model.MusicSuggestion;
+import com.example.instabond_fe.model.PostSuggestionResponse;
 import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
@@ -51,7 +54,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -128,6 +134,12 @@ public class CreatePostActivity extends AppCompatActivity {
 
     private String tagsText = "";
     private String locationText = "";
+    private String aiSceneDescription = "";
+
+    private MusicSuggestion selectedMusic;
+    private final List<MusicSuggestion> aiMusicSuggestions = new ArrayList<>();
+    private boolean isFetchingMusicSuggestions = false;
+    private Call<PostSuggestionResponse> postSuggestionCall;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -192,6 +204,7 @@ public class CreatePostActivity extends AppCompatActivity {
                     tagsText = value;
                     updateOptionSummaries();
                 }));
+        binding.cardMusic.setOnClickListener(v -> showMusicSelectionDialog());
     }
 
     private void registerLaunchers() {
@@ -204,6 +217,7 @@ public class CreatePostActivity extends AppCompatActivity {
                 sourceBitmap = decodeBitmap(uri);
                 resetEdits(false);
                 renderEditorState();
+                requestMusicSuggestions();
                 openImageEditor(uri);
             } catch (IOException e) {
                 Toast.makeText(this, R.string.create_post_image_read_error, Toast.LENGTH_SHORT).show();
@@ -218,6 +232,7 @@ public class CreatePostActivity extends AppCompatActivity {
             sourceBitmap = limitBitmapSize(bitmap, MAX_SOURCE_EDGE);
             resetEdits(false);
             renderEditorState();
+            requestMusicSuggestions();
             if (selectedImageUri != null) {
                 openImageEditor(selectedImageUri);
             }
@@ -240,6 +255,7 @@ public class CreatePostActivity extends AppCompatActivity {
                         sourceBitmap = decodeBitmap(selectedImageUri);
                         resetEdits(false);
                         renderEditorState();
+                        requestMusicSuggestions();
                     } catch (IOException e) {
                         Toast.makeText(this, R.string.create_post_image_read_error, Toast.LENGTH_SHORT).show();
                     }
@@ -432,6 +448,22 @@ public class CreatePostActivity extends AppCompatActivity {
         binding.tvLocationValue.setVisibility(locationText.isEmpty() ? View.GONE : View.VISIBLE);
         binding.tvTagsValue.setText(tagsText);
         binding.tvTagsValue.setVisibility(tagsText.isEmpty() ? View.GONE : View.VISIBLE);
+
+        String musicSummary = null;
+        if (selectedMusic != null) {
+            musicSummary = getString(
+                    R.string.create_post_music_summary,
+                    safe(selectedMusic.getSongName()),
+                    safe(selectedMusic.getArtist())
+            );
+        } else if (isFetchingMusicSuggestions) {
+            musicSummary = getString(R.string.create_post_music_summary_loading);
+        } else if (!aiMusicSuggestions.isEmpty()) {
+            musicSummary = getString(R.string.create_post_music_summary_ready, aiMusicSuggestions.size());
+        }
+
+        binding.tvMusicValue.setText(musicSummary);
+        binding.tvMusicValue.setVisibility(TextUtils.isEmpty(musicSummary) ? View.GONE : View.VISIBLE);
     }
 
     private void onFilterSelected(FilterType filterType) {
@@ -713,7 +745,13 @@ public class CreatePostActivity extends AppCompatActivity {
                 caption,
                 null, // media processed via multipart files
                 0, 0,
-                parseTags(tagsText)
+                parseTags(tagsText),
+                selectedMusic != null
+                        ? new CreatePostRequest.MusicSuggestionRequest(
+                        selectedMusic.getSongName(),
+                        selectedMusic.getArtist(),
+                        selectedMusic.getPreviewUrl())
+                        : null
         );
 
         RequestBody requestPart = RequestBody.create(
@@ -833,6 +871,185 @@ public class CreatePostActivity extends AppCompatActivity {
         return editText.getText() == null ? "" : editText.getText().toString().trim();
     }
 
+    private void showMusicSelectionDialog() {
+        List<MusicSuggestion> options = buildMusicOptions();
+        if (options.isEmpty()) {
+            Toast.makeText(this, R.string.create_post_select_photo_first, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String[] labels = new String[options.size()];
+        for (int i = 0; i < options.size(); i++) {
+            MusicSuggestion suggestion = options.get(i);
+            String prefix = suggestion.isAiRecommended()
+                    ? getString(R.string.create_post_music_ai_prefix) + ": "
+                    : "";
+            labels[i] = prefix + safe(suggestion.getSongName()) + " - " + safe(suggestion.getArtist());
+        }
+
+        int checkedIndex = findSelectedMusicIndex(options);
+        final int[] pendingIndex = {checkedIndex};
+
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.create_post_dialog_music)
+                .setSingleChoiceItems(labels, checkedIndex, (dialog, which) -> pendingIndex[0] = which)
+                .setNegativeButton(R.string.create_post_cancel, null)
+                .setPositiveButton(R.string.create_post_apply, (dialog, which) -> {
+                    if (pendingIndex[0] >= 0 && pendingIndex[0] < options.size()) {
+                        selectedMusic = options.get(pendingIndex[0]);
+                        updateOptionSummaries();
+                    }
+                });
+
+        if (!TextUtils.isEmpty(aiSceneDescription)) {
+            builder.setMessage(getString(R.string.create_post_music_scene_hint, aiSceneDescription));
+        } else if (isFetchingMusicSuggestions) {
+            builder.setMessage(getString(R.string.create_post_music_summary_loading));
+        }
+
+        if (selectedMusic != null) {
+            builder.setNeutralButton(R.string.create_post_music_clear, (dialog, which) -> {
+                selectedMusic = null;
+                updateOptionSummaries();
+            });
+        }
+
+        builder.show();
+    }
+
+    private int findSelectedMusicIndex(List<MusicSuggestion> options) {
+        if (selectedMusic == null) {
+            return -1;
+        }
+
+        String selectedKey = musicKey(selectedMusic);
+        for (int i = 0; i < options.size(); i++) {
+            if (selectedKey.equals(musicKey(options.get(i)))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private List<MusicSuggestion> buildMusicOptions() {
+        Map<String, MusicSuggestion> merged = new LinkedHashMap<>();
+
+        for (MusicSuggestion suggestion : aiMusicSuggestions) {
+            if (suggestion == null) {
+                continue;
+            }
+            suggestion.setAiRecommended(true);
+            merged.put(musicKey(suggestion), suggestion);
+        }
+
+        for (MusicSuggestion suggestion : getManualMusicCatalog()) {
+            if (suggestion == null) {
+                continue;
+            }
+            merged.putIfAbsent(musicKey(suggestion), suggestion);
+        }
+
+        if (selectedMusic != null) {
+            merged.putIfAbsent(musicKey(selectedMusic), selectedMusic);
+        }
+
+        return new ArrayList<>(merged.values());
+    }
+
+    private List<MusicSuggestion> getManualMusicCatalog() {
+        List<MusicSuggestion> suggestions = new ArrayList<>();
+        suggestions.add(new MusicSuggestion("Golden Hour", "JVKE", null, null, false));
+        suggestions.add(new MusicSuggestion("Sunset Lover", "Petit Biscuit", null, null, false));
+        suggestions.add(new MusicSuggestion("Sunflower", "Post Malone, Swae Lee", null, null, false));
+        suggestions.add(new MusicSuggestion("Night Changes", "One Direction", null, null, false));
+        suggestions.add(new MusicSuggestion("Midnight City", "M83", null, null, false));
+        suggestions.add(new MusicSuggestion("Until I Found You", "Stephen Sanchez", null, null, false));
+        suggestions.add(new MusicSuggestion("Ocean Eyes", "Billie Eilish", null, null, false));
+        suggestions.add(new MusicSuggestion("Adventure of a Lifetime", "Coldplay", null, null, false));
+        suggestions.add(new MusicSuggestion("Good Days", "SZA", null, null, false));
+        suggestions.add(new MusicSuggestion("Blinding Lights", "The Weeknd", null, null, false));
+        return suggestions;
+    }
+
+    private String musicKey(MusicSuggestion suggestion) {
+        String songName = suggestion != null ? safe(suggestion.getSongName()) : "";
+        String artist = suggestion != null ? safe(suggestion.getArtist()) : "";
+        return (songName + "|" + artist).toLowerCase(Locale.ROOT);
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private void requestMusicSuggestions() {
+        if (postSuggestionCall != null) {
+            postSuggestionCall.cancel();
+            postSuggestionCall = null;
+        }
+
+        aiMusicSuggestions.clear();
+        aiSceneDescription = "";
+
+        File imageFile;
+        try {
+            imageFile = createUploadFile();
+        } catch (IOException e) {
+            isFetchingMusicSuggestions = false;
+            updateOptionSummaries();
+            return;
+        }
+
+        if (imageFile == null) {
+            isFetchingMusicSuggestions = false;
+            updateOptionSummaries();
+            return;
+        }
+
+        isFetchingMusicSuggestions = true;
+        updateOptionSummaries();
+
+        RequestBody fileBody = RequestBody.create(MediaType.parse("image/jpeg"), imageFile);
+        MultipartBody.Part imagePart = MultipartBody.Part.createFormData("image", imageFile.getName(), fileBody);
+
+        postSuggestionCall = apiService.getPostSuggestions(imagePart);
+        postSuggestionCall.enqueue(new Callback<PostSuggestionResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<PostSuggestionResponse> call,
+                                   @NonNull Response<PostSuggestionResponse> response) {
+                if (call.isCanceled()) {
+                    return;
+                }
+
+                isFetchingMusicSuggestions = false;
+                aiMusicSuggestions.clear();
+                if (response.isSuccessful() && response.body() != null) {
+                    aiSceneDescription = safe(response.body().getSceneDescription());
+                    if (response.body().getMusicSuggestions() != null) {
+                        for (MusicSuggestion suggestion : response.body().getMusicSuggestions()) {
+                            if (suggestion != null) {
+                                suggestion.setAiRecommended(true);
+                                aiMusicSuggestions.add(suggestion);
+                            }
+                        }
+                    }
+                }
+                updateOptionSummaries();
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<PostSuggestionResponse> call, @NonNull Throwable t) {
+                if (call.isCanceled()) {
+                    return;
+                }
+
+                isFetchingMusicSuggestions = false;
+                aiMusicSuggestions.clear();
+                aiSceneDescription = "";
+                updateOptionSummaries();
+            }
+        });
+    }
+
     private void styleSwitch(SwitchMaterial materialSwitch) {
         int[][] states = new int[][]{
                 new int[]{android.R.attr.state_checked},
@@ -862,11 +1079,20 @@ public class CreatePostActivity extends AppCompatActivity {
         binding.btnEditImage.setEnabled(!loading);
         binding.cardLocation.setEnabled(!loading);
         binding.cardTagPeople.setEnabled(!loading);
+        binding.cardMusic.setEnabled(!loading);
         binding.switchFacebook.setEnabled(!loading);
         binding.switchTwitter.setEnabled(!loading);
         binding.btnPost.setText(loading
                 ? getString(R.string.create_post_posting)
                 : getString(R.string.create_post_post));
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (postSuggestionCall != null) {
+            postSuggestionCall.cancel();
+        }
+        super.onDestroy();
     }
 
     private void openFeedWithRefresh() {

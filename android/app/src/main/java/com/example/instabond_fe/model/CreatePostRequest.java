@@ -12,16 +12,28 @@ public class CreatePostRequest {
     @SerializedName("media")
     private final List<MediaRequest> media;
 
+    @SerializedName("music_suggestion")
+    private final MusicSuggestionRequest musicSuggestion;
+
     @SerializedName("tagged_users")
     private final List<TaggedUserRequest> taggedUsers;
 
-    public CreatePostRequest(String caption, List<MediaRequest> media, List<TaggedUserRequest> taggedUsers) {
+    public CreatePostRequest(String caption,
+                             List<MediaRequest> media,
+                             MusicSuggestionRequest musicSuggestion,
+                             List<TaggedUserRequest> taggedUsers) {
         this.caption = caption;
         this.media = media;
+        this.musicSuggestion = musicSuggestion;
         this.taggedUsers = taggedUsers;
     }
 
-    public static CreatePostRequest fromCaptionAndMedia(String caption, String mediaUrl, int width, int height, List<String> taggedUserIds) {
+    public static CreatePostRequest fromCaptionAndMedia(String caption,
+                                                        String mediaUrl,
+                                                        int width,
+                                                        int height,
+                                                        List<String> taggedUserIds,
+                                                        MusicSuggestionRequest musicSuggestion) {
         List<MediaRequest> media = new ArrayList<>();
         if (mediaUrl != null && !mediaUrl.trim().isEmpty()) {
             media.add(new MediaRequest(mediaUrl, width, height));
@@ -33,8 +45,8 @@ public class CreatePostRequest {
                 taggedUsers.add(new TaggedUserRequest(id));
             }
         }
-        
-        return new CreatePostRequest(caption, media, taggedUsers);
+
+        return new CreatePostRequest(caption, media, musicSuggestion, taggedUsers);
     }
 
     public static class MediaRequest {
@@ -60,6 +72,23 @@ public class CreatePostRequest {
 
         public TaggedUserRequest(String userId) {
             this.userId = userId;
+        }
+    }
+
+    public static class MusicSuggestionRequest {
+        @SerializedName("song_name")
+        private final String songName;
+
+        @SerializedName("artist")
+        private final String artist;
+
+        @SerializedName("preview_url")
+        private final String previewUrl;
+
+        public MusicSuggestionRequest(String songName, String artist, String previewUrl) {
+            this.songName = songName;
+            this.artist = artist;
+            this.previewUrl = previewUrl;
         }
     }
 }

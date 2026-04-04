@@ -1,10 +1,15 @@
+import os
+from pathlib import Path
+
+os.environ.setdefault("DEEPFACE_HOME", str(Path(__file__).resolve().parents[2] / ".deepface"))
+
 from deepface import DeepFace
 import numpy as np
 from app.core.database import users_collection
+from app.services.deepface_utils import safe_deepface_represent
 import cv2
 import requests
 import tempfile
-import os
 
 async def process_face_tagging(image_url: str):
     response = requests.get(image_url)
@@ -13,7 +18,11 @@ async def process_face_tagging(image_url: str):
         tmp_path = tmp.name
 
     try:
-        results = DeepFace.represent(img_path=tmp_path, model_name='Facenet', enforce_detection=False)
+        results = safe_deepface_represent(
+            img_path=tmp_path,
+            model_name='Facenet',
+            enforce_detection=False,
+        )
 
         if not results or (len(results) == 1 and results[0]['face_confidence'] == 0):
             return []

@@ -273,6 +273,7 @@
     <string name="create_post_caption_hint">Viết chú thích...</string>
     <string name="create_post_add_location">Thêm vị trí</string>
     <string name="create_post_tag_people">Gắn thẻ mọi người</string>
+    <string name="create_post_add_music">Chọn nhạc</string>
     <string name="create_post_share_facebook">Chia sẻ lên Facebook</string>
     <string name="create_post_share_twitter">Chia sẻ lên Twitter</string>
     <string name="create_post_edit_image">Chỉnh sửa ảnh</string>
@@ -297,6 +298,7 @@
     <string name="create_post_dialog_photo">Tùy chọn ảnh</string>
     <string name="create_post_dialog_location">Thêm vị trí</string>
     <string name="create_post_dialog_tag">Gắn thẻ mọi người</string>
+    <string name="create_post_dialog_music">Chọn nhạc</string>
     <string name="create_post_dialog_hint_location">Thành phố, địa điểm, hoặc nơi yêu thích</string>
     <string name="create_post_dialog_hint_tag">\@username1, \@username2</string>
     <string name="create_post_choose_gallery">Chọn từ thư viện</string>
@@ -313,6 +315,12 @@
     <string name="create_post_failed">Không thể tạo bài viết</string>
     <string name="create_post_location_summary">%1$s</string>
     <string name="create_post_tags_summary">%1$s</string>
+    <string name="create_post_music_summary">%1$s - %2$s</string>
+    <string name="create_post_music_summary_loading">Đang tìm nhạc đề xuất...</string>
+    <string name="create_post_music_summary_ready">Đã có %1$d gợi ý AI</string>
+    <string name="create_post_music_clear">Bỏ nhạc</string>
+    <string name="create_post_music_ai_prefix">AI đề xuất</string>
+    <string name="create_post_music_scene_hint">Bối cảnh: %1$s</string>
     <string name="create_post_rotation_value">Xoay hiện tại: %1$d°</string>
     <string name="create_post_loading_user">Đang tải hồ sơ...</string>
     <string name="comment_title">Bình luận</string>

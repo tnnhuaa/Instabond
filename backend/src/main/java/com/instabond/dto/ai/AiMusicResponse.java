@@ -1,5 +1,6 @@
-package com.instabond.dto;
+package com.instabond.dto.ai;
 
+import com.instabond.dto.MusicSuggestionDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,9 +12,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PostSuggestionResponse {
-    private String image_url;
+public class AiMusicResponse {
     private String scene_description;
-    private List<TaggedUserDTO> suggested_tags;
-    private List<MusicSuggestionDTO> music_suggestions;
+    private List<MusicSuggestionDTO> suggestions;
 }

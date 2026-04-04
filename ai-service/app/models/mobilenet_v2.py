@@ -1,12 +1,13 @@
+import os
+from pathlib import Path
+
 import torch
 import torch.nn as nn
 from torchvision import models, transforms
 
-# Create singleton model
-weights = models.MobileNet_V2_Weights.DEFAULT
-model = models.mobilenet_v2(weights=weights)
-model.classifier = nn.Identity()
-model.eval()
+os.environ.setdefault("TORCH_HOME", str(Path(__file__).resolve().parents[2] / ".torch"))
+
+_model = None
 
 # Set up preprocessing pipeline
 preprocess = transforms.Compose([
@@ -17,7 +18,13 @@ preprocess = transforms.Compose([
 ])
 
 def get_model():
-    return model
+    global _model
+    if _model is None:
+        weights = models.MobileNet_V2_Weights.DEFAULT
+        _model = models.mobilenet_v2(weights=weights)
+        _model.classifier = nn.Identity()
+        _model.eval()
+    return _model
 
 def get_preprocess():
     return preprocess
