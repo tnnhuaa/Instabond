@@ -142,6 +142,7 @@ public class InboxActivity extends AppCompatActivity {
         List<Conversation> activeItems = buildActiveNowList(filtered.isEmpty() && query.isEmpty() ? allConversations : filtered);
         activeAdapter.setConversations(activeItems);
         activeAdapter.notifyDataSetChanged();
+        updateActiveSectionVisibility(activeItems);
     }
 
     private boolean matchesQuery(Conversation conversation, String query) {
@@ -173,7 +174,6 @@ public class InboxActivity extends AppCompatActivity {
 
     private List<Conversation> buildActiveNowList(List<Conversation> source) {
         List<Conversation> onlineFirst = new ArrayList<>();
-        List<Conversation> fallback = new ArrayList<>();
         java.util.LinkedHashSet<String> seenPeerIds = new java.util.LinkedHashSet<>();
 
         for (Conversation conversation : source) {
@@ -183,15 +183,16 @@ public class InboxActivity extends AppCompatActivity {
             }
             if (peer.isOnline()) {
                 onlineFirst.add(conversation);
-            } else {
-                fallback.add(conversation);
             }
         }
 
-        if (!onlineFirst.isEmpty()) {
-            return onlineFirst.size() > 6 ? onlineFirst.subList(0, 6) : onlineFirst;
-        }
-        return fallback.size() > 6 ? fallback.subList(0, 6) : fallback;
+        return onlineFirst.size() > 6 ? onlineFirst.subList(0, 6) : onlineFirst;
+    }
+
+    private void updateActiveSectionVisibility(List<Conversation> activeItems) {
+        int visibility = activeItems == null || activeItems.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE;
+        binding.tvActiveHeading.setVisibility(visibility);
+        binding.rvActiveUsers.setVisibility(visibility);
     }
 
     private void openConversation(Conversation conversation) {
