@@ -75,10 +75,12 @@ public class SearchController {
             @RequestParam(defaultValue = "0") int page,
 
             @Parameter(description = "Number of items per page")
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+
+                        @AuthenticationPrincipal UserDetails userDetails) {
 
         Pageable pageable = PageRequest.of(page, size);
 
-        return ResponseEntity.ok(searchContext.executeExplore(seed, pageable));
+        return ResponseEntity.ok(searchContext.executeExplore(seed, pageable, userDetails != null ? userDetails.getUsername() : null));
     }
 }

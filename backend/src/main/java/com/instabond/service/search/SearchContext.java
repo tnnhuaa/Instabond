@@ -50,7 +50,7 @@ public class SearchContext {
         return strategy.suggest(keyword, callerPrincipal);
     }
 
-    public List<?> executeExplore(long seed, Pageable pageable) {
-        return postSearchStrategy.explore(seed, pageable);
+    public List<?> executeExplore(long seed, Pageable pageable, String callerPrincipal) {
+        return postSearchStrategy.explore(seed, pageable, callerPrincipal);
     }
 }
