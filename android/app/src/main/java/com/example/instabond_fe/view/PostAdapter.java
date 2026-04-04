@@ -1,5 +1,6 @@
 package com.example.instabond_fe.view;
 
+import android.content.Context;
 import android.graphics.Typeface;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -36,18 +37,18 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         void onUserClicked(Post post, int position);
     }
 
-    private static final String[] LOCATION_FALLBACKS = {
-            "MILAN, ITALY",
-            "BERLIN, GERMANY",
-            "SEOUL, KOREA",
-            "TOKYO, JAPAN"
+    private static final int[] LOCATION_FALLBACKS = {
+            R.string.feed_location_milan,
+            R.string.feed_location_berlin,
+            R.string.feed_location_seoul,
+            R.string.feed_location_tokyo
     };
 
-    private static final String[] TIME_FALLBACKS = {
-            "2 HOURS AGO",
-            "5 HOURS AGO",
-            "1 DAY AGO",
-            "2 DAYS AGO"
+    private static final int[] TIME_FALLBACKS = {
+            R.string.feed_time_fallback_two_hours,
+            R.string.feed_time_fallback_five_hours,
+            R.string.feed_time_fallback_one_day,
+            R.string.feed_time_fallback_two_days
     };
 
     private final List<Post> posts;
@@ -100,17 +101,15 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     @Override
     public void onBindViewHolder(@NonNull PostViewHolder holder, int position) {
         Post post = posts.get(position);
+        Context context = holder.itemView.getContext();
         holder.tvUsername.setText(post.getUsername());
-        holder.tvLocation.setText(LOCATION_FALLBACKS[position % LOCATION_FALLBACKS.length]);
+        holder.tvLocation.setText(context.getString(LOCATION_FALLBACKS[position % LOCATION_FALLBACKS.length]));
         holder.tvLikeCount.setText(numberFormat.format(post.getLikesCount()));
         holder.tvCommentCount.setText(numberFormat.format(post.getCommentsCount()));
-        holder.tvViewComments.setText("View all " + numberFormat.format(post.getCommentsCount()) + " comments");
-        String compactTime = TimeUtils.getCompactRelativeTime(post.getCreatedAt());
-        holder.tvTimeAgo.setText(
-                post.getCreatedAt() == null || post.getCreatedAt().trim().isEmpty()
-                        ? TIME_FALLBACKS[position % TIME_FALLBACKS.length]
-                        : compactTime
-        );
+        holder.tvViewComments.setText(post.getCommentsCount() <= 0
+                ? context.getString(R.string.feed_no_comments)
+                : context.getString(R.string.feed_view_all_comments, numberFormat.format(post.getCommentsCount())));
+        holder.tvTimeAgo.setText(buildFeedTimeLabel(context, post.getCreatedAt(), position));
         holder.tvCaption.setText(buildCaption(post));
         holder.tvImageCount.setVisibility(position == 0 ? View.VISIBLE : View.GONE);
         holder.tvImageCount.setText("1/3");
@@ -172,6 +171,30 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         SpannableStringBuilder builder = new SpannableStringBuilder(username + " " + caption);
         builder.setSpan(new StyleSpan(Typeface.BOLD), 0, username.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return builder;
+    }
+
+    private String buildFeedTimeLabel(Context context, String createdAt, int position) {
+        if (createdAt == null || createdAt.trim().isEmpty()) {
+            return context.getString(TIME_FALLBACKS[position % TIME_FALLBACKS.length]);
+        }
+
+        String compactTime = TimeUtils.getCompactRelativeTime(createdAt);
+        if ("JUST NOW".equals(compactTime)) {
+            return context.getString(R.string.feed_time_just_now);
+        }
+        if (compactTime.endsWith("M AGO")) {
+            String value = compactTime.replace("M AGO", "").trim();
+            return context.getString(R.string.feed_time_minutes_ago, value, value);
+        }
+        if (compactTime.endsWith("H AGO")) {
+            String value = compactTime.replace("H AGO", "").trim();
+            return context.getString(R.string.feed_time_hours_ago, value, value);
+        }
+        if (compactTime.endsWith("D AGO")) {
+            String value = compactTime.replace("D AGO", "").trim();
+            return context.getString(R.string.feed_time_days_ago, value, value);
+        }
+        return compactTime;
     }
 
     static class PostViewHolder extends RecyclerView.ViewHolder {
