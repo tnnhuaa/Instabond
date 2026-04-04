@@ -28,6 +28,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -138,6 +139,34 @@ public class PostService {
         return new ArrayList<>(taggedUsers.values());
     }
 
+    private Set<String> extractTaggedUserIds(List<Post.TaggedUser> taggedUsers) {
+        Set<String> ids = new LinkedHashSet<>();
+        if (taggedUsers == null || taggedUsers.isEmpty()) {
+            return ids;
+        }
+
+        for (Post.TaggedUser taggedUser : taggedUsers) {
+            if (taggedUser == null || taggedUser.getUser_id() == null || taggedUser.getUser_id().isBlank()) {
+                continue;
+            }
+            ids.add(taggedUser.getUser_id());
+        }
+        return ids;
+    }
+
+    private void sendTagNotifications(String senderId, String postId, Set<String> recipientIds) {
+        if (postId == null || postId.isBlank() || recipientIds == null || recipientIds.isEmpty()) {
+            return;
+        }
+
+        for (String recipientId : recipientIds) {
+            if (recipientId == null || recipientId.isBlank() || recipientId.equals(senderId)) {
+                continue;
+            }
+            notificationService.sendTagNotification(senderId, recipientId, postId);
+        }
+    }
+
     // Create a new post
     public PostResponse createPost(String callerEmail, CreatePostRequest request, List<MultipartFile> files) {
         User author = resolveUserFromPrincipal(callerEmail);
@@ -210,7 +239,9 @@ public class PostService {
                 .created_at(Instant.now())
                 .build();
 
-        return toPostResponse(postRepository.save(post), author, author);
+        Post savedPost = postRepository.save(post);
+        sendTagNotifications(authorId, savedPost.getId(), extractTaggedUserIds(savedPost.getTagged_users()));
+        return toPostResponse(savedPost, author, author);
     }
 
     // Get a single post by ID
@@ -335,7 +366,8 @@ public class PostService {
                     .coordinates(request.getLocation().getCoordinates())
                     .build());
         }
-        
+
+        Set<String> existingTaggedIds = extractTaggedUserIds(post.getTagged_users());
         if (request.getTagged_users() != null) {
             List<CreatePostRequest.TaggedUserRequest> mappedTagRequests = request.getTagged_users().stream()
                 .map(req -> {
@@ -348,7 +380,14 @@ public class PostService {
             post.setTagged_users(processedTags);
         }
 
-        return toPostResponse(postRepository.save(post), caller, caller);
+        Post savedPost = postRepository.save(post);
+        if (request.getTagged_users() != null) {
+            Set<String> newTaggedIds = extractTaggedUserIds(savedPost.getTagged_users());
+            newTaggedIds.removeAll(existingTaggedIds);
+            sendTagNotifications(callerId, savedPost.getId(), newTaggedIds);
+        }
+
+        return toPostResponse(savedPost, caller, caller);
     }
 
     // Delete a post (only the author is allowed)
