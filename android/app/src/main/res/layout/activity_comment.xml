@@ -59,7 +59,7 @@
         android:id="@+id/input_container"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="#E6F9F6F5"
+        android:background="@color/theme_toolbar_surface"
         android:orientation="vertical"
         android:paddingStart="16dp"
         android:paddingTop="12dp"
@@ -72,10 +72,10 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@android:color/white"
+            app:cardBackgroundColor="@color/theme_surface_elevated"
             app:cardCornerRadius="28dp"
             app:cardElevation="10dp"
-            app:strokeColor="#14AFACAC"
+            app:strokeColor="@color/theme_outline_soft"
             app:strokeWidth="1dp">
 
             <LinearLayout

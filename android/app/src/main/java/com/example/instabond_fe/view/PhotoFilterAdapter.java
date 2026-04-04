@@ -75,7 +75,7 @@ public class PhotoFilterAdapter extends RecyclerView.Adapter<PhotoFilterAdapter.
         ));
         holder.binding.cardThumbnail.setCardBackgroundColor(ContextCompat.getColor(
                 holder.itemView.getContext(),
-                isSelected ? android.R.color.white : android.R.color.transparent
+                isSelected ? R.color.create_post_filter_selected_bg : android.R.color.transparent
         ));
 
         if (item.thumbnail != null) {

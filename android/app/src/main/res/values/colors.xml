@@ -1,42 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    InstaBond Color Tokens
-    Extracted from Figma design: ZNm4rCJCuY8paZvdTkA5d1 / node 2:619
--->
 <resources>
+    <color name="theme_surface_base">#F9F6F5</color>
+    <color name="theme_surface_section">#F3EFF4</color>
+    <color name="theme_surface_container">#ECE6EE</color>
+    <color name="theme_surface_elevated">#FFFFFF</color>
+    <color name="theme_on_surface">#2F2E2E</color>
+    <color name="theme_on_surface_muted">#5F5B63</color>
+    <color name="theme_on_surface_subtle">#908A94</color>
+    <color name="theme_hint">#AFAAAC</color>
+    <color name="theme_primary">#8037B1</color>
+    <color name="theme_primary_container">#CB80FE</color>
+    <color name="theme_primary_soft_stroke">#338037B1</color>
+    <color name="theme_on_primary">#FDEEFF</color>
+    <color name="theme_warm_accent">#FFB09F</color>
+    <color name="theme_outline_soft">#26AFACAC</color>
+    <color name="theme_outline_medium">#40939090</color>
+    <color name="theme_toolbar_surface">#CCF9F6F5</color>
+    <color name="theme_panel_surface">#E6FFFFFF</color>
+    <color name="theme_secondary_action_surface">#FFF3F0EF</color>
+    <color name="theme_chat_bar_surface">#CCFFFFFF</color>
+    <color name="theme_handle">#DBDBDB</color>
+    <color name="theme_action_button_bg">#2F2E2E</color>
+    <color name="theme_action_button_text">#F9F6F5</color>
+    <color name="theme_destructive_stroke">#55FF5A6B</color>
+    <color name="theme_success">#4CAF50</color>
 
-    <!-- ── Backgrounds ───────────────────────────────────── -->
-    <!-- node 2:620 / 2:622 background -->
-    <color name="bg_primary">#0A0A0F</color>
-    <!-- Avatar inner bg fallback (node 2:628 bg)  -->
-    <color name="bg_avatar_placeholder">#141419</color>
+    <color name="bg_primary">@color/theme_surface_base</color>
+    <color name="bg_avatar_placeholder">#DDD6D3</color>
 
-    <!-- ── Text ──────────────────────────────────────────── -->
-    <!-- Primary text color (node 2:626, 2:648, etc.)  -->
-    <color name="text_primary">#FAFAFA</color>
-    <!-- Secondary / muted text (node 2:652, secondary spans) -->
-    <color name="text_secondary">#A1A1A1</color>
+    <color name="text_primary">@color/theme_on_surface</color>
+    <color name="text_secondary">@color/theme_on_surface_muted</color>
 
-    <!-- ── Accent / Brand ────────────────────────────────── -->
-    <!-- Stories / avatar ring gradient start (Minh Anh) -->
     <color name="gradient_ring_gold_start">#D5AD41</color>
     <color name="gradient_ring_gold_mid">#FFDF20</color>
     <color name="gradient_ring_gold_end">#D5AD41</color>
-    <!-- Stories / avatar ring gradient (Tuấn) -->
     <color name="gradient_ring_blue_start">#D7EDFB</color>
     <color name="gradient_ring_blue_mid">#51A2FF</color>
     <color name="gradient_ring_blue_end">#D7EDFB</color>
 
-    <!-- ── Bottom Navigation ─────────────────────────────── -->
-    <color name="bottom_nav_active">#FAFAFA</color>
-    <color name="bottom_nav_inactive">#A1A1A1</color>
+    <color name="bottom_nav_active">@color/theme_on_primary</color>
+    <color name="bottom_nav_inactive">#CCFDEEFF</color>
 
-    <!-- ── Dividers & Overlays ───────────────────────────── -->
-    <color name="divider">#1F1F2E</color>
-    <!-- Music badge background rgba(0,0,0,0.6) -->
+    <color name="divider">@color/theme_outline_soft</color>
     <color name="overlay_60">#99000000</color>
-    <color name="notification_divider">#14262626</color>
-    <color name="notification_chip_surface">#D8B4FE</color>
+    <color name="notification_divider">@color/theme_outline_soft</color>
+    <color name="notification_chip_surface">@color/theme_primary_container</color>
     <color name="notification_large_chip_start">#33D7EDFB</color>
     <color name="notification_large_chip_mid">#264A4A35</color>
     <color name="notification_large_chip_end">#33D5AD41</color>
@@ -45,109 +53,113 @@
     <color name="notification_orange">#FF8A00</color>
     <color name="notification_green">#1EDC87</color>
     <color name="notification_muted_icon">#6D7387</color>
+    <color name="notification_screen_bg">@color/theme_surface_base</color>
+    <color name="notification_topbar_overlay">#99F9F6F5</color>
+    <color name="notification_section_title">@color/theme_on_surface</color>
+    <color name="notification_section_title_muted">#992F2E2E</color>
+    <color name="notification_group_surface">#F3F0EF</color>
+    <color name="notification_card_surface">@color/theme_surface_elevated</color>
+    <color name="notification_primary_text">@color/theme_on_surface</color>
+    <color name="notification_meta_text">#995C5B5B</color>
+    <color name="notification_placeholder_surface">#E5E2E1</color>
+    <color name="notification_placeholder_stroke">#4DCB80FE</color>
+    <color name="notification_placeholder_icon">@color/theme_primary_container</color>
+    <color name="notification_chip_icon">@color/theme_on_primary</color>
 
-    <!-- ── System Bar / Status Bar ───────────────────────── -->
-    <color name="status_bar">#0A0A0F</color>
+    <color name="status_bar">@color/theme_surface_base</color>
 
-    <!-- ── Sign-In Screen ───────────────────────────────── -->
-    <!-- Tab container / input field background -->
-    <color name="signin_surface">#141419</color>
-    <!-- Input / button border: rgba(215,237,251,0.1) ≈ #1AD7EDFB -->
-    <color name="signin_border">#1AD7EDFB</color>
-    <!-- Placeholder / hint text -->
-    <color name="signin_hint">#6A7282</color>
-    <!-- "Remember password" label / subtitle -->
-    <color name="signin_muted">#99A1AF</color>
-    <!-- Tab inactive text -->
-    <color name="signin_tab_inactive">#6A7282</color>
-    <!-- Horizontal divider line -->
-    <color name="signin_divider">#364153</color>
-    <!-- Terms text (dark grey) -->
-    <color name="signin_terms">#4A5565</color>
-    <!-- "Đăng ký ngay" link color: light blue from gradient start -->
-    <color name="signin_link">#D1EDF9</color>
-    <!-- Brand gradient start (light blue) -->
-    <color name="signin_grad_start">#D1EDF9</color>
-    <!-- Brand gradient end (gold) -->
-    <color name="signin_grad_end">#D5AD41</color>
-    <!-- Checkbox border color -->
-    <color name="signin_checkbox_border">#4A5565</color>
-    <!-- Gradient via mid-blue -->
-    <color name="signin_grad_mid">#7EC8E3</color>
+    <color name="signin_surface">@color/theme_surface_elevated</color>
+    <color name="signin_border">@color/theme_outline_soft</color>
+    <color name="signin_hint">@color/theme_hint</color>
+    <color name="signin_muted">@color/theme_on_surface_muted</color>
+    <color name="signin_tab_inactive">@color/theme_hint</color>
+    <color name="signin_divider">#DAD2DE</color>
+    <color name="signin_terms">@color/theme_on_surface_subtle</color>
+    <color name="signin_link">@color/theme_primary</color>
+    <color name="signin_grad_start">@color/theme_primary</color>
+    <color name="signin_grad_end">@color/theme_primary_container</color>
+    <color name="signin_checkbox_border">@color/theme_outline_medium</color>
+    <color name="signin_grad_mid">#A962D5</color>
 
-    <!-- Search screen -->
-    <color name="search_topbar_bg">#141419</color>
-    <color name="search_input_bg">#80262626</color>
-    <color name="search_chip_start">#33D7EDFB</color>
-    <color name="search_chip_end">#33D5AD41</color>
-    <color name="search_chip_border">#4DD7EDFB</color>
-    <color name="search_placeholder">#A1A1A1</color>
-    <color name="search_tile_placeholder">#1A1A22</color>
-    <color name="search_chip_emoji">#0A0A0A</color>
-    <!-- Settings actions -->
-    <color name="logout_button_bg">#000000</color>
+    <color name="search_topbar_bg">@color/theme_surface_elevated</color>
+    <color name="search_input_bg">#80F3EFF4</color>
+    <color name="search_chip_start">#33CB80FE</color>
+    <color name="search_chip_end">#33FFC4B7</color>
+    <color name="search_chip_border">#4DCB80FE</color>
+    <color name="search_placeholder">@color/theme_on_surface_muted</color>
+    <color name="search_tile_placeholder">@color/theme_surface_container</color>
+    <color name="search_chip_emoji">@color/theme_on_surface</color>
+    <color name="logout_button_bg">@color/theme_action_button_bg</color>
 
-    <!-- Chat bubbles -->
-    <color name="chat_bubble_me">#0B3D91</color>
-    <color name="chat_bubble_peer">#E5E7EB</color>
-    <color name="chat_bubble_peer_stroke">#D1D5DB</color>
-    <color name="chat_text_me">#FFFFFF</color>
+    <color name="chat_bubble_me">@color/theme_primary</color>
+    <color name="chat_bubble_peer">@color/theme_surface_elevated</color>
+    <color name="chat_bubble_peer_stroke">@color/theme_outline_medium</color>
+    <color name="chat_text_me">@color/theme_on_primary</color>
     <color name="chat_time_me">#E6FFFFFF</color>
-    <color name="chat_text_peer">#111111</color>
-    <color name="chat_time_peer">#66000000</color>
+    <color name="chat_text_peer">@color/theme_on_surface</color>
+    <color name="chat_time_peer">#995C5B5B</color>
 
-    <!-- Login redesign -->
-    <color name="login_bg_start">#8037B1</color>
-    <color name="login_bg_start_transparent">#806200EA</color>
-    <color name="login_bg_mid">#CB80FE</color>
-    <color name="login_bg_end">#FFC4B7</color>
-    <color name="login_card_surface">#F9F6F5</color>
-    <color name="login_text_primary">#2F2E2E</color>
-    <color name="login_text_secondary">#5C5B5B</color>
-    <color name="login_hint_text">#AFACAC</color>
-    <color name="login_divider">#DFDCDC</color>
+    <color name="login_bg_start">@color/theme_primary</color>
+    <color name="login_bg_start_transparent">#808037B1</color>
+    <color name="login_bg_mid">@color/theme_primary_container</color>
+    <color name="login_bg_end">@color/theme_warm_accent</color>
+    <color name="login_card_surface">@color/theme_surface_base</color>
+    <color name="login_text_primary">@color/theme_on_surface</color>
+    <color name="login_text_secondary">@color/theme_on_surface_muted</color>
+    <color name="login_hint_text">@color/theme_hint</color>
+    <color name="login_divider">#DAD2DE</color>
     <color name="login_primary_text">#FDEEFF</color>
     <color name="login_secondary_start">#E5E2E1</color>
     <color name="login_secondary_end">#D7CFE3</color>
     <color name="login_footer_text">#99FFFFFF</color>
     <color name="login_footer_dot">#66FFFFFF</color>
-    <color name="settings_text_primary">#1F1F1F</color>
-    <color name="settings_text_secondary">#5B5B5B</color>
+    <color name="settings_text_primary">@color/theme_on_surface</color>
+    <color name="settings_text_secondary">@color/theme_on_surface_muted</color>
     <color name="signup_hint_text">#80787676</color>
     <color name="signup_icon_tint">#8E8A89</color>
-    <color name="feed_surface">#F3F0EF</color>
-    <color name="feed_story_inactive">#DFDCDC</color>
-    <color name="feed_story_label">#5C5B5B</color>
-    <color name="feed_icon_dark">#2F2E2E</color>
-    <color name="feed_icon_gray">#787676</color>
-    <color name="feed_meta">#787676</color>
-    <color name="feed_topbar_overlay">#99F9F6F5</color>
+    <color name="feed_surface">@color/theme_surface_section</color>
+    <color name="feed_story_inactive">@color/theme_surface_container</color>
+    <color name="feed_story_label">@color/theme_on_surface_muted</color>
+    <color name="feed_icon_dark">@color/theme_on_surface</color>
+    <color name="feed_icon_gray">@color/theme_on_surface_subtle</color>
+    <color name="feed_meta">@color/theme_on_surface_subtle</color>
+    <color name="feed_topbar_overlay">#CCF9F6F5</color>
     <color name="feed_nav_overlay">#99CB80FE</color>
     <color name="feed_nav_active">#33FFFFFF</color>
-    <color name="feed_counter_bg">#66F9F6F5</color>
-    <color name="create_post_switch_track_on">#D8B4FE</color>
+    <color name="feed_counter_bg">#66FFFFFF</color>
+    <color name="create_post_switch_track_on">@color/theme_primary_container</color>
     <color name="create_post_switch_track_off">#E5E2E1</color>
-    <color name="create_post_switch_thumb_on">#FFFFFF</color>
-    <color name="create_post_switch_thumb_off">#FFFFFF</color>
+    <color name="create_post_switch_thumb_on">@color/theme_surface_elevated</color>
+    <color name="create_post_switch_thumb_off">@color/theme_surface_elevated</color>
+    <color name="create_post_card_surface">#F4EEF3</color>
+    <color name="create_post_preview_start">#F4EBEF</color>
+    <color name="create_post_preview_end">#EEE3EA</color>
+    <color name="create_post_preview_text">#8B7388</color>
+    <color name="create_post_preview_hint">#A58D9B</color>
+    <color name="create_post_filter_start">#F1E7ED</color>
+    <color name="create_post_filter_end">#E8DDE6</color>
+    <color name="create_post_filter_selected_bg">#F7EEF9</color>
+    <color name="create_post_social_icon_surface">#F2EBF5</color>
+    <color name="create_post_edit_badge">#C1B7BD</color>
     <color name="search_section_muted">#99787676</color>
     <color name="search_avatar_ring">#BD73EF</color>
     <color name="search_close_icon">#B8B0B0</color>
     <color name="search_suggestion_overlay">#0D8037B1</color>
     <color name="search_preview_fill">#E5E2E1</color>
     <color name="search_preview_border">#4DCB80FE</color>
-    <color name="search_input_outline">#26AFACAC</color>
-    <color name="search_chip_inactive">#DFDCDC</color>
+    <color name="search_input_outline">@color/theme_outline_soft</color>
+    <color name="search_chip_inactive">#ECE6EE</color>
     <color name="search_featured_badge">#8C7668</color>
     <color name="color_grey_light">#EFEFEF</color>
     <color name="color_grey_darker">#DCDCDC</color>
     <color name="red_500">#F44336</color>
-    <color name="settings_accent">#E1306C</color>
-    <color name="settings_muted_label">#787676</color>
-    <color name="settings_switch_off_track">#DFDCDC</color>
+    <color name="settings_accent">@color/theme_primary</color>
+    <color name="settings_muted_label">@color/theme_on_surface_subtle</color>
+    <color name="settings_switch_off_track">#D5CED8</color>
     <color name="settings_chip_purple_bg">#F3E9FF</color>
     <color name="settings_chip_peach_bg">#FCE9E4</color>
     <color name="settings_chip_yellow_bg">#FFF2CF</color>
-    <color name="settings_chip_purple_icon">#8037B1</color>
+    <color name="settings_chip_purple_icon">@color/theme_primary</color>
     <color name="settings_chip_peach_icon">#E45E38</color>
     <color name="settings_chip_yellow_icon">#8F7312</color>
 </resources>

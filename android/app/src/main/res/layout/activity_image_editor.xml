@@ -10,7 +10,7 @@
         android:id="@+id/top_bar"
         android:layout_width="0dp"
         android:layout_height="64dp"
-        android:background="#CCF9F6F5"
+        android:background="@color/theme_toolbar_surface"
         android:elevation="2dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"

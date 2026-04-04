@@ -18,6 +18,7 @@ import com.example.instabond_fe.model.FollowUserResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.LocaleManager;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.List;
@@ -27,6 +28,10 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class BlockedUsersActivity extends AppCompatActivity {
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
 
     private ApiService apiService;
     private UserAdapter adapter;

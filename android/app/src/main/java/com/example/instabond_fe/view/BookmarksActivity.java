@@ -16,6 +16,7 @@ import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiListParser;
 import com.example.instabond_fe.network.ApiService;
+import com.example.instabond_fe.utils.LocaleManager;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 
@@ -27,6 +28,11 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class BookmarksActivity extends AppCompatActivity {
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
+
     private PostAdapter adapter;
     private ApiService apiService;
     private final Gson gson = new Gson();

@@ -10,7 +10,7 @@
         android:id="@+id/top_bar"
         android:layout_width="0dp"
         android:layout_height="64dp"
-        android:background="#99FFFFFF"
+        android:background="@color/theme_toolbar_surface"
         android:elevation="6dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
@@ -198,7 +198,7 @@
         android:id="@+id/layout_input"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="#CCFFFFFF"
+        android:background="@color/theme_chat_bar_surface"
         android:elevation="8dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
@@ -237,7 +237,7 @@
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            app:cardBackgroundColor="@android:color/white"
+            app:cardBackgroundColor="@color/theme_surface_elevated"
             app:cardCornerRadius="999dp"
             app:cardElevation="0dp">
 

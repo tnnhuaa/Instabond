@@ -37,6 +37,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.utils.AvatarLoader;
+import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.switchmaterial.SwitchMaterial;
@@ -60,6 +61,11 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class CreatePostActivity extends AppCompatActivity {
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
+
     private static final String EXTRA_REFRESH_FEED = "refresh_feed";
 
     public enum FilterType {

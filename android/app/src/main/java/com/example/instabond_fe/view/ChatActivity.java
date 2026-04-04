@@ -19,6 +19,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.repository.WebSocketManager;
 import com.example.instabond_fe.utils.AvatarLoader;
+import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.viewmodel.ChatViewModel;
 import com.example.instabond_fe.model.UserProfileResponse;
 
@@ -27,6 +28,11 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class ChatActivity extends AppCompatActivity {
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
+
     private static final String EXTRA_CONVERSATION_ID = "CONVERSATION_ID";
     private static final String EXTRA_CONVERSATION_ID_FALLBACK = "conversationId";
     private static final String EXTRA_PARTNER_NAME = "PARTNER_NAME";

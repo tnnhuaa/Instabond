@@ -16,6 +16,7 @@ import com.example.instabond_fe.model.AuthResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.LocaleManager;
 
 import org.json.JSONObject;
 
@@ -26,6 +27,10 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class SignUpActivity extends AppCompatActivity {
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
 
     private ActivitySignupBinding binding;
     private boolean passwordVisible = false;

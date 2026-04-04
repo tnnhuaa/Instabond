@@ -6,7 +6,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -14,7 +13,6 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
-import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityProfileBinding;
 import com.example.instabond_fe.model.FollowUserResponse;
@@ -26,6 +24,7 @@ import com.example.instabond_fe.network.ApiListParser;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.utils.AvatarLoader;
+import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -45,15 +44,13 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class ProfileActivity extends AppCompatActivity {
+    public static final String EXTRA_PROFILE_NAV_CONTEXT = "profile_nav_context";
+    public static final String NAV_CONTEXT_SEARCH = "search";
 
-    private static final String HIGHLIGHT_PROCESS =
-            "https://www.figma.com/api/mcp/asset/5b99f577-4b4d-478f-9713-de1a77a92f1b";
-    private static final String HIGHLIGHT_VIBE =
-            "https://www.figma.com/api/mcp/asset/37d6dab0-ce83-4973-853c-c638eac998cd";
-    private static final String HIGHLIGHT_TRAVEL =
-            "https://www.figma.com/api/mcp/asset/9220028b-16cc-45b0-a2b0-df2799b074db";
-    private static final String HIGHLIGHT_NATURE =
-            "https://www.figma.com/api/mcp/asset/369303e1-7b73-438e-be7b-9c65d568a10b";
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
 
     private ActivityProfileBinding binding;
     private ApiService apiService;
@@ -104,8 +101,6 @@ public class ProfileActivity extends AppCompatActivity {
                     }
                 });
 
-        bindHighlightImages();
-
         Uri data = getIntent().getData();
         boolean isResolvingDeepLink = false;
         if (data != null && "instabond".equals(data.getScheme())) {
@@ -119,6 +114,9 @@ public class ProfileActivity extends AppCompatActivity {
         }
 
         String targetUserId = getIntent().getStringExtra("targetUserId");
+        boolean showSearchBottomNav = NAV_CONTEXT_SEARCH.equals(
+                getIntent().getStringExtra(EXTRA_PROFILE_NAV_CONTEXT)
+        );
         android.util.Log.d("PROFILE_DEBUG", "Nhận được targetUserId từ Intent: " + targetUserId);
         isOwnProfileView = targetUserId == null || targetUserId.equals(sessionManager.getUserId());
 
@@ -127,26 +125,10 @@ public class ProfileActivity extends AppCompatActivity {
                 configureOwnProfileView();
                 loadMyProfile();
             } else {
-                configureExternalProfileView(targetUserId);
+                configureExternalProfileView(targetUserId, showSearchBottomNav);
                 loadUserProfile(targetUserId);
             }
         }
-        barcodeLauncher = registerForActivityResult(
-                new com.journeyapps.barcodescanner.ScanContract(),
-                result -> {
-                    if (result.getContents() != null) {
-                        String scannedData = result.getContents();
-                        if (scannedData.startsWith("instabond://profile")) {
-                            resolveProfileFromPayload(scannedData);
-                        } else if (scannedData.startsWith("instabond://user/")) {
-                            String targetId = scannedData.replace("instabond://user/", "").trim();
-                            Intent intent = new Intent(this, ProfileActivity.class);
-                            intent.putExtra("targetUserId", targetId);
-                            startActivity(intent);
-                        }
-                    }
-                });
-
         binding.btnScanQr.setOnClickListener(v -> {
             com.journeyapps.barcodescanner.ScanOptions options = new com.journeyapps.barcodescanner.ScanOptions();
             options.setPrompt("Quét mã QR");
@@ -193,8 +175,11 @@ public class ProfileActivity extends AppCompatActivity {
         binding.btnSecondaryAction.setOnClickListener(v -> shareProfile());
     }
 
-    private void configureExternalProfileView(String targetUserId) {
-        binding.bottomNav.setVisibility(View.GONE);
+    private void configureExternalProfileView(String targetUserId, boolean showSearchBottomNav) {
+        binding.bottomNav.setVisibility(showSearchBottomNav ? View.VISIBLE : View.GONE);
+        if (showSearchBottomNav) {
+            binding.bottomNav.bind(this, InstaBottomNavView.Tab.SEARCH);
+        }
         binding.btnEditAvatar.setVisibility(View.GONE);
 
         binding.btnSettings.setVisibility(View.VISIBLE);
@@ -397,20 +382,6 @@ public class ProfileActivity extends AppCompatActivity {
         });
     }
 
-    private void bindHighlightImages() {
-        loadImage(binding.ivHighlightProcess, HIGHLIGHT_PROCESS);
-        loadImage(binding.ivHighlightVibe, HIGHLIGHT_VIBE);
-        loadImage(binding.ivHighlightTravel, HIGHLIGHT_TRAVEL);
-        loadImage(binding.ivHighlightNature, HIGHLIGHT_NATURE);
-    }
-
-    private void loadImage(ImageView view, String url) {
-        Glide.with(this)
-                .load(url)
-                .centerCrop()
-                .into(view);
-    }
-
     private void openFollowList(String userId, String mode) {
         Intent intent = new Intent(this, FollowListActivity.class);
         intent.putExtra(FollowListActivity.EXTRA_MODE, mode);
@@ -534,7 +505,7 @@ public class ProfileActivity extends AppCompatActivity {
                 if (isOwnProfileView) {
                     configureOwnProfileView();
                 } else {
-                    configureExternalProfileView(currentUserId);
+                    configureExternalProfileView(currentUserId, false);
                 }
 
                 bindProfile(profile);

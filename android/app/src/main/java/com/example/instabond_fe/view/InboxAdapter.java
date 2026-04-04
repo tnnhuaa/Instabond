@@ -103,14 +103,17 @@ public class InboxAdapter extends RecyclerView.Adapter<InboxAdapter.InboxViewHol
             binding.tvConversationPreview.setText(preview);
             binding.tvConversationTime.setText(TimeUtils.getConversationTimeLabel(conversation.getUpdatedAt()));
 
-            int primarySurface = ContextCompat.getColor(itemView.getContext(), android.R.color.white);
+            int highlightedSurface = ContextCompat.getColor(itemView.getContext(), R.color.theme_surface_elevated);
             int secondarySurface = ContextCompat.getColor(itemView.getContext(), R.color.feed_surface);
+            int strokeColor = ContextCompat.getColor(itemView.getContext(), R.color.theme_outline_soft);
             int titleColor = ContextCompat.getColor(itemView.getContext(), R.color.login_text_primary);
             int previewColor = ContextCompat.getColor(itemView.getContext(), isUnread ? R.color.login_text_primary : R.color.login_text_secondary);
             int timeColor = ContextCompat.getColor(itemView.getContext(), isUnread ? R.color.login_bg_start : R.color.login_text_secondary);
 
-            binding.cardConversation.setCardBackgroundColor(isUnread || position == 0 ? primarySurface : secondarySurface);
+            binding.cardConversation.setCardBackgroundColor(isUnread || position == 0 ? highlightedSurface : secondarySurface);
             binding.cardConversation.setCardElevation(isUnread || position == 0 ? dp(8f) : 0f);
+            binding.cardConversation.setStrokeColor(strokeColor);
+            binding.cardConversation.setStrokeWidth((int) dp(isUnread || position == 0 ? 1f : 0f));
             binding.tvConversationTitle.setTextColor(titleColor);
             binding.tvConversationPreview.setTextColor(previewColor);
             binding.tvConversationTime.setTextColor(timeColor);

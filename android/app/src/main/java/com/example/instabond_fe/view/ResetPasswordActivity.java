@@ -11,6 +11,7 @@ import com.example.instabond_fe.model.ForgotPasswordRequest;
 import com.example.instabond_fe.model.ResetPasswordRequest;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
+import com.example.instabond_fe.utils.LocaleManager;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -18,6 +19,11 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class ResetPasswordActivity extends AppCompatActivity {
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
+
     private ActivityResetPasswordBinding binding;
     private ApiService apiService;
     private String userEmail;

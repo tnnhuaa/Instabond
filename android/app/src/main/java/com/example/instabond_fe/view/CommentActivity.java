@@ -28,6 +28,7 @@ import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.utils.ShareUtils;
 
 import java.util.ArrayList;
@@ -42,6 +43,11 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
     private static final String ENTRY_TYPE_TAG = "TAG";
     private static final String EXTRA_ENTRY_TYPE = "entryType";
     private static final String EXTRA_FALLBACK_USER_ID = "fallbackUserId";
+
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
 
     private String postId;
     private String entryType;

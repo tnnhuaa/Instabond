@@ -24,6 +24,7 @@ import com.example.instabond_fe.network.ApiListParser;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.ChatRepository;
+import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -53,6 +54,11 @@ import android.widget.Button;
 import com.bumptech.glide.Glide;
 
 public class NewsfeedActivity extends AppCompatActivity {
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
+
     private static final String EXTRA_REFRESH_FEED = "refresh_feed";
     private static final int PAGE_SIZE = 5;
     private static final int VISIBLE_THRESHOLD = 2;

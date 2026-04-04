@@ -19,11 +19,16 @@ import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivitySearchBinding;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
+import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.viewmodel.SearchViewModel;
 
 import java.util.ArrayList;
 
 public class SearchActivity extends AppCompatActivity {
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
 
     private ActivitySearchBinding binding;
     private SearchViewModel searchViewModel;

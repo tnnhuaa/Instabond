@@ -1,6 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-    InstaBond — String resources
--->
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">InstaBond</string>
 
@@ -40,86 +38,89 @@
     <string name="nav_create">Create</string>
     <string name="nav_notifications">Notifications</string>
     <string name="nav_profile">Profile</string>
-    <string name="search_hint">T&#236;m ki&#7871;m...</string>
-    <string name="search_ai_heading">G&#7907;i &#253; t&#7915; AI</string>
-    <string name="search_explore_heading">Kh&#225;m ph&#225;</string>
-    <string name="search_chip_food">&#272;&#7891; &#259;n</string>
-    <string name="search_chip_travel">Du l&#7883;ch</string>
-    <string name="search_chip_photo">Nhi&#7871;p &#7843;nh</string>
+    <string name="search_hint">Search...</string>
+    <string name="search_ai_heading">AI Suggestions</string>
+    <string name="search_explore_heading">Explore</string>
+    <string name="search_chip_food">Food</string>
+    <string name="search_chip_travel">Travel</string>
+    <string name="search_chip_photo">Photography</string>
     <string name="search_chip_cafe">Cafe</string>
-    <string name="search_chip_nature">Thi&#234;n nhi&#234;n</string>
-    <string name="search_chip_music">&#194;m nh&#7841;c</string>
+    <string name="search_chip_nature">Nature</string>
+    <string name="search_chip_music">Music</string>
     <string name="title_search">Search</string>
 
     <!-- Sign-In / Sign-Up screen -->
-    <string name="tab_signin">Đăng nhập</string>
-    <string name="tab_signup">Đăng ký</string>
-    <string name="hint_signin">Username hoặc Email</string>
-    <string name="hint_username">Tên đăng nhập</string>
-    <string name="hint_password">Mật khẩu</string>
-    <string name="label_remember">Ghi nhớ mật khẩu</string>
-    <string name="btn_signin">Đăng nhập</string>
-    <string name="label_or">hoặc</string>
-    <string name="btn_google">Đăng nhập với Google</string>
-    <string name="text_no_account">Chưa có tài khoản?</string>
-    <string name="btn_register_now">Đăng ký ngay</string>
-    <string name="tagline">Kết nối qua từng khoảnh khắc</string>
-    <string name="terms_full">Bằng cách đăng nhập, bạn đồng ý với Điều khoản Dịch vụ và Chính sách Quyền riêng tư của chúng tôi</string>
+    <string name="tab_signin">Sign In</string>
+    <string name="tab_signup">Sign Up</string>
+    <string name="hint_signin">Username or Email</string>
+    <string name="hint_username">Username</string>
+    <string name="hint_password">Password</string>
+    <string name="label_remember">Remember password</string>
+    <string name="btn_signin">Sign In</string>
+    <string name="label_or">or</string>
+    <string name="btn_google">Sign in with Google</string>
+    <string name="text_no_account">Don\'t have an account?</string>
+    <string name="btn_register_now">Sign up now</string>
+    <string name="tagline">Connect through every moment</string>
+    <string name="terms_full">By signing in, you agree to our Terms of Service and Privacy Policy</string>
     <string name="cd_toggle_password">Toggle password visibility</string>
     <string name="cd_google_logo">Google</string>
     <string name="cd_app_logo">InstaBond logo</string>
 
     <!-- Profile screen -->
-    <string name="title_profile">Hồ sơ</string>
-    <string name="label_posts">Bài viết</string>
-    <string name="label_friends">Người theo dõi</string>
-    <string name="label_likes">Lượt thích</string>
-    <string name="tab_grid">Lưới ảnh</string>
-    <string name="tab_tagged">Có mặt tôi</string>
+    <string name="title_profile">Profile</string>
+    <string name="label_posts">Posts</string>
+    <string name="label_friends">Followers</string>
+    <string name="label_likes">Likes</string>
+    <string name="tab_grid">Grid</string>
+    <string name="tab_tagged">Tagged</string>
     <string name="cd_settings">Settings</string>
     <string name="cd_profile_photo">Profile photo</string>
     <string name="cd_edit_avatar">Edit avatar</string>
-    <string name="search_placeholder_title">Khám phá sẽ sớm xuất hiện</string>
-    <string name="search_placeholder_body">Màn hình Search đã được nối vào nav-bottom chung để bạn tiếp tục triển khai nội dung sau.</string>
+    <string name="search_placeholder_title">Explore will appear soon</string>
+    <string name="search_placeholder_body">The Search screen has been merged into the bottom nav for you to continue developing content later.</string>
 
     <!-- Settings screen -->
-    <string name="title_settings">Cài đặt</string>
-    <string name="settings_edit_profile">Chỉnh sửa hồ sơ</string>
-    <string name="settings_privacy">Quyền riêng tư</string>
-    <string name="hint_full_name">Họ và tên</string>
-    <string name="hint_bio">Tiểu sử</string>
-    <string name="hint_phone_number">Số điện thoại</string>
-    <string name="btn_save_profile">Cập nhật hồ sơ</string>
-    <string name="btn_logout">Đăng xuất</string>
-    <string name="cd_back">Quay lại</string>
-    <string name="privacy_label">Quyền riêng tư</string>
-    <string name="allow_tagging_label">Cho phép gắn thẻ</string>
-    <string name="theme_label">Giao diện</string>
-    <string name="settings_section_personal_info">Thông tin cá nhân</string>
-    <string name="settings_section_security">Bảo mật</string>
+    <string name="title_settings">Settings</string>
+    <string name="settings_edit_profile">Edit profile</string>
+    <string name="settings_privacy">Privacy</string>
+    <string name="hint_full_name">Full name</string>
+    <string name="hint_bio">Bio</string>
+    <string name="hint_phone_number">Phone number</string>
+    <string name="btn_save_profile">Update profile</string>
+    <string name="btn_logout">Sign out</string>
+    <string name="cd_back">Back</string>
+    <string name="privacy_label">Privacy</string>
+    <string name="allow_tagging_label">Allow tagging</string>
+    <string name="theme_label">Theme</string>
+    <string name="language_label">Language</string>
+    <string name="language_english">English</string>
+    <string name="language_vietnamese">Vietnamese</string>
+    <string name="settings_section_personal_info">Personal Info</string>
+    <string name="settings_section_security">Security</string>
     <string name="settings_brand_name">Instabond</string>
-    <string name="settings_help_fab_desc">Hỗ trợ nhanh</string>
-    <string name="settings_feature_soon">Tính năng này sẽ sớm có</string>
-    <string name="msg_user_id_missing">Không tìm thấy user id</string>
-    <string name="msg_profile_update_failed">Cập nhật profile thất bại</string>
-    <string name="msg_profile_updated">Đã cập nhật profile</string>
-    <string name="msg_login_expired">Phiên đăng nhập đã hết hạn</string>
-    <string name="msg_logged_out">Đã đăng xuất</string>
-    <string name="msg_connection_error">Lỗi kết nối: %1$s</string>
-    <string name="msg_update_error">Lỗi cập nhật: %1$s</string>
-    <string name="btn_save_profile_loading">Đang lưu...</string>
+    <string name="settings_help_fab_desc">Quick help</string>
+    <string name="settings_feature_soon">This feature will be available soon</string>
+    <string name="msg_user_id_missing">User ID not found</string>
+    <string name="msg_profile_update_failed">Profile update failed</string>
+    <string name="msg_profile_updated">Profile updated</string>
+    <string name="msg_login_expired">Login session expired</string>
+    <string name="msg_logged_out">Logged out</string>
+    <string name="msg_connection_error">Connection error: %1$s</string>
+    <string name="msg_update_error">Update error: %1$s</string>
+    <string name="btn_save_profile_loading">Saving...</string>
 
-    <string name="tag_preference_everyone">Mọi người</string>
-    <string name="tag_preference_none">Không ai cả</string>
-    <string name="tag_preference_dialog_title">Ai có thể gắn thẻ bạn?</string>
+    <string name="tag_preference_everyone">Everyone</string>
+    <string name="tag_preference_none">No one</string>
+    <string name="tag_preference_dialog_title">Who can tag you?</string>
 
     <!-- Sign-Up screen extras -->
     <string name="hint_email">Email</string>
-    <string name="hint_confirm_password">Nhập lại mật khẩu</string>
-    <string name="btn_signup">Đăng ký</string>
-    <string name="btn_upload_photo">Tải ảnh lên</string>
-    <string name="label_upload_hint">PNG, JPG tối đa 5MB</string>
-    <string name="text_have_account">Đã có tài khoản?</string>
+    <string name="hint_confirm_password">Confirm password</string>
+    <string name="btn_signup">Sign Up</string>
+    <string name="btn_upload_photo">Upload photo</string>
+    <string name="label_upload_hint">PNG, JPG up to 5MB</string>
+    <string name="text_have_account">Already have an account?</string>
     <string name="cd_toggle_confirm_password">Toggle confirm password visibility</string>
 
     <!-- Login redesign -->
@@ -157,26 +158,11 @@
     <string name="signup_loading">Signing up...</string>
     <string name="signup_connection_error">Could not reach the server: %1$s</string>
 
-
     <string name="feed_story_your_story">Your Story</string>
     <string name="feed_story_user_1">elara_designs</string>
     <string name="feed_story_user_2">marcus_v</string>
     <string name="feed_story_user_3">sara.ink</string>
     <string name="feed_story_user_4">lens.craft</string>
-    <string name="feed_location_milan">Milan, Italy</string>
-    <string name="feed_location_berlin">Berlin, Germany</string>
-    <string name="feed_location_seoul">Seoul, Korea</string>
-    <string name="feed_location_tokyo">Tokyo, Japan</string>
-    <string name="feed_view_all_comments">View all %1$s comments</string>
-    <string name="feed_no_comments">No comments yet</string>
-    <string name="feed_time_just_now">Just now</string>
-    <string name="feed_time_minutes_ago">%1$sm ago</string>
-    <string name="feed_time_hours_ago">%1$sh ago</string>
-    <string name="feed_time_days_ago">%1$sd ago</string>
-    <string name="feed_time_fallback_two_hours">2h ago</string>
-    <string name="feed_time_fallback_five_hours">5h ago</string>
-    <string name="feed_time_fallback_one_day">1d ago</string>
-    <string name="feed_time_fallback_two_days">2d ago</string>
     <string name="story_create_title">Create Story</string>
     <string name="story_create_share">Share</string>
     <string name="story_create_posting">Sharing...</string>
@@ -317,13 +303,13 @@
     <string name="create_post_loading_user">Loading profile...</string>
     <string name="comment_title">Comments</string>
     <string name="comment_input_hint">Add a comment...</string>
-    <string name="comment_hint">Thêm bình luận...</string>
+    <string name="comment_hint">Add a comment...</string>
     <string name="comment_post_action">Post</string>
     <string name="comment_reply_action">Reply</string>
     <string name="comment_author_badge">Author</string>
-    <string name="comment_missing_post">Kh&#244;ng t&#236;m th&#7845;y b&#224;i vi&#7871;t</string>
-    <string name="comment_load_failed">Kh&#244;ng t&#7843;i &#273;&#432;&#7907;c b&#236;nh lu&#7853;n</string>
-    <string name="comment_post_failed">G&#7917;i b&#236;nh lu&#7853;n th&#7845;t b&#7841;i</string>
+    <string name="comment_missing_post">Post not found</string>
+    <string name="comment_load_failed">Could not load comments</string>
+    <string name="comment_post_failed">Failed to post comment</string>
     <string name="inbox_search_hint">Search friends or messages...</string>
     <string name="inbox_active_now">Active Now</string>
     <string name="inbox_recent_messages">Recent Messages</string>
@@ -335,8 +321,6 @@
     <string name="chat_type_message">Type a message...</string>
     <string name="chat_reconnecting">Reconnecting...</string>
     <string name="chat_missing_conversation">Missing conversation</string>
-    <string name="chat_image_picker_unavailable">Image picker is not available</string>
-    <string name="chat_image_selected">Image selected</string>
     <string name="chat_story_reply_header">Reply to story</string>
     <string name="chat_story_reply_title">Story</string>
     <string name="chat_story_reply_title_named">%1$s\'s story</string>
@@ -377,20 +361,15 @@
         <item quantity="other">%1$d viewers</item>
     </plurals>
 
-     <!-- Social Network Features -->
-     <string name="block_user">Chặn người dùng</string>
-     <string name="friend_suggestion">Gợi ý kết bạn</string>
-     <string name="cd_more">Thêm tuỳ chọn</string>
-     <string name="profile_avatar">Ảnh đại diện</string>
-     <string name="bookmarks_title">Bookmarks</string>
+    <!-- Social Network Features -->
+    <string name="block_user">Block user</string>
+    <string name="friend_suggestion">Friend suggestions</string>
+    <string name="cd_more">More options</string>
+    <string name="profile_avatar">Profile picture</string>
+    <string name="settings_utilities">Utilities</string>
+    <string name="bookmarks_title">Bookmarks</string>
 
-     <!-- Language settings -->
-     <string name="settings_utilities">Tiện ích</string>
-     <string name="language_label">Ngôn ngữ</string>
-     <string name="language_english">Tiếng Anh</string>
-     <string name="language_vietnamese">Tiếng Việt</string>
-
-     <!-- Private account -->
-     <string name="profile_private_account_title">This account is private</string>
-     <string name="profile_private_account_subtitle">Follow to view private content.</string>
+    <!-- Private account -->
+    <string name="profile_private_account_title">This account is private</string>
+    <string name="profile_private_account_subtitle">Follow to view private content.</string>
 </resources>

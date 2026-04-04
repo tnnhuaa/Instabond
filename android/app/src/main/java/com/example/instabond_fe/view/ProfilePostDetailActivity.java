@@ -34,7 +34,12 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.ChatMessageRequest;
+import com.example.instabond_fe.utils.LocaleManager;
 public class ProfilePostDetailActivity extends AppCompatActivity {
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleManager.setLocale(newBase));
+    }
 
     private ActivityProfilePostDetailBinding binding;
     private PostAdapter adapter;

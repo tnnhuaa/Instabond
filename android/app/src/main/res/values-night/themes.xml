@@ -1,15 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Dark theme inherits from the main InstaBond theme (already dark) -->
     <style name="Theme.InstaBond" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="android:windowBackground">@color/bg_primary</item>
+        <item name="android:windowBackground">@color/theme_surface_base</item>
         <item name="android:statusBarColor">@color/status_bar</item>
-        <item name="android:navigationBarColor">@color/bg_primary</item>
+        <item name="android:navigationBarColor">@color/theme_surface_base</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
-        <item name="colorPrimary">@color/text_primary</item>
-        <item name="colorOnPrimary">@color/bg_primary</item>
-        <item name="colorSurface">@color/bg_primary</item>
-        <item name="colorOnSurface">@color/text_primary</item>
-        <item name="android:colorBackground">@color/bg_primary</item>
+        <item name="colorPrimary">@color/theme_primary</item>
+        <item name="colorOnPrimary">@color/theme_on_primary</item>
+        <item name="colorSecondary">@color/theme_primary_container</item>
+        <item name="colorOnSecondary">@color/theme_on_surface</item>
+        <item name="colorSurface">@color/theme_surface_base</item>
+        <item name="colorOnSurface">@color/theme_on_surface</item>
+        <item name="android:colorBackground">@color/theme_surface_base</item>
     </style>
 </resources>
