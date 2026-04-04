@@ -572,42 +572,6 @@ public class NotificationsActivity extends AppCompatActivity {
             private int resolveChipIcon(String type) {
                 if ("COMMENT".equals(type) || "REPLY_COMMENT".equals(type)) {
                     return R.drawable.ic_message_circle;
-                    if (postImageUrl != null && !postImageUrl.isEmpty()) {
-                        Glide.with(binding.getRoot().getContext())
-                                .load(postImageUrl)
-                                .placeholder(R.drawable.notification_preview_placeholder)
-                                .error(R.drawable.notification_preview_placeholder)
-                                .into(binding.ivPreview);
-                    } else {
-                        binding.ivPreview.setImageResource(R.drawable.notification_preview_placeholder);
-                    }
-                } else if ("TAG".equals(type)) {
-                    binding.smallChip.setVisibility(View.VISIBLE);
-                    binding.ivSmallIcon.setImageResource(R.drawable.ic_message_circle);
-                    binding.largeChip.setVisibility(View.GONE);
-                    binding.ivPreview.setVisibility(View.VISIBLE);
-                    binding.ivPreview.setImageResource(R.drawable.notification_preview_placeholder);
-
-                    binding.ivPreview.setVisibility(View.VISIBLE);
-
-                    String postImageUrl = null;
-                    if (item.getMetadata() != null && item.getMetadata().containsKey("post_image_url")) {
-                        postImageUrl = item.getMetadata().get("post_image_url");
-                    }
-
-                    if (postImageUrl != null && !postImageUrl.isEmpty()) {
-                        Glide.with(binding.getRoot().getContext())
-                                .load(postImageUrl)
-                                .placeholder(R.drawable.notification_preview_placeholder)
-                                .error(R.drawable.notification_preview_placeholder)
-                                .into(binding.ivPreview);
-                    } else {
-                        binding.ivPreview.setImageResource(R.drawable.notification_preview_placeholder);
-                    }
-                } else {
-                    binding.smallChip.setVisibility(View.GONE);
-                    binding.largeChip.setVisibility(View.GONE);
-                    binding.ivPreview.setVisibility(View.GONE);
                 }
                 return R.drawable.ic_heart;
             }
