@@ -282,6 +282,7 @@ public class NotificationsActivity extends AppCompatActivity {
             } else {
                 Intent intent = new Intent(this, ProfileActivity.class);
                 intent.putExtra("targetUserId", notification.getSenderId());
+                intent.putExtra(ProfileActivity.EXTRA_PROFILE_NAV_CONTEXT, ProfileActivity.NAV_CONTEXT_SEARCH);
                 startActivity(intent);
             }
         }

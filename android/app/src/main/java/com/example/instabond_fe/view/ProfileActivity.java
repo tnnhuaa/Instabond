@@ -46,6 +46,8 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class ProfileActivity extends AppCompatActivity {
+    public static final String EXTRA_PROFILE_NAV_CONTEXT = "profile_nav_context";
+    public static final String NAV_CONTEXT_SEARCH = "search";
 
     @Override
     protected void attachBaseContext(android.content.Context newBase) {
@@ -125,6 +127,9 @@ public class ProfileActivity extends AppCompatActivity {
         }
 
         String targetUserId = getIntent().getStringExtra("targetUserId");
+        boolean showSearchBottomNav = NAV_CONTEXT_SEARCH.equals(
+                getIntent().getStringExtra(EXTRA_PROFILE_NAV_CONTEXT)
+        );
         android.util.Log.d("PROFILE_DEBUG", "Nhận được targetUserId từ Intent: " + targetUserId);
         isOwnProfileView = targetUserId == null || targetUserId.equals(sessionManager.getUserId());
 
@@ -133,7 +138,7 @@ public class ProfileActivity extends AppCompatActivity {
                 configureOwnProfileView();
                 loadMyProfile();
             } else {
-                configureExternalProfileView(targetUserId);
+                configureExternalProfileView(targetUserId, showSearchBottomNav);
                 loadUserProfile(targetUserId);
             }
         }
@@ -183,8 +188,11 @@ public class ProfileActivity extends AppCompatActivity {
         binding.btnSecondaryAction.setOnClickListener(v -> shareProfile());
     }
 
-    private void configureExternalProfileView(String targetUserId) {
-        binding.bottomNav.setVisibility(View.GONE);
+    private void configureExternalProfileView(String targetUserId, boolean showSearchBottomNav) {
+        binding.bottomNav.setVisibility(showSearchBottomNav ? View.VISIBLE : View.GONE);
+        if (showSearchBottomNav) {
+            binding.bottomNav.bind(this, InstaBottomNavView.Tab.SEARCH);
+        }
         binding.btnEditAvatar.setVisibility(View.GONE);
 
         binding.btnSettings.setVisibility(View.VISIBLE);
@@ -524,7 +532,7 @@ public class ProfileActivity extends AppCompatActivity {
                 if (isOwnProfileView) {
                     configureOwnProfileView();
                 } else {
-                    configureExternalProfileView(currentUserId);
+                    configureExternalProfileView(currentUserId, false);
                 }
 
                 bindProfile(profile);

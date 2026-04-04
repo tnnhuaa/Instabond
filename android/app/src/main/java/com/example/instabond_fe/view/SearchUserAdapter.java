@@ -47,6 +47,7 @@ public class SearchUserAdapter extends RecyclerView.Adapter<SearchUserAdapter.Us
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), ProfileActivity.class);
             intent.putExtra("targetUserId", user.getId());
+            intent.putExtra(ProfileActivity.EXTRA_PROFILE_NAV_CONTEXT, ProfileActivity.NAV_CONTEXT_SEARCH);
             v.getContext().startActivity(intent);
         });
     }
