@@ -1,11 +1,14 @@
 package com.example.instabond_fe.view;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -41,6 +44,7 @@ public class ChatActivity extends AppCompatActivity {
     private ChatViewModel viewModel;
     private ChatMessageAdapter messageAdapter;
     private ApiService apiService;
+    private ActivityResultLauncher<String> pickImageLauncher;
 
     private String conversationId;
     private String partnerName;
@@ -55,6 +59,7 @@ public class ChatActivity extends AppCompatActivity {
         binding = ActivityChatBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         apiService = ApiClient.getApiService(this);
+        registerLaunchers();
 
         readIntent();
 
@@ -123,6 +128,12 @@ public class ChatActivity extends AppCompatActivity {
         viewModel.getPartnerOnlineLiveData().observe(this, isOnline ->
                 runOnUiThread(() -> renderPartnerHeader(Boolean.TRUE.equals(isOnline))));
 
+        viewModel.getImageUploadingLiveData().observe(this, uploading -> runOnUiThread(() -> {
+            boolean isUploading = Boolean.TRUE.equals(uploading);
+            binding.btnAddAttachment.setEnabled(!isUploading);
+            binding.btnAddAttachment.setAlpha(isUploading ? 0.45f : 1f);
+        }));
+
         viewModel.getErrorLiveData().observe(this, error -> runOnUiThread(() -> {
             if (error != null && !error.trim().isEmpty()) {
                 Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
@@ -154,6 +165,27 @@ public class ChatActivity extends AppCompatActivity {
             viewModel.sendTextMessage(text);
             binding.etMessage.setText("");
         });
+
+        binding.btnAddAttachment.setOnClickListener(v -> openImagePicker());
+    }
+
+    private void registerLaunchers() {
+        pickImageLauncher = registerForActivityResult(new ActivityResultContracts.GetContent(), this::onImagePicked);
+    }
+
+    private void openImagePicker() {
+        if (pickImageLauncher == null) {
+            Toast.makeText(this, "Image picker is not available", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        pickImageLauncher.launch("image/*");
+    }
+
+    private void onImagePicked(Uri uri) {
+        if (uri == null) {
+            return;
+        }
+        viewModel.sendImageMessage(uri);
     }
 
     private void renderPartnerAvatar() {
