@@ -45,6 +45,8 @@ public class ChatActivity extends AppCompatActivity {
     private ChatMessageAdapter messageAdapter;
     private ApiService apiService;
     private ActivityResultLauncher<String> pickImageLauncher;
+    private Uri pendingImageUri;
+    private boolean isImageUploading;
 
     private String conversationId;
     private String partnerName;
@@ -74,7 +76,8 @@ public class ChatActivity extends AppCompatActivity {
         bindObservers();
         bindActions();
         renderPartnerHeader(partnerOnline);
-        updateSendButtonState(false);
+        renderImagePreview();
+        updateSendButtonState(hasTypedText());
         hydratePartnerProfileIfNeeded();
 
         viewModel.startChat(conversationId, partnerId, partnerEmail, partnerOnline);
@@ -129,9 +132,12 @@ public class ChatActivity extends AppCompatActivity {
                 runOnUiThread(() -> renderPartnerHeader(Boolean.TRUE.equals(isOnline))));
 
         viewModel.getImageUploadingLiveData().observe(this, uploading -> runOnUiThread(() -> {
-            boolean isUploading = Boolean.TRUE.equals(uploading);
-            binding.btnAddAttachment.setEnabled(!isUploading);
-            binding.btnAddAttachment.setAlpha(isUploading ? 0.45f : 1f);
+            isImageUploading = Boolean.TRUE.equals(uploading);
+            binding.btnAddAttachment.setEnabled(!isImageUploading);
+            binding.btnAddAttachment.setAlpha(isImageUploading ? 0.45f : 1f);
+            binding.btnClearImagePreview.setEnabled(!isImageUploading);
+            binding.btnClearImagePreview.setAlpha(isImageUploading ? 0.45f : 1f);
+            updateSendButtonState(hasTypedText());
         }));
 
         viewModel.getErrorLiveData().observe(this, error -> runOnUiThread(() -> {
@@ -162,11 +168,23 @@ public class ChatActivity extends AppCompatActivity {
 
         binding.btnSend.setOnClickListener(v -> {
             String text = binding.etMessage.getText() == null ? "" : binding.etMessage.getText().toString();
-            viewModel.sendTextMessage(text);
-            binding.etMessage.setText("");
+            if (isImageUploading) {
+                return;
+            }
+
+            if (text != null && !text.trim().isEmpty()) {
+                viewModel.sendTextMessage(text);
+                binding.etMessage.setText("");
+            }
+
+            if (pendingImageUri != null) {
+                viewModel.sendImageMessage(pendingImageUri);
+                clearPendingImagePreview();
+            }
         });
 
         binding.btnAddAttachment.setOnClickListener(v -> openImagePicker());
+        binding.btnClearImagePreview.setOnClickListener(v -> clearPendingImagePreview());
     }
 
     private void registerLaunchers() {
@@ -185,7 +203,26 @@ public class ChatActivity extends AppCompatActivity {
         if (uri == null) {
             return;
         }
-        viewModel.sendImageMessage(uri);
+        pendingImageUri = uri;
+        renderImagePreview();
+        updateSendButtonState(hasTypedText());
+    }
+
+    private void renderImagePreview() {
+        if (pendingImageUri == null) {
+            binding.layoutImagePreview.setVisibility(View.GONE);
+            binding.ivSelectedImagePreview.setImageDrawable(null);
+            return;
+        }
+
+        binding.layoutImagePreview.setVisibility(View.VISIBLE);
+        binding.ivSelectedImagePreview.setImageURI(pendingImageUri);
+    }
+
+    private void clearPendingImagePreview() {
+        pendingImageUri = null;
+        renderImagePreview();
+        updateSendButtonState(hasTypedText());
     }
 
     private void renderPartnerAvatar() {
@@ -235,8 +272,15 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void updateSendButtonState(boolean hasText) {
-        binding.btnSend.setEnabled(hasText);
-        binding.btnSend.setAlpha(hasText ? 1f : 0.55f);
+        boolean hasPendingImage = pendingImageUri != null;
+        boolean enabled = !isImageUploading && (hasText || hasPendingImage);
+        binding.btnSend.setEnabled(enabled);
+        binding.btnSend.setAlpha(enabled ? 1f : 0.55f);
+    }
+
+    private boolean hasTypedText() {
+        CharSequence input = binding.etMessage.getText();
+        return input != null && !input.toString().trim().isEmpty();
     }
 
     private void readIntent() {

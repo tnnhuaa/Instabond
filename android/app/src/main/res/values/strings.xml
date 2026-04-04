@@ -317,6 +317,7 @@
     <string name="chat_reconnecting">Reconnecting...</string>
     <string name="chat_missing_conversation">Missing conversation</string>
     <string name="chat_image_picker_unavailable">Image picker is not available</string>
+    <string name="chat_image_selected">Image selected</string>
     <string name="chat_story_reply_header">Reply to story</string>
     <string name="chat_story_reply_title">Story</string>
     <string name="chat_story_reply_title_named">%1$s\'s story</string>
