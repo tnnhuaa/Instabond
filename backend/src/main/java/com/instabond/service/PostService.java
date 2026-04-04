@@ -1,11 +1,8 @@
 package com.instabond.service;
 
-import com.instabond.dto.CommentResponse;
-import com.instabond.dto.CreateCommentRequest;
-import com.instabond.dto.CreatePostRequest;
-import com.instabond.dto.PostResponse;
-import com.instabond.dto.UpdatePostRequest;
-import com.instabond.dto.UploadResponse;
+import com.instabond.dto.*;
+import com.instabond.dto.ai.AiImageAnalyzeRequest;
+import com.instabond.dto.ai.AiTagResponse;
 import com.instabond.entity.Interaction;
 import com.instabond.entity.Post;
 import com.instabond.entity.User;
@@ -16,6 +13,7 @@ import com.instabond.repository.PostRepository;
 import com.instabond.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -23,6 +21,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
@@ -32,6 +31,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,6 +43,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final FileService fileService;
+    private final RestTemplate restTemplate;
     private final MongoTemplate mongoTemplate;
     private final InteractionRepository interactionRepository;
     private final NotificationService notificationService;
@@ -49,6 +52,66 @@ public class PostService {
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 20;
     private static final int MAX_SIZE = 100;
+
+    @Value("${ai.service.url:http://localhost:8000}")
+    private String aiServiceUrl;
+
+    private final ExecutorService aiExecutor = Executors.newFixedThreadPool(15);
+
+    // AI-suggestions
+
+    public PostSuggestionResponse getPostSuggestions(MultipartFile imageFile, String email) {
+        // Get current user
+        User currentUser = resolveUserFromPrincipal(email);
+        String currentUserId = currentUser.getId();
+
+        // Upload image to Cloudinary and get URL
+        String imageUrl = fileService.uploadImageUrl(imageFile);
+        AiImageAnalyzeRequest aiRequest = new AiImageAnalyzeRequest(imageUrl);
+
+        // ------ Call AI API in parallel ------
+
+        // Call AI Tag Suggestion API
+        CompletableFuture<List<TaggedUserDTO>> tagFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                String tagEndpoint = aiServiceUrl + "/api/ai/suggest-tags";
+                AiTagResponse tagResponse = restTemplate.postForObject(tagEndpoint, aiRequest, AiTagResponse.class);
+                return processAiTags(tagResponse, currentUserId);
+            } catch (Exception e) {
+                return new ArrayList<>();
+            }
+        }, aiExecutor);
+
+        /* @TODO: Call AI Music Suggestion API in parallel when available
+        CompletableFuture<List<Post.MusicSuggestion>> musicFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                String musicEndpoint = aiServiceUrl + "/api/ai/suggest-music";
+                AiMusicResponse musicResponse = restTemplate.postForObject(musicEndpoint, aiRequest, AiMusicResponse.class);
+                return musicResponse != null ? musicResponse.getSuggestions() : new ArrayList<>();
+            } catch (Exception e) {
+                return new ArrayList<>();
+            }
+        }, aiExecutor);*/
+
+        // -------------------------------------
+
+        // Combine results
+        return CompletableFuture.allOf(tagFuture)
+                .thenApply(v -> PostSuggestionResponse.builder()
+                        .image_url(imageUrl)
+                        .suggested_tags(tagFuture.join())
+                        .build())
+                .join();
+
+        // @TODO: Include music suggestions when that feature is implemented in the AI service
+         /* return CompletableFuture.allOf(tagFuture, musicFuture)
+                    .thenApply(v -> PostSuggestionResponse.builder()
+                        .image_url(imageUrl)
+                        .suggested_tags(tagFuture.join())
+                        .music_suggestions(musicFuture.join())
+                        .build())
+                .join();*/
+    }
 
     private User resolveUserFromPrincipal(String principal) {
         if (principal == null || principal.isBlank()) {
@@ -69,6 +132,34 @@ public class PostService {
     }
 
     // Helper
+
+    private List<TaggedUserDTO> processAiTags(AiTagResponse aiTagResponse, String currentUserId) {
+        if (aiTagResponse == null || aiTagResponse.getDetected_faces() == null) {
+            return new ArrayList<>();
+        }
+
+        return aiTagResponse.getDetected_faces().stream()
+                // Filter confidence > 0.7
+                .filter(face -> face.getConfidence() != null && face.getConfidence() > 0.5)
+                .filter(face -> !face.getMatched_user_id().equals(currentUserId))
+                .map(face -> {
+
+                    User user = userRepository.findById(face.getMatched_user_id()).orElse(null);
+                    if (user == null) return null;
+
+                    return TaggedUserDTO.builder()
+                            .id(user.getId())
+                            .username(user.getUsername())
+                            .full_name(user.getFull_name())
+                            .avatar_url(user.getAvatar_url())
+                            .confidence(face.getConfidence())
+                            .position(face.getPosition())
+                            .build();
+                })
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
     private List<Post> findPostsByAuthorId(String authorId) {
         return findPostsByAuthorId(authorId, DEFAULT_PAGE, DEFAULT_SIZE);
     }
