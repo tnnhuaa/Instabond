@@ -22,8 +22,13 @@ import com.example.instabond_fe.utils.TimeUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.ChatMessageViewHolder> {
+    private static final Pattern JSON_URL_PATTERN = Pattern.compile("\\\"url\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
+    private static final Pattern RESPONSE_URL_PATTERN = Pattern.compile("url=([^,\\s)]+)");
+
     private final List<ChatMessageResponse> items = new ArrayList<>();
     private final String currentUserId;
 
@@ -88,7 +93,8 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
             }
 
             boolean isMine = message.getSenderId() != null && message.getSenderId().equals(currentUserId);
-            boolean isImage = "image".equalsIgnoreCase(message.getType()) && looksLikeUrl(message.getContent());
+            String resolvedImageUrl = resolveImageUrl(message);
+            boolean isImage = resolvedImageUrl != null;
             RichMessageUtils.StoryReplyPayload storyReplyPayload = RichMessageUtils.parseStoryReplyPayload(message);
             RichMessageUtils.PostSharePayload postSharePayload = RichMessageUtils.parsePostSharePayload(message);
             boolean isStoryReply = storyReplyPayload != null;
@@ -132,7 +138,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
                 Glide.with(itemView).clear(ivRichPreview);
                 ivMessageImage.setVisibility(View.VISIBLE);
                 Glide.with(itemView)
-                        .load(normalizeUrl(message.getContent()))
+                        .load(normalizeUrl(resolvedImageUrl))
                         .placeholder(R.drawable.profile_placeholder_bg)
                         .error(R.drawable.profile_placeholder_bg)
                         .into(ivMessageImage);
@@ -198,6 +204,37 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
             }
             String lower = value.trim().toLowerCase(Locale.US);
             return lower.startsWith("http://") || lower.startsWith("https://") || lower.startsWith("/");
+        }
+
+        private String resolveImageUrl(ChatMessageResponse message) {
+            if (message == null || !"image".equalsIgnoreCase(message.getType())) {
+                return null;
+            }
+
+            String content = message.getContent();
+            if (looksLikeUrl(content)) {
+                return content;
+            }
+
+            String parsed = parseUrlFromPayload(content);
+            return looksLikeUrl(parsed) ? parsed : null;
+        }
+
+        private String parseUrlFromPayload(String content) {
+            if (content == null || content.trim().isEmpty()) {
+                return null;
+            }
+
+            Matcher jsonMatcher = JSON_URL_PATTERN.matcher(content);
+            if (jsonMatcher.find()) {
+                return jsonMatcher.group(1);
+            }
+
+            Matcher responseMatcher = RESPONSE_URL_PATTERN.matcher(content);
+            if (responseMatcher.find()) {
+                return responseMatcher.group(1);
+            }
+            return null;
         }
 
         private String normalizeUrl(String rawUrl) {

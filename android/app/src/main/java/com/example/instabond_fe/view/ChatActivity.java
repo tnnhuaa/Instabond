@@ -1,11 +1,14 @@
 package com.example.instabond_fe.view;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -47,6 +50,9 @@ public class ChatActivity extends AppCompatActivity {
     private ChatViewModel viewModel;
     private ChatMessageAdapter messageAdapter;
     private ApiService apiService;
+    private ActivityResultLauncher<String> pickImageLauncher;
+    private Uri pendingImageUri;
+    private boolean isImageUploading;
 
     private String conversationId;
     private String partnerName;
@@ -61,6 +67,7 @@ public class ChatActivity extends AppCompatActivity {
         binding = ActivityChatBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         apiService = ApiClient.getApiService(this);
+        registerLaunchers();
 
         readIntent();
 
@@ -75,7 +82,8 @@ public class ChatActivity extends AppCompatActivity {
         bindObservers();
         bindActions();
         renderPartnerHeader(partnerOnline);
-        updateSendButtonState(false);
+        renderImagePreview();
+        updateSendButtonState(hasTypedText());
         hydratePartnerProfileIfNeeded();
 
         viewModel.startChat(conversationId, partnerId, partnerEmail, partnerOnline);
@@ -129,6 +137,15 @@ public class ChatActivity extends AppCompatActivity {
         viewModel.getPartnerOnlineLiveData().observe(this, isOnline ->
                 runOnUiThread(() -> renderPartnerHeader(Boolean.TRUE.equals(isOnline))));
 
+        viewModel.getImageUploadingLiveData().observe(this, uploading -> runOnUiThread(() -> {
+            isImageUploading = Boolean.TRUE.equals(uploading);
+            binding.btnAddAttachment.setEnabled(!isImageUploading);
+            binding.btnAddAttachment.setAlpha(isImageUploading ? 0.45f : 1f);
+            binding.btnClearImagePreview.setEnabled(!isImageUploading);
+            binding.btnClearImagePreview.setAlpha(isImageUploading ? 0.45f : 1f);
+            updateSendButtonState(hasTypedText());
+        }));
+
         viewModel.getErrorLiveData().observe(this, error -> runOnUiThread(() -> {
             if (error != null && !error.trim().isEmpty()) {
                 Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
@@ -157,9 +174,61 @@ public class ChatActivity extends AppCompatActivity {
 
         binding.btnSend.setOnClickListener(v -> {
             String text = binding.etMessage.getText() == null ? "" : binding.etMessage.getText().toString();
-            viewModel.sendTextMessage(text);
-            binding.etMessage.setText("");
+            if (isImageUploading) {
+                return;
+            }
+
+            if (text != null && !text.trim().isEmpty()) {
+                viewModel.sendTextMessage(text);
+                binding.etMessage.setText("");
+            }
+
+            if (pendingImageUri != null) {
+                viewModel.sendImageMessage(pendingImageUri);
+                clearPendingImagePreview();
+            }
         });
+
+        binding.btnAddAttachment.setOnClickListener(v -> openImagePicker());
+        binding.btnClearImagePreview.setOnClickListener(v -> clearPendingImagePreview());
+    }
+
+    private void registerLaunchers() {
+        pickImageLauncher = registerForActivityResult(new ActivityResultContracts.GetContent(), this::onImagePicked);
+    }
+
+    private void openImagePicker() {
+        if (pickImageLauncher == null) {
+            Toast.makeText(this, "Image picker is not available", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        pickImageLauncher.launch("image/*");
+    }
+
+    private void onImagePicked(Uri uri) {
+        if (uri == null) {
+            return;
+        }
+        pendingImageUri = uri;
+        renderImagePreview();
+        updateSendButtonState(hasTypedText());
+    }
+
+    private void renderImagePreview() {
+        if (pendingImageUri == null) {
+            binding.layoutImagePreview.setVisibility(View.GONE);
+            binding.ivSelectedImagePreview.setImageDrawable(null);
+            return;
+        }
+
+        binding.layoutImagePreview.setVisibility(View.VISIBLE);
+        binding.ivSelectedImagePreview.setImageURI(pendingImageUri);
+    }
+
+    private void clearPendingImagePreview() {
+        pendingImageUri = null;
+        renderImagePreview();
+        updateSendButtonState(hasTypedText());
     }
 
     private void renderPartnerAvatar() {
@@ -209,8 +278,15 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void updateSendButtonState(boolean hasText) {
-        binding.btnSend.setEnabled(hasText);
-        binding.btnSend.setAlpha(hasText ? 1f : 0.55f);
+        boolean hasPendingImage = pendingImageUri != null;
+        boolean enabled = !isImageUploading && (hasText || hasPendingImage);
+        binding.btnSend.setEnabled(enabled);
+        binding.btnSend.setAlpha(enabled ? 1f : 0.55f);
+    }
+
+    private boolean hasTypedText() {
+        CharSequence input = binding.etMessage.getText();
+        return input != null && !input.toString().trim().isEmpty();
     }
 
     private void readIntent() {

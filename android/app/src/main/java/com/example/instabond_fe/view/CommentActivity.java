@@ -40,6 +40,9 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class CommentActivity extends AppCompatActivity implements CommentAdapter.OnCommentInteractionListener {
+    private static final String ENTRY_TYPE_TAG = "TAG";
+    private static final String EXTRA_ENTRY_TYPE = "entryType";
+    private static final String EXTRA_FALLBACK_USER_ID = "fallbackUserId";
 
     @Override
     protected void attachBaseContext(android.content.Context newBase) {
@@ -47,6 +50,8 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
     }
 
     private String postId;
+    private String entryType;
+    private String fallbackUserId;
 
     private ApiService apiService;
     private SessionManager sessionManager;
@@ -68,6 +73,8 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
         setContentView(R.layout.activity_comment);
 
         postId = getIntent().getStringExtra("postId");
+        entryType = getIntent().getStringExtra(EXTRA_ENTRY_TYPE);
+        fallbackUserId = getIntent().getStringExtra(EXTRA_FALLBACK_USER_ID);
 
         if (postId == null || postId.trim().isEmpty()) {
             Toast.makeText(this, R.string.comment_missing_post, Toast.LENGTH_SHORT).show();
@@ -251,6 +258,16 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
                 hideLoading();
                 if (response.isSuccessful() && response.body() != null) {
                     bindPost(response.body());
+                    loadComments();
+                } else if (response.code() == 403) {
+                    if (tryRedirectToFallbackProfile()) {
+                        return;
+                    }
+                    Toast.makeText(CommentActivity.this, "Post not found", Toast.LENGTH_SHORT).show();
+                    finish();
+                } else if (response.code() == 404) {
+                    Toast.makeText(CommentActivity.this, "Post not found", Toast.LENGTH_SHORT).show();
+                    finish();
                 } else {
                     Toast.makeText(CommentActivity.this, R.string.comment_load_failed, Toast.LENGTH_SHORT).show();
                 }
@@ -275,8 +292,13 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
             public void onResponse(@NonNull Call<List<CommentResponse>> call,
                                    @NonNull Response<List<CommentResponse>> response) {
                 hideLoading();
-                if (response.isSuccessful() && response.body() != null) {
-                    commentAdapter.setComments(response.body());
+                if (response.isSuccessful()) {
+                    List<CommentResponse> comments = response.body() != null
+                            ? response.body()
+                            : Collections.emptyList();
+                    commentAdapter.setComments(comments);
+                } else if (response.code() == 404) {
+                    commentAdapter.setComments(Collections.emptyList());
                 } else {
                     Toast.makeText(CommentActivity.this, R.string.comment_load_failed, Toast.LENGTH_SHORT).show();
                 }
@@ -441,6 +463,23 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
 
     private String valueOrEmpty(String value) {
         return value == null ? "" : value;
+    }
+
+    private boolean tryRedirectToFallbackProfile() {
+        if (!ENTRY_TYPE_TAG.equals(entryType)) {
+            return false;
+        }
+
+        if (fallbackUserId == null || fallbackUserId.trim().isEmpty()) {
+            return false;
+        }
+
+        Toast.makeText(this, "Only followers can see this post", Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(this, ProfileActivity.class);
+        intent.putExtra("targetUserId", fallbackUserId);
+        startActivity(intent);
+        finish();
+        return true;
     }
 
     @Override
