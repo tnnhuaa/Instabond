@@ -1,8 +1,4 @@
 import os
-from pathlib import Path
-
-os.environ.setdefault("DEEPFACE_HOME", str(Path(__file__).resolve().parents[2] / ".deepface"))
-
 from deepface import DeepFace
 import numpy as np
 import requests
@@ -12,9 +8,9 @@ import asyncio
 import torch
 from PIL import Image
 from io import BytesIO
-from app.models.mobilenet_v2 import get_preprocess
-from app.services.deepface_utils import safe_deepface_represent
+from app.models.mobilenet_v2 import get_model, get_preprocess
 
+model = get_model()
 preprocess = get_preprocess()
 
 async def download_and_preprocess_image(client: httpx.AsyncClient, url: str) -> torch.Tensor:
@@ -36,11 +32,7 @@ async def process_image_batch(image_urls: list):
             tmp_path = tmp.name
             
         try:
-            results = safe_deepface_represent(
-                img_path=tmp_path,
-                model_name='Facenet',
-                enforce_detection=False,
-            )
+            results = DeepFace.represent(img_path=tmp_path, model_name='Facenet', enforce_detection=False)
             
             if results and len(results) > 0 and results[0]['face_confidence'] > 0:
                 embeddings.append(results[0]["embedding"])
