@@ -64,7 +64,7 @@ public class SearchActivity extends AppCompatActivity {
         searchPostAdapter = new SearchPostAdapter();
 
         searchUserAdapter = new SearchUserAdapter();
-        searchUserAdapter.setOnUserClickListener(user -> {
+        searchUserAdapter.setOnItemClickListener(user -> {
             // Save history "profile"
             searchViewModel.saveSearchHistory("PROFILE", null, user.getId());
 

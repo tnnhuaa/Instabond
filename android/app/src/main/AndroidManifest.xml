@@ -116,6 +116,10 @@
         <activity
             android:name=".view.BlockedUsersActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".view.TagUserActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

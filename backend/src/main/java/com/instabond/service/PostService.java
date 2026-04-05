@@ -201,7 +201,7 @@ public class PostService {
             }
 
             if (targetUser.getId().equals(callerId)) {
-                taggedUsers.putIfAbsent(targetUser.getId(), Post.TaggedUser.builder().user_id(targetUser.getId()).build());
+                taggedUsers.putIfAbsent(targetUser.getId(), buildTaggedUser(targetUser.getId(), requestTaggedUser));
                 continue;
             }
 
@@ -216,11 +216,28 @@ public class PostService {
                     : "everyone";
 
             if (!"none".equals(allowTagging)) {
-                taggedUsers.putIfAbsent(targetUser.getId(), Post.TaggedUser.builder().user_id(targetUser.getId()).build());
+                taggedUsers.putIfAbsent(targetUser.getId(), buildTaggedUser(targetUser.getId(), requestTaggedUser));
             }
         }
 
         return new ArrayList<>(taggedUsers.values());
+    }
+
+    private Post.TaggedUser buildTaggedUser(String userId, CreatePostRequest.TaggedUserRequest requestTaggedUser) {
+        Post.TaggedUser.Position position = null;
+        if (requestTaggedUser != null && requestTaggedUser.getPosition() != null) {
+            position = Post.TaggedUser.Position.builder()
+                    .x(requestTaggedUser.getPosition().getX())
+                    .y(requestTaggedUser.getPosition().getY())
+                    .build();
+        }
+
+        return Post.TaggedUser.builder()
+                .user_id(userId)
+                .tag_type(requestTaggedUser != null ? requestTaggedUser.getTag_type() : null)
+                .confidence(requestTaggedUser != null ? requestTaggedUser.getConfidence() : 0.0)
+                .position(position)
+                .build();
     }
 
     private Set<String> extractTaggedUserIds(List<Post.TaggedUser> taggedUsers) {
@@ -457,6 +474,9 @@ public class PostService {
                 .map(req -> {
                     CreatePostRequest.TaggedUserRequest tReq = new CreatePostRequest.TaggedUserRequest();
                     tReq.setUser_id(req.getUser_id());
+                    tReq.setTag_type(req.getTag_type());
+                    tReq.setConfidence(req.getConfidence());
+                    tReq.setPosition(req.getPosition());
                     return tReq;
                 })
                 .toList();
