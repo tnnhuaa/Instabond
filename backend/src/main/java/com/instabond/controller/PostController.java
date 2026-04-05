@@ -1,10 +1,7 @@
 package com.instabond.controller;
 
-import com.instabond.dto.CommentResponse;
-import com.instabond.dto.CreateCommentRequest;
-import com.instabond.dto.CreatePostRequest;
-import com.instabond.dto.PostResponse;
-import com.instabond.dto.UpdatePostRequest;
+import com.instabond.dto.*;
+import com.instabond.exception.ResourceNotFoundException;
 import com.instabond.service.PostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,6 +30,32 @@ import java.util.List;
 public class PostController {
 
     private final PostService postService;
+
+    // AI-Suggestion
+    @Operation(
+            summary = "Get AI suggestions for an image",
+            description = "Returns a list of suggested user tags for the given image URL, a list of music suggestions, and other relevant metadata."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "AI tag suggestions returned successfully",
+                    content = @Content(schema = @Schema(implementation = PostSuggestionResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid image URL"),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "5xx", description = "AI service error")
+    })
+    @PostMapping(value = "/suggestions", consumes = "multipart/form-data")
+    public ResponseEntity<?> getPostSuggestions(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Parameter(description = "Input image", required = true)
+            @RequestPart("image") MultipartFile image) {
+
+        if (image == null || image.isEmpty()) {
+            throw new ResourceNotFoundException("Image file is required for analysis.");
+        }
+
+        PostSuggestionResponse response = postService.getPostSuggestions(image, userDetails.getUsername());
+        return ResponseEntity.ok(response);
+    }
 
     // Create post
 

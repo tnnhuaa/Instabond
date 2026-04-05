@@ -3,6 +3,7 @@ package com.instabond.entity;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
 import java.util.List;
@@ -31,8 +32,6 @@ public class User {
 
     private String bio;
 
-    private List<Double> face_embedding;
-
     private String qr_code_uid;
 
     private List<Badge> badges;
@@ -44,6 +43,12 @@ public class User {
     private Instant last_active;
 
     private java.util.Set<String> device_tokens;
+
+    @Field("registration_image_urls")
+    private List<String> registrationImageUrls;
+
+    @Field("face_embedding")
+    private List<Double> faceEmbedding;
 
     // Embedded Documents
 
