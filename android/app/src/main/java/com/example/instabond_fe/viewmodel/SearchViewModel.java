@@ -10,6 +10,8 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.example.instabond_fe.model.PostSearchDTO;
+import com.example.instabond_fe.model.SearchHistoryDTO;
+import com.example.instabond_fe.model.SearchHistoryRequest;
 import com.example.instabond_fe.model.UserSearchDTO;
 import com.example.instabond_fe.repository.SearchRepository;
 
@@ -22,6 +24,7 @@ public class SearchViewModel extends AndroidViewModel {
     // LiveData
     private final MutableLiveData<List<UserSearchDTO>> suggestionsLiveData = new MutableLiveData<>();
     private final MutableLiveData<List<PostSearchDTO>> postResultsLiveData = new MutableLiveData<>();
+    private final MutableLiveData<List<SearchHistoryDTO>> searchHistoryLiveData = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
 
     // Explore
@@ -42,10 +45,24 @@ public class SearchViewModel extends AndroidViewModel {
 
     public LiveData<List<UserSearchDTO>> getSuggestionsLiveData() { return suggestionsLiveData; }
     public LiveData<List<PostSearchDTO>> getPostResultsLiveData() { return postResultsLiveData; }
-    public LiveData<List<PostSearchDTO>> getExploreResultsLiveData() {
-        return exploreResultsLiveData;
+    public LiveData<List<PostSearchDTO>> getExploreResultsLiveData() { return exploreResultsLiveData; }
+    public LiveData<List<SearchHistoryDTO>> getSearchHistoryLiveData() { return searchHistoryLiveData; }
+    public LiveData<Boolean> getIsLoading() { return isLoading; }
+
+    // --- Search History ---
+    public void loadSearchHistory() {
+        searchRepository.fetchSearchHistory(searchHistoryLiveData);
     }
 
+    public void saveSearchHistory(String type, String keyword, String targetUserId) {
+        searchRepository.saveSearchHistory(new SearchHistoryRequest(type, keyword, targetUserId));
+    }
+
+    public void deleteSearchHistory(String id) {
+        searchRepository.deleteSearchHistory(id, searchHistoryLiveData);
+    }
+
+    // --- Explore Feed ---
     public void fetchInitialExplorePosts() {
         currentExploreSeed = System.currentTimeMillis();
         explorePage = 0;
@@ -72,11 +89,8 @@ public class SearchViewModel extends AndroidViewModel {
         });
     }
 
-    public LiveData<Boolean> getIsLoading() { return isLoading; }
-
     // WHEN TYPING IN SEARCH BAR
     public void onSearchQueryChanged(String query) {
-        // Cancel pending API call
         if (searchRunnable != null) {
             handler.removeCallbacks(searchRunnable);
         }
@@ -86,21 +100,21 @@ public class SearchViewModel extends AndroidViewModel {
             return;
         }
 
-        // Debounce: schedule new call (500ms)
         searchRunnable = () -> {
             searchRepository.fetchSuggestions(query, suggestionsLiveData);
         };
         handler.postDelayed(searchRunnable, 500);
     }
 
-    // WHEN USER SUBMITS SEARCH (PRESS ENTER | CHANGE TAB)
+    // WHEN USER SUBMITS SEARCH
     public void fetchResults(String query, String type, int page) {
         if (query == null || query.trim().isEmpty()) return;
 
         isLoading.setValue(true);
         if (type.equalsIgnoreCase("POST")) {
             searchRepository.fetchPostResults(query, page, postResultsLiveData);
-            // @TODO: LiveData for user results if needed
         }
+
+        saveSearchHistory("TEXT", query, null);
     }
 }

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp"
+    android:background="?attr/selectableItemBackground">
+
+    <FrameLayout
+        android:id="@+id/fl_history_image_container"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ImageView
+            android:id="@+id/iv_history_icon"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/ic_search_muted" />
+
+        <ImageView
+            android:id="@+id/iv_history_avatar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/avatar_circle_bg"
+            android:clipToOutline="true"
+            android:contentDescription="@string/cd_user_avatar"
+            android:scaleType="centerCrop"
+            android:visibility="gone"
+            tools:ignore="MissingClass"
+            tools:src="@tools:sample/avatars" />
+
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/ll_text_container"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/fl_history_image_container"
+        app:layout_constraintEnd_toStartOf="@id/btn_delete_history">
+
+        <TextView
+            android:id="@+id/tv_history_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/login_text_primary"
+            android:textSize="16sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="penaldo" />
+
+        <TextView
+            android:id="@+id/tv_history_full_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/login_text_secondary"
+            android:textSize="14sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:visibility="gone"
+            tools:text="Cristiano Penaldo"
+            tools:visibility="visible" />
+
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/btn_delete_history"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        android:tint="@color/login_text_secondary"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

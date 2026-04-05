@@ -4,6 +4,8 @@ import android.content.Context;
 import androidx.lifecycle.MutableLiveData;
 
 import com.example.instabond_fe.model.PostSearchDTO;
+import com.example.instabond_fe.model.SearchHistoryDTO;
+import com.example.instabond_fe.model.SearchHistoryRequest;
 import com.example.instabond_fe.model.UserSearchDTO;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
@@ -78,6 +80,47 @@ public class SearchRepository {
             public void onFailure(Call<JsonElement> call, Throwable t) {
                 liveData.postValue(null);
             }
+        });
+    }
+
+    public void fetchSearchHistory(MutableLiveData<List<SearchHistoryDTO>> liveData) {
+        apiService.getSearchHistory().enqueue(new Callback<List<SearchHistoryDTO>>() {
+            @Override
+            public void onResponse(Call<List<SearchHistoryDTO>> call, Response<List<SearchHistoryDTO>> response) {
+                if (response.isSuccessful()) {
+                    liveData.postValue(response.body());
+                } else {
+                    liveData.postValue(null);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<SearchHistoryDTO>> call, Throwable t) {
+                liveData.postValue(null);
+            }
+        });
+    }
+
+    public void saveSearchHistory(SearchHistoryRequest request) {
+        apiService.saveSearchHistory(request).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {}
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {}
+        });
+    }
+
+    public void deleteSearchHistory(String id, MutableLiveData<List<SearchHistoryDTO>> liveData) {
+        apiService.deleteSearchHistory(id).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful()) {
+                    // Fetch lại danh sách sau khi xóa thành công
+                    fetchSearchHistory(liveData);
+                }
+            }
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {}
         });
     }
 }
