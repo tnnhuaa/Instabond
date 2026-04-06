@@ -2,6 +2,9 @@ package com.example.instabond_fe.view;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.graphics.Canvas;
+import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.MotionEvent;
@@ -9,8 +12,11 @@ import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
@@ -25,6 +31,10 @@ public class TagUserActivity extends AppCompatActivity {
     private float currentTapX = 0f;
     private float currentTapY = 0f;
     private TaggedUserAdapter taggedUserAdapter;
+
+    private int deleteAreaWidthPx;
+    private int deleteIconSizePx;
+    private Drawable deleteIconDrawable;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -54,14 +64,11 @@ public class TagUserActivity extends AppCompatActivity {
         taggedUserAdapter = new TaggedUserAdapter(true);
         binding.rvTaggedList.setLayoutManager(new LinearLayoutManager(this));
         binding.rvTaggedList.setAdapter(taggedUserAdapter);
+        setupTaggedListDeleteX();
 
         taggedUserAdapter.setTaggedUsers(taggedUsers);
 
-        taggedUserAdapter.setOnRemoveClickListener((tag, position) -> {
-            taggedUsers.remove(position);
-            taggedUserAdapter.setTaggedUsers(taggedUsers);
-            renderBadges();
-        });
+        taggedUserAdapter.setOnRemoveClickListener((tag, position) -> removeTaggedUserAt(position));
 
         // Event: Back button and Done button
         binding.btnBack.setOnClickListener(v -> finish());
@@ -100,6 +107,95 @@ public class TagUserActivity extends AppCompatActivity {
         renderBadges();
         taggedUserAdapter.setTaggedUsers(taggedUsers);
     }
+
+    private void setupTaggedListDeleteX() {
+        deleteAreaWidthPx = dpToPx(44);
+        deleteIconSizePx = dpToPx(18);
+        deleteIconDrawable = AppCompatResources.getDrawable(this, R.drawable.ic_close_small);
+
+        binding.rvTaggedList.addItemDecoration(new RecyclerView.ItemDecoration() {
+            @Override
+            public void getItemOffsets(@NonNull Rect outRect, @NonNull View view,
+                                       @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
+                outRect.right = deleteAreaWidthPx;
+            }
+
+            @Override
+            public void onDrawOver(@NonNull Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
+                if (deleteIconDrawable == null) {
+                    return;
+                }
+
+                int childCount = parent.getChildCount();
+                for (int i = 0; i < childCount; i++) {
+                    View child = parent.getChildAt(i);
+                    int deleteLeft = child.getRight();
+                    int deleteRight = Math.min(deleteLeft + deleteAreaWidthPx, parent.getWidth() - parent.getPaddingRight());
+                    int centerX = deleteLeft + ((deleteRight - deleteLeft) / 2);
+                    int centerY = child.getTop() + (child.getHeight() / 2);
+
+                    int iconHalf = deleteIconSizePx / 2;
+                    deleteIconDrawable.setBounds(
+                            centerX - iconHalf,
+                            centerY - iconHalf,
+                            centerX + iconHalf,
+                            centerY + iconHalf
+                    );
+                    deleteIconDrawable.draw(c);
+                }
+            }
+        });
+
+        binding.rvTaggedList.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+            @Override
+            public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+                if (e.getAction() != MotionEvent.ACTION_UP) {
+                    return false;
+                }
+
+                View touchedChild = null;
+                int childCount = rv.getChildCount();
+                for (int i = 0; i < childCount; i++) {
+                    View child = rv.getChildAt(i);
+                    if (e.getY() < child.getTop() || e.getY() > child.getBottom()) {
+                        continue;
+                    }
+                    float deleteStartX = child.getRight();
+                    float deleteEndX = Math.min(child.getRight() + deleteAreaWidthPx, rv.getWidth() - rv.getPaddingRight());
+                    if (e.getX() >= deleteStartX && e.getX() <= deleteEndX) {
+                        touchedChild = child;
+                        break;
+                    }
+                }
+
+                if (touchedChild == null) {
+                    return false;
+                }
+
+                int position = rv.getChildAdapterPosition(touchedChild);
+                if (position == RecyclerView.NO_POSITION) {
+                    return false;
+                }
+
+                removeTaggedUserAt(position);
+                return true;
+            }
+        });
+    }
+
+    private void removeTaggedUserAt(int position) {
+        if (position < 0 || position >= taggedUsers.size()) {
+            return;
+        }
+        taggedUsers.remove(position);
+        taggedUserAdapter.setTaggedUsers(taggedUsers);
+        renderBadges();
+    }
+
+    private int dpToPx(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
 
     private void renderBadges() {
         binding.flBadgesOverlay.removeAllViews();
