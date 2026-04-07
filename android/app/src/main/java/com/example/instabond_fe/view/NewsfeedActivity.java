@@ -440,6 +440,8 @@ public class NewsfeedActivity extends AppCompatActivity {
                     shares,
                     avatarUrl,
                     imageUrl,
+                    postResponse.getLocationName(),
+                    postResponse.getMusicDisplayText(),
                     postResponse.hasMusicSuggestion(),
                     postResponse.isLiked(),
                     postResponse.isBookmarked()

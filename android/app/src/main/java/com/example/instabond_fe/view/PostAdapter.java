@@ -19,8 +19,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.Post;
-import com.example.instabond_fe.utils.TimeUtils;
 import com.example.instabond_fe.utils.AvatarLoader;
+import com.example.instabond_fe.utils.TimeUtils;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -36,13 +36,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         void onBookmarkClicked(Post post, int position);
         void onUserClicked(Post post, int position);
     }
-
-    private static final int[] LOCATION_FALLBACKS = {
-            R.string.feed_location_milan,
-            R.string.feed_location_berlin,
-            R.string.feed_location_seoul,
-            R.string.feed_location_tokyo
-    };
 
     private static final int[] TIME_FALLBACKS = {
             R.string.feed_time_fallback_two_hours,
@@ -103,7 +96,11 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         Post post = posts.get(position);
         Context context = holder.itemView.getContext();
         holder.tvUsername.setText(post.getUsername());
-        holder.tvLocation.setText(context.getString(LOCATION_FALLBACKS[position % LOCATION_FALLBACKS.length]));
+
+        String postMeta = buildPostMeta(post);
+        holder.tvLocation.setText(postMeta);
+        holder.tvLocation.setVisibility(postMeta.isEmpty() ? View.GONE : View.VISIBLE);
+
         holder.tvLikeCount.setText(numberFormat.format(post.getLikesCount()));
         holder.tvCommentCount.setText(numberFormat.format(post.getCommentsCount()));
         holder.tvViewComments.setText(post.getCommentsCount() <= 0
@@ -195,6 +192,23 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             return context.getString(R.string.feed_time_days_ago, value, value);
         }
         return compactTime;
+    }
+
+    private String buildPostMeta(Post post) {
+        String music = valueOrEmpty(post.getMusicSummary());
+        String location = valueOrEmpty(post.getLocation());
+
+        if (music.isEmpty()) {
+            return location;
+        }
+        if (location.isEmpty()) {
+            return music;
+        }
+        return music + " - " + location;
+    }
+
+    private String valueOrEmpty(String value) {
+        return value == null ? "" : value.trim();
     }
 
     static class PostViewHolder extends RecyclerView.ViewHolder {

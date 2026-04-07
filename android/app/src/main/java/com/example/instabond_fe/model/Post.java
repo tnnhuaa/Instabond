@@ -14,22 +14,34 @@ public class Post {
     private int sharesCount;
     private final String avatarUrl;
     private final String imageUrl;
+    private final String location;
+    private final String musicSummary;
     private final boolean hasMusicBadge;
     private boolean isLiked;
     private boolean isBookmarked;
 
     public Post(String id, String authorId, String username, String caption, int likesCount, int commentsCount, int sharesCount,
                 String avatarUrl, String imageUrl, boolean hasMusicBadge, boolean isLiked) {
-        this(id, authorId, username, caption, null, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, hasMusicBadge, isLiked);
+        this(id, authorId, username, caption, null, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, null, null, hasMusicBadge, isLiked);
     }
 
     public Post(String id, String authorId, String username, String caption, String createdAt, int likesCount, int commentsCount, int sharesCount,
                 String avatarUrl, String imageUrl, boolean hasMusicBadge, boolean isLiked) {
-        this(id, authorId, username, caption, createdAt, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, hasMusicBadge, isLiked, false);
+        this(id, authorId, username, caption, createdAt, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, null, null, hasMusicBadge, isLiked, false);
+    }
+
+    public Post(String id, String authorId, String username, String caption, String createdAt, int likesCount, int commentsCount, int sharesCount,
+                String avatarUrl, String imageUrl, String location, String musicSummary, boolean hasMusicBadge, boolean isLiked) {
+        this(id, authorId, username, caption, createdAt, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, location, musicSummary, hasMusicBadge, isLiked, false);
     }
 
     public Post(String id, String authorId, String username, String caption, String createdAt, int likesCount, int commentsCount, int sharesCount,
                 String avatarUrl, String imageUrl, boolean hasMusicBadge, boolean isLiked, boolean isBookmarked) {
+        this(id, authorId, username, caption, createdAt, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, null, null, hasMusicBadge, isLiked, isBookmarked);
+    }
+
+    public Post(String id, String authorId, String username, String caption, String createdAt, int likesCount, int commentsCount, int sharesCount,
+                String avatarUrl, String imageUrl, String location, String musicSummary, boolean hasMusicBadge, boolean isLiked, boolean isBookmarked) {
         this.id = id;
         this.authorId = authorId;
         this.username = username;
@@ -40,6 +52,8 @@ public class Post {
         this.sharesCount = sharesCount;
         this.avatarUrl = avatarUrl;
         this.imageUrl = imageUrl;
+        this.location = location;
+        this.musicSummary = musicSummary;
         this.hasMusicBadge = hasMusicBadge;
         this.isLiked = isLiked;
         this.isBookmarked = isBookmarked;
@@ -77,13 +91,20 @@ public class Post {
         return commentsCount;
     }
 
-
     public String getAvatarUrl() {
         return avatarUrl;
     }
 
     public String getImageUrl() {
         return imageUrl;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public String getMusicSummary() {
+        return musicSummary;
     }
 
     public boolean isHasMusicBadge() {
@@ -109,6 +130,7 @@ public class Post {
     public void setSharesCount(int sharesCount) {
         this.sharesCount = sharesCount;
     }
+
     public int getSharesCount() {
         return this.sharesCount;
     }

@@ -391,6 +391,8 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
                 shares,
                 avatarUrl,
                 imageUrl,
+                response.getLocationName(),
+                response.getMusicDisplayText(),
                 response.hasMusicSuggestion(),
                 response.isLiked()
         );

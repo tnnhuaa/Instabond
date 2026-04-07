@@ -208,7 +208,10 @@ public class BookmarksActivity extends AppCompatActivity {
                     id, authorId, username, caption,
                     r.getCreatedAt(),
                     likes, comments, shares,
-                    avatar, image, hasMusic, isLiked, true
+                    avatar, image,
+                    r.getLocationName(),
+                    r.getMusicDisplayText(),
+                    hasMusic, isLiked, true
             );
 
             list.add(p);
