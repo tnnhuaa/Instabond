@@ -1,10 +1,14 @@
 package com.instabond.dto;
 
+import com.instabond.entity.Post;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -70,5 +74,16 @@ public class CreatePostRequest {
     public static class TaggedUserRequest {
         @Schema(description = "ID of the tagged user", example = "64f1a2b3c4d5e6f7a8b9c0d1")
         private String user_id;
+
+        @Schema(description = "The tagging method (either automatically by AI or manually by a user)",
+                allowableValues = {"auto-ai", "user-tag"},
+                example = "auto-ai")
+        private String tag_type;
+
+        @Schema(description = "Confidence score of the AI detection (ranging from 0.0 to 1.0)", example = "0.77")
+        private double confidence;
+
+        @Schema(description = "The coordinate position of the tag on the media")
+        private Post.TaggedUser.Position position;
     }
 }

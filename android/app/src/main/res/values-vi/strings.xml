@@ -394,4 +394,12 @@
     <!-- Private account -->
     <string name="profile_private_account_title">Tài khoản này ở chế độ riêng tư</string>
     <string name="profile_private_account_subtitle">Theo dõi để xem nội dung riêng tư.</string>
+    <string name="create_post_error_process_image">Lỗi khi xử lý ảnh</string>
+    <string name="create_post_status_scanning_users_in_image">Đang tìm người dùng trong ảnh...</string>
+    <string name="create_post_social_facebook_short">f</string>
+    <string name="create_post_social_twitter_short">x</string>
+    <string name="tag_user_action_done">Xong</string>
+    <string name="tag_user_hint_press_image">Nhấn vào ảnh để gắn thẻ người dùng</string>
+    <string name="search_user_tag_hint_search_user">Tìm kiếm người dùng...</string>
+    <string name="search_user_tag_action_cancel">Hủy</string>
 </resources>

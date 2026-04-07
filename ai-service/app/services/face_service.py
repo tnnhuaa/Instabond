@@ -13,6 +13,11 @@ async def process_face_tagging(image_url: str):
         tmp_path = tmp.name
 
     try:
+        img = cv2.imread(tmp_path)
+        if img is None:
+            return []
+        img_height, img_width = img.shape[:2]
+        
         results = DeepFace.represent(img_path=tmp_path, model_name='Facenet', enforce_detection=False)
 
         if not results or (len(results) == 1 and results[0]['face_confidence'] == 0):
@@ -30,8 +35,12 @@ async def process_face_tagging(image_url: str):
             target_embedding = np.array(face["embedding"])
             
             region = face["facial_area"]
+            
             center_x = region["x"] + (region["w"] / 2)
             center_y = region["y"] + (region["h"] / 2)
+
+            relative_x = center_x / img_width
+            relative_y = center_y / img_height
 
             best_match_user_id = None
             max_similarity = -1
@@ -54,7 +63,10 @@ async def process_face_tagging(image_url: str):
                 detected_faces.append({
                     "matched_user_id": best_match_user_id,
                     "confidence": round(float(max_similarity), 4),
-                    "position": {"x": float(center_x), "y": float(center_y)}
+                    "position": {
+                        "x": round(float(relative_x), 4), 
+                        "y": round(float(relative_y), 4)
+                    }
                 })
 
         return detected_faces

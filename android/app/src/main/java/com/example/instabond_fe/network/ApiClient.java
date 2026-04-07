@@ -2,6 +2,8 @@ package com.example.instabond_fe.network;
 
 import android.content.Context;
 
+import java.util.concurrent.TimeUnit;
+
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -36,6 +38,9 @@ public class ApiClient {
             };
 
             OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                    .connectTimeout(60, TimeUnit.SECONDS)
+                    .readTimeout(60, TimeUnit.SECONDS)
+                    .writeTimeout(60, TimeUnit.SECONDS)
                     .addInterceptor(authInterceptor)
                     .build();
 

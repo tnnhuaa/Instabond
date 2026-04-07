@@ -32,18 +32,15 @@ public class CreatePostRequest {
                                                         String mediaUrl,
                                                         int width,
                                                         int height,
-                                                        List<String> taggedUserIds,
+                                                        List<TaggedUserRequest> taggedUsers,
                                                         MusicSuggestionRequest musicSuggestion) {
         List<MediaRequest> media = new ArrayList<>();
         if (mediaUrl != null && !mediaUrl.trim().isEmpty()) {
             media.add(new MediaRequest(mediaUrl, width, height));
         }
-        
-        List<TaggedUserRequest> taggedUsers = new ArrayList<>();
-        if (taggedUserIds != null) {
-            for (String id : taggedUserIds) {
-                taggedUsers.add(new TaggedUserRequest(id));
-            }
+
+        if (taggedUsers == null) {
+            taggedUsers = new ArrayList<>();
         }
 
         return new CreatePostRequest(caption, media, musicSuggestion, taggedUsers);
@@ -70,8 +67,33 @@ public class CreatePostRequest {
         @SerializedName("user_id")
         private final String userId;
 
-        public TaggedUserRequest(String userId) {
+        @SerializedName("tag_type")
+        private final String tagType;
+
+        @SerializedName("confidence")
+        private final Double confidence;
+
+        @SerializedName("position")
+        private final Position position;
+
+        public TaggedUserRequest(String userId, String tagType, Double confidence, Position position) {
             this.userId = userId;
+            this.tagType = tagType;
+            this.confidence = confidence;
+            this.position = position;
+        }
+
+        public static class Position {
+            @SerializedName("x")
+            private final Double x;
+
+            @SerializedName("y")
+            private final Double y;
+
+            public Position(Double x, Double y) {
+                this.x = x;
+                this.y = y;
+            }
         }
     }
 

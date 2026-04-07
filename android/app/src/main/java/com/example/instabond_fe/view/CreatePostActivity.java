@@ -59,6 +59,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -139,9 +140,11 @@ public class CreatePostActivity extends AppCompatActivity {
 
     private MusicSuggestion selectedMusic;
     private final List<MusicSuggestion> aiMusicSuggestions = new ArrayList<>();
-    private boolean isFetchingMusicSuggestions = false;
+    private boolean isFetchingAiSuggestions = false;
     private boolean isSubmittingPost = false;
     private Call<PostSuggestionResponse> postSuggestionCall;
+    private ArrayList<SuggestedTag> taggedUsersList = new ArrayList<>();
+    private ActivityResultLauncher<Intent> tagUserLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -199,14 +202,29 @@ public class CreatePostActivity extends AppCompatActivity {
                     locationText = value;
                     updateOptionSummaries();
                 }));
-        binding.cardTagPeople.setOnClickListener(v -> showTextInputDialog(
-                getString(R.string.create_post_dialog_tag),
-                getString(R.string.create_post_dialog_hint_tag),
-                tagsText,
-                value -> {
-                    tagsText = value;
-                    updateOptionSummaries();
-                }));
+        binding.cardTagPeople.setOnClickListener(v -> {
+            if (sourceBitmap == null) {
+                Toast.makeText(this, R.string.create_post_select_photo_first, Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (isFetchingAiSuggestions) {
+                Toast.makeText(this, getString(R.string.create_post_status_scanning_users_in_image), Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            try {
+                File tempImage = createUploadFile();
+                if (tempImage != null) {
+                    Intent intent = new Intent(this, TagUserActivity.class);
+                    intent.putExtra("IMAGE_URI", Uri.fromFile(tempImage).toString());
+                    intent.putExtra("TAGGED_USERS", taggedUsersList);
+                    tagUserLauncher.launch(intent);
+                }
+            } catch (IOException e) {
+                Toast.makeText(this, getString(R.string.create_post_error_process_image), Toast.LENGTH_SHORT).show();
+            }
+        });
         binding.cardMusic.setOnClickListener(v -> showMusicSelectionDialog());
     }
 
@@ -220,7 +238,6 @@ public class CreatePostActivity extends AppCompatActivity {
                 sourceBitmap = decodeBitmap(uri);
                 resetEdits(false);
                 renderEditorState();
-                requestMusicSuggestions();
                 openImageEditor(uri);
             } catch (IOException e) {
                 Toast.makeText(this, R.string.create_post_image_read_error, Toast.LENGTH_SHORT).show();
@@ -235,7 +252,7 @@ public class CreatePostActivity extends AppCompatActivity {
             sourceBitmap = limitBitmapSize(bitmap, MAX_SOURCE_EDGE);
             resetEdits(false);
             renderEditorState();
-            requestMusicSuggestions();
+
             if (selectedImageUri != null) {
                 openImageEditor(selectedImageUri);
             }
@@ -244,23 +261,49 @@ public class CreatePostActivity extends AppCompatActivity {
         editImageLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
+                    // Cancel edit -> keep original image and fetch suggestions based on it
                     if (result.getResultCode() != RESULT_OK || result.getData() == null) {
+                        android.util.Log.d("AI_DEBUG", "Editor canceled. Fetching suggestions for original image.");
+                        if (sourceBitmap != null) {
+                            requestAiSuggestions();
+                        }
                         return;
                     }
 
+                    // NULL
                     String outputUri = result.getData().getStringExtra(ImageEditorActivity.EXTRA_OUTPUT_URI);
                     if (outputUri == null || outputUri.trim().isEmpty()) {
+                        android.util.Log.d("AI_DEBUG", "Edited output URI is empty. Fetching suggestions for original image.");
+                        if (sourceBitmap != null) {
+                            requestAiSuggestions();
+                        }
                         return;
                     }
 
+                    // Success edit -> load edited image and fetch suggestions based on it
                     selectedImageUri = Uri.parse(outputUri);
                     try {
                         sourceBitmap = decodeBitmap(selectedImageUri);
                         resetEdits(false);
                         renderEditorState();
-                        requestMusicSuggestions();
+                        android.util.Log.d("AI_DEBUG", "Editor done. Fetching suggestions for EDITED image.");
+                        requestAiSuggestions();
                     } catch (IOException e) {
                         Toast.makeText(this, R.string.create_post_image_read_error, Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+        tagUserLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        Object serializable = result.getData().getSerializableExtra("TAGGED_USERS");
+                        if (serializable instanceof ArrayList<?>) {
+                            taggedUsersList = (ArrayList<SuggestedTag>) serializable;
+                        } else {
+                            taggedUsersList = new ArrayList<>();
+                        }
+                        updateOptionSummaries();
                     }
                 });
     }
@@ -449,8 +492,6 @@ public class CreatePostActivity extends AppCompatActivity {
     private void updateOptionSummaries() {
         binding.tvLocationValue.setText(locationText);
         binding.tvLocationValue.setVisibility(locationText.isEmpty() ? View.GONE : View.VISIBLE);
-        binding.tvTagsValue.setText(tagsText);
-        binding.tvTagsValue.setVisibility(tagsText.isEmpty() ? View.GONE : View.VISIBLE);
 
         String musicSummary = null;
         if (selectedMusic != null) {
@@ -459,7 +500,7 @@ public class CreatePostActivity extends AppCompatActivity {
                     safe(selectedMusic.getSongName()),
                     safe(selectedMusic.getArtist())
             );
-        } else if (isFetchingMusicSuggestions) {
+        } else if (isFetchingAiSuggestions) {
             musicSummary = getString(R.string.create_post_music_summary_loading);
         } else if (!aiMusicSuggestions.isEmpty()) {
             musicSummary = getString(R.string.create_post_music_summary_ready, aiMusicSuggestions.size());
@@ -467,6 +508,29 @@ public class CreatePostActivity extends AppCompatActivity {
 
         binding.tvMusicValue.setText(musicSummary);
         binding.tvMusicValue.setVisibility(TextUtils.isEmpty(musicSummary) ? View.GONE : View.VISIBLE);
+
+        if (isFetchingAiSuggestions) {
+            binding.tvTagsValue.setVisibility(View.VISIBLE);
+            binding.tvTagsValue.setText(getString(R.string.create_post_status_scanning_users_in_image));
+            binding.rvTaggedUsersPreview.setVisibility(View.GONE);
+        } else {
+            binding.tvTagsValue.setVisibility(View.GONE);
+            if (taggedUsersList.isEmpty()) {
+                binding.rvTaggedUsersPreview.setVisibility(View.GONE);
+            } else {
+                binding.rvTaggedUsersPreview.setVisibility(View.VISIBLE);
+
+                if (binding.rvTaggedUsersPreview.getAdapter() == null) {
+                    binding.rvTaggedUsersPreview.setLayoutManager(
+                            new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+                    );
+
+                    TaggedUserAdapter adapter = new TaggedUserAdapter(false);
+                    binding.rvTaggedUsersPreview.setAdapter(adapter);
+                }
+                ((TaggedUserAdapter) binding.rvTaggedUsersPreview.getAdapter()).setTaggedUsers(taggedUsersList);
+            }
+        }
     }
 
     private void onFilterSelected(FilterType filterType) {
@@ -744,11 +808,45 @@ public class CreatePostActivity extends AppCompatActivity {
 
         setLoading(true);
 
+        // Map tag (SuggestedTag) -> List<TaggedUserRequest> using backend schema constraints.
+        List<CreatePostRequest.TaggedUserRequest> mappedTaggedUsers = new ArrayList<>();
+        for (SuggestedTag tag : taggedUsersList) {
+            if (tag == null) {
+                continue;
+            }
+
+            String userId = safe(tag.getId());
+            if (userId.isEmpty()) {
+                continue;
+            }
+
+            String tagType = normalizeTagType(tag);
+            Double confidence = normalizeConfidence(tag.getConfidence(), tagType);
+
+            Double x = 0.5;
+            Double y = 0.5;
+            if (tag.getPosition() != null) {
+                x = normalizeCoordinate(tag.getPosition().getX());
+                y = normalizeCoordinate(tag.getPosition().getY());
+            }
+
+            CreatePostRequest.TaggedUserRequest.Position pos =
+                    new CreatePostRequest.TaggedUserRequest.Position(x, y);
+
+            mappedTaggedUsers.add(new CreatePostRequest.TaggedUserRequest(
+                    userId,
+                    tagType,
+                    confidence,
+                    pos
+            ));
+        }
+
+        // Create request body
         CreatePostRequest request = CreatePostRequest.fromCaptionAndMedia(
                 caption,
                 null, // media processed via multipart files
                 0, 0,
-                parseTags(tagsText),
+                mappedTaggedUsers,
                 selectedMusic != null
                         ? new CreatePostRequest.MusicSuggestionRequest(
                         selectedMusic.getSongName(),
@@ -757,9 +855,10 @@ public class CreatePostActivity extends AppCompatActivity {
                         : null
         );
 
+        String requestJson = new Gson().toJson(request);
         RequestBody requestPart = RequestBody.create(
                 MediaType.parse("application/json"),
-                new Gson().toJson(request)
+                requestJson
         );
 
         List<MultipartBody.Part> fileParts = new ArrayList<>();
@@ -774,6 +873,13 @@ public class CreatePostActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.create_post_image_read_error, Toast.LENGTH_SHORT).show();
             return;
         }
+
+        android.util.Log.d("AI_DEBUG", "createPostRequest payload: " + requestJson);
+        android.util.Log.d("AI_DEBUG", "createPostRequest summary -> tagged_users="
+                + mappedTaggedUsers.size()
+                + ", files=" + fileParts.size()
+                + ", has_music=" + (selectedMusic != null)
+                + ", caption_length=" + caption.length());
 
         apiService.createPost(requestPart, fileParts).enqueue(new Callback<PostResponse>() {
             @Override
@@ -817,24 +923,6 @@ public class CreatePostActivity extends AppCompatActivity {
             return createTempFileFromUri(selectedImageUri);
         }
         return null;
-    }
-
-    private List<String> parseTags(String rawTags) {
-        List<String> result = new ArrayList<>();
-        if (rawTags == null || rawTags.trim().isEmpty()) {
-            return result;
-        }
-        String[] pieces = rawTags.split("[,\\s]+");
-        for (String piece : pieces) {
-            String tag = piece.trim();
-            if (tag.startsWith("@")) {
-                tag = tag.substring(1);
-            }
-            if (!tag.isEmpty()) {
-                result.add(tag);
-            }
-        }
-        return result;
     }
 
     private File createTempFileFromUri(Uri uri) throws IOException {
@@ -881,6 +969,11 @@ public class CreatePostActivity extends AppCompatActivity {
             return;
         }
 
+        if (isFetchingAiSuggestions) {
+            Toast.makeText(this, R.string.create_post_music_summary_loading, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         String[] labels = new String[options.size()];
         for (int i = 0; i < options.size(); i++) {
             MusicSuggestion suggestion = options.get(i);
@@ -901,10 +994,6 @@ public class CreatePostActivity extends AppCompatActivity {
                         updateOptionSummaries();
                     }
                 });
-
-        if (isFetchingMusicSuggestions) {
-            builder.setMessage(getString(R.string.create_post_music_summary_loading));
-        }
 
         if (selectedMusic != null) {
             builder.setNeutralButton(R.string.create_post_music_clear, (dialog, which) -> {
@@ -980,7 +1069,40 @@ public class CreatePostActivity extends AppCompatActivity {
         return value == null ? "" : value.trim();
     }
 
-    private void requestMusicSuggestions() {
+    private String normalizeTagType(SuggestedTag tag) {
+        String raw = safe(tag.getTagType()).toLowerCase(Locale.ROOT);
+        if ("auto-ai".equals(raw) || "user-tag".equals(raw)) {
+            return raw;
+        }
+        return tag.getConfidence() != null ? "auto-ai" : "user-tag";
+    }
+
+    private double normalizeConfidence(Double confidence, String tagType) {
+        if ("user-tag".equals(tagType)) {
+            return 1.0;
+        }
+        double value = confidence != null ? confidence : 0.0;
+        if (value < 0.0) {
+            return 0.0;
+        }
+        if (value > 1.0) {
+            return 1.0;
+        }
+        return value;
+    }
+
+    private double normalizeCoordinate(Double coordinate) {
+        double value = coordinate != null ? coordinate : 0.5;
+        if (value < 0.0) {
+            return 0.0;
+        }
+        if (value > 1.0) {
+            return 1.0;
+        }
+        return value;
+    }
+
+    private void requestAiSuggestions() {
         if (postSuggestionCall != null) {
             postSuggestionCall.cancel();
             postSuggestionCall = null;
@@ -993,20 +1115,24 @@ public class CreatePostActivity extends AppCompatActivity {
         try {
             imageFile = createUploadFile();
         } catch (IOException e) {
-            isFetchingMusicSuggestions = false;
+            android.util.Log.e("AI_DEBUG", "Error - create file temp from image: " + e.getMessage(), e);
+            isFetchingAiSuggestions = false;
             updateAiSuggestionUiState();
             updateOptionSummaries();
             return;
         }
 
         if (imageFile == null) {
-            isFetchingMusicSuggestions = false;
+            android.util.Log.e("AI_DEBUG", "Error - image file is null");
+            isFetchingAiSuggestions = false;
             updateAiSuggestionUiState();
             updateOptionSummaries();
             return;
         }
 
-        isFetchingMusicSuggestions = true;
+        android.util.Log.d("AI_DEBUG", "=> START CALL API. File name: " + imageFile.getName() + " | Size: " + imageFile.length() + " bytes");
+
+        isFetchingAiSuggestions = true;
         updateAiSuggestionUiState();
         updateOptionSummaries();
 
@@ -1019,46 +1145,98 @@ public class CreatePostActivity extends AppCompatActivity {
             public void onResponse(@NonNull Call<PostSuggestionResponse> call,
                                    @NonNull Response<PostSuggestionResponse> response) {
                 if (call.isCanceled()) {
+                    android.util.Log.d("AI_DEBUG", "CANCEL API Call");
                     return;
                 }
 
-                isFetchingMusicSuggestions = false;
+                isFetchingAiSuggestions = false;
                 updateAiSuggestionUiState();
                 aiMusicSuggestions.clear();
+
+                android.util.Log.d("AI_DEBUG", "=> GET RESPONSE FROM SERVER. HTTP Code: " + response.code());
+
                 if (response.isSuccessful() && response.body() != null) {
+                    android.util.Log.d("AI_DEBUG", "Response is successful and body is NOT NULL");
+
                     aiSceneDescription = safe(response.body().getSceneDescription());
+                    android.util.Log.d("AI_DEBUG", "Scene Description: " + aiSceneDescription);
+
+                    // Parse music
                     if (response.body().getMusicSuggestions() != null) {
+                        android.util.Log.d("AI_DEBUG", "Music Suggestions array size: " + response.body().getMusicSuggestions().size());
                         for (MusicSuggestion suggestion : response.body().getMusicSuggestions()) {
                             if (suggestion != null) {
                                 suggestion.setAiRecommended(true);
                                 aiMusicSuggestions.add(suggestion);
                             }
                         }
-                        android.util.Log.d("AI_DEBUG", "SUCCESS - GET " + aiMusicSuggestions.size() + " music suggestions from AI");
                     } else {
-                        try {
-                            android.util.Log.e("AI_DEBUG", "ERROR - CODE:" + response.code());
-                            android.util.Log.e("AI_DEBUG", "ERROR DETAILS: " + response.errorBody().string());
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+                        android.util.Log.w("AI_DEBUG", "Music Suggestions array is NULL");
                     }
 
-                    if (response.body().getSuggestedTags() != null
-                            && !response.body().getSuggestedTags().isEmpty()) {
-                        List<String> autoTags = new ArrayList<>();
-                        for (SuggestedTag suggestedTag : response.body().getSuggestedTags()) {
-                            if (suggestedTag == null) {
-                                continue;
+                    // Parse tags
+                    if (response.body().getSuggestedTags() != null) {
+                        android.util.Log.d("AI_DEBUG", "Suggested Tags array size: " + response.body().getSuggestedTags().size());
+
+                        if (!response.body().getSuggestedTags().isEmpty()) {
+                            List<String> autoTags = new ArrayList<>();
+
+                            for (SuggestedTag suggestedTag : response.body().getSuggestedTags()) {
+                                if (suggestedTag == null) {
+                                    android.util.Log.w("AI_DEBUG", "Encountered a NULL SuggestedTag item in the array");
+                                    continue;
+                                }
+
+                                String posLog = (suggestedTag.getPosition() != null) ?
+                                        ("x:" + suggestedTag.getPosition().getX() + ", y:" + suggestedTag.getPosition().getY()) : "NULL";
+
+                                android.util.Log.d("AI_DEBUG", "Mapping Tag: ID=" + suggestedTag.getId() +
+                                        " | Username=" + suggestedTag.getUsername() +
+                                        " | Position=" + posLog);
+
+                                String username = safe(suggestedTag.getUsername());
+                                if (!username.isEmpty()) {
+                                    autoTags.add("@" + username);
+                                }
+
+                                boolean isAlreadyTagged = false;
+                                for (SuggestedTag existingTag : taggedUsersList) {
+                                    if (existingTag.getId() != null && existingTag.getId().equals(suggestedTag.getId())) {
+                                        isAlreadyTagged = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!isAlreadyTagged) {
+                                    suggestedTag.setTagType("auto-ai");
+                                    if (suggestedTag.getConfidence() == null) {
+                                        suggestedTag.setConfidence(0.0);
+                                    }
+                                    taggedUsersList.add(suggestedTag);
+                                    android.util.Log.d("AI_DEBUG", "Added tag to taggedUsersList: " + username);
+                                } else {
+                                    android.util.Log.d("AI_DEBUG", "Tag already exists in UI list, skipping: " + username);
+                                }
                             }
-                            String username = safe(suggestedTag.getUsername());
-                            if (!username.isEmpty()) {
-                                autoTags.add("@" + username);
+
+                            if (!autoTags.isEmpty()) {
+                                tagsText = TextUtils.join(" ", autoTags);
+                                android.util.Log.d("AI_DEBUG", "Final tagsText mapped: " + tagsText);
                             }
+                        } else {
+                            android.util.Log.w("AI_DEBUG", "Suggested Tags array is EMPTY");
                         }
-                        if (!autoTags.isEmpty()) {
-                            tagsText = TextUtils.join(" ", autoTags);
+                    } else {
+                        android.util.Log.w("AI_DEBUG", "Suggested Tags array is NULL (Check @SerializedName or Server response)");
+                    }
+                } else {
+                    android.util.Log.e("AI_DEBUG", "API Response Failed. Code: " + response.code());
+                    try {
+                        if (response.errorBody() != null) {
+                            android.util.Log.e("AI_DEBUG", "Error Body: " + response.errorBody().string());
                         }
+                    } catch (Exception e) {
+                        android.util.Log.e("AI_DEBUG", "Cannot read error body: " + e.getMessage());
                     }
                 }
                 updateOptionSummaries();
@@ -1066,11 +1244,13 @@ public class CreatePostActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(@NonNull Call<PostSuggestionResponse> call, @NonNull Throwable t) {
+                android.util.Log.e("AI_DEBUG", "API Call FAILED or CRASHED: " + t.getMessage(), t);
+
                 if (call.isCanceled()) {
                     return;
                 }
 
-                isFetchingMusicSuggestions = false;
+                isFetchingAiSuggestions = false;
                 updateAiSuggestionUiState();
                 aiMusicSuggestions.clear();
                 aiSceneDescription = "";
@@ -1117,8 +1297,8 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private void updateAiSuggestionUiState() {
-        binding.pbAiLoading.setVisibility(isFetchingMusicSuggestions ? View.VISIBLE : View.GONE);
-        boolean enablePost = !isSubmittingPost && !isFetchingMusicSuggestions;
+        binding.pbAiLoading.setVisibility(isFetchingAiSuggestions ? View.VISIBLE : View.GONE);
+        boolean enablePost = !isSubmittingPost && !isFetchingAiSuggestions;
         binding.btnPost.setEnabled(enablePost);
         binding.btnPost.setAlpha(enablePost ? 1f : 0.5f);
     }
