@@ -217,7 +217,10 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
                     id, authorId, username, caption,
                     r.getCreatedAt(),
                     likes, comments, shares,
-                    avatar, image, hasMusic, isLiked, r.isBookmarked()
+                    avatar, image,
+                    r.getLocationName(),
+                    r.getMusicDisplayText(),
+                    hasMusic, isLiked, r.isBookmarked()
             );
 
             list.add(p);

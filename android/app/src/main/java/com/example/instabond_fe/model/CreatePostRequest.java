@@ -12,6 +12,9 @@ public class CreatePostRequest {
     @SerializedName("media")
     private final List<MediaRequest> media;
 
+    @SerializedName("location")
+    private final LocationRequest location;
+
     @SerializedName("music_suggestion")
     private final MusicSuggestionRequest musicSuggestion;
 
@@ -20,10 +23,12 @@ public class CreatePostRequest {
 
     public CreatePostRequest(String caption,
                              List<MediaRequest> media,
+                             LocationRequest location,
                              MusicSuggestionRequest musicSuggestion,
                              List<TaggedUserRequest> taggedUsers) {
         this.caption = caption;
         this.media = media;
+        this.location = location;
         this.musicSuggestion = musicSuggestion;
         this.taggedUsers = taggedUsers;
     }
@@ -33,6 +38,7 @@ public class CreatePostRequest {
                                                         int width,
                                                         int height,
                                                         List<TaggedUserRequest> taggedUsers,
+                                                        LocationRequest location,
                                                         MusicSuggestionRequest musicSuggestion) {
         List<MediaRequest> media = new ArrayList<>();
         if (mediaUrl != null && !mediaUrl.trim().isEmpty()) {
@@ -43,7 +49,7 @@ public class CreatePostRequest {
             taggedUsers = new ArrayList<>();
         }
 
-        return new CreatePostRequest(caption, media, musicSuggestion, taggedUsers);
+        return new CreatePostRequest(caption, media, location, musicSuggestion, taggedUsers);
     }
 
     public static class MediaRequest {
@@ -94,6 +100,19 @@ public class CreatePostRequest {
                 this.x = x;
                 this.y = y;
             }
+        }
+    }
+
+    public static class LocationRequest {
+        @SerializedName("name")
+        private final String name;
+
+        @SerializedName("coordinates")
+        private final List<Double> coordinates;
+
+        public LocationRequest(String name, List<Double> coordinates) {
+            this.name = name;
+            this.coordinates = coordinates;
         }
     }
 

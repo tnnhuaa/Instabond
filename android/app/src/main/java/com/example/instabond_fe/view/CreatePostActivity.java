@@ -847,6 +847,9 @@ public class CreatePostActivity extends AppCompatActivity {
                 null, // media processed via multipart files
                 0, 0,
                 mappedTaggedUsers,
+                locationText != null && !locationText.trim().isEmpty()
+                        ? new CreatePostRequest.LocationRequest(locationText.trim(), null)
+                        : null,
                 selectedMusic != null
                         ? new CreatePostRequest.MusicSuggestionRequest(
                         selectedMusic.getSongName(),

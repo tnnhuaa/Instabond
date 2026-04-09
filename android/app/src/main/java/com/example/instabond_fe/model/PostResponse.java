@@ -7,11 +7,37 @@ import java.util.List;
 public class PostResponse {
     @SerializedName("id")
     private String id;
+
     @SerializedName("is_liked")
     private boolean isLiked;
 
     @SerializedName("is_bookmarked")
     private boolean isBookmarked;
+
+    @SerializedName("author")
+    private AuthorInfo author;
+
+    @SerializedName("caption")
+    private String caption;
+
+    @SerializedName("location")
+    private Location location;
+
+    @SerializedName("media")
+    private List<MediaItem> media;
+
+    @SerializedName(value = "music_suggestion", alternate = {"musicSuggestion"})
+    private MusicSuggestion musicSuggestion;
+
+    @SerializedName("stats")
+    private Stats stats;
+
+    @SerializedName(value = "created_at", alternate = {"createdAt"})
+    private String createdAt;
+
+    public String getId() {
+        return id;
+    }
 
     public boolean isLiked() {
         return isLiked;
@@ -24,27 +50,6 @@ public class PostResponse {
     public void setBookmarked(boolean bookmarked) {
         isBookmarked = bookmarked;
     }
-    @SerializedName("author")
-    private AuthorInfo author;
-
-    @SerializedName("caption")
-    private String caption;
-
-    @SerializedName("media")
-    private List<MediaItem> media;
-
-    @SerializedName("music_suggestion")
-    private Object musicSuggestion;
-
-    @SerializedName("stats")
-    private Stats stats;
-
-    @SerializedName(value = "created_at", alternate = {"createdAt"})
-    private String createdAt;
-
-    public String getId() {
-        return id;
-    }
 
     public AuthorInfo getAuthor() {
         return author;
@@ -54,12 +59,37 @@ public class PostResponse {
         return caption;
     }
 
+    public Location getLocation() {
+        return location;
+    }
+
+    public String getLocationName() {
+        return location == null ? "" : valueOrEmpty(location.getName());
+    }
+
     public List<MediaItem> getMedia() {
         return media;
     }
 
     public boolean hasMusicSuggestion() {
-        return musicSuggestion != null;
+        return !getMusicDisplayText().isEmpty();
+    }
+
+    public MusicSuggestion getMusicSuggestion() {
+        return musicSuggestion;
+    }
+
+    public String getMusicDisplayText() {
+        if (musicSuggestion == null) {
+            return "";
+        }
+
+        String songName = valueOrEmpty(musicSuggestion.getSongName());
+        if (!songName.isEmpty()) {
+            return songName;
+        }
+
+        return valueOrEmpty(musicSuggestion.getArtist());
     }
 
     public Stats getStats() {
@@ -93,6 +123,15 @@ public class PostResponse {
         }
     }
 
+    public static class Location {
+        @SerializedName("name")
+        private String name;
+
+        public String getName() {
+            return name;
+        }
+    }
+
     public static class MediaItem {
         @SerializedName(value = "url", alternate = {"media_url", "secure_url", "image_url"})
         private String url;
@@ -123,5 +162,9 @@ public class PostResponse {
         public int getShares() {
             return shares;
         }
+    }
+
+    private String valueOrEmpty(String value) {
+        return value == null ? "" : value.trim();
     }
 }
