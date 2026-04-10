@@ -99,8 +99,7 @@
                         android:background="@drawable/search_filter_chip_active_bg"
                         android:contentDescription="@string/cd_edit_avatar"
                         android:padding="7dp"
-                        android:src="@drawable/baseline_camera_alt_24"
-                        app:tint="@android:color/white" />
+                        android:src="@drawable/baseline_camera_alt_24" />
 
                 </FrameLayout>
 
