@@ -350,7 +350,7 @@
                         android:id="@+id/tv_tags_value"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="#888888"
+                        android:textColor="@color/login_hint_text"
                         android:textSize="14sp"
                         android:visibility="gone" />
 
@@ -458,7 +458,7 @@
                         android:background="@drawable/create_post_social_icon_bg"
                         android:gravity="center"
                         android:text="@string/create_post_social_facebook_short"
-                        android:textColor="#3B82F6"
+                        android:textColor="@color/create_post_facebook_brand"
                         android:textSize="15sp"
                         android:textStyle="bold" />
 
@@ -496,7 +496,7 @@
                         android:background="@drawable/create_post_social_icon_bg"
                         android:gravity="center"
                         android:text="@string/create_post_social_twitter_short"
-                        android:textColor="#38BDF8"
+                        android:textColor="@color/create_post_twitter_brand"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 

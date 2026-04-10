@@ -22,11 +22,11 @@
 
         <ImageButton
             android:id="@+id/btn_camera"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="@android:color/transparent"
             android:contentDescription="@string/nav_create"
-            android:padding="6dp"
+            android:padding="8dp"
             android:src="@drawable/instabond_logo" />
 
         <TextView
@@ -44,11 +44,11 @@
 
         <ImageButton
             android:id="@+id/btn_inbox"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="@android:color/transparent"
             android:contentDescription="@string/cd_messages"
-            android:padding="6dp"
+            android:padding="8dp"
             android:src="@drawable/ic_send"
             android:tint="@color/theme_primary" />
 

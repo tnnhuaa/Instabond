@@ -246,6 +246,8 @@
     <string name="profile_followers_label">Followers</string>
     <string name="profile_following_label">Following</string>
     <string name="profile_action_follow">Follow</string>
+    <string name="profile_action_pending">Pending</string>
+    <string name="profile_action_follow_processing">Following...</string>
     <string name="notification_empty">No notifications yet</string>
     <string name="notification_section_new">New</string>
     <string name="notification_section_today">Today</string>

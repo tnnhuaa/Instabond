@@ -246,6 +246,8 @@
     <string name="profile_followers_label">Người theo dõi</string>
     <string name="profile_following_label">Đang theo dõi</string>
     <string name="profile_action_follow">Theo dõi</string>
+    <string name="profile_action_pending">Đang chờ</string>
+    <string name="profile_action_follow_processing">Đang xử lý...</string>
     <string name="notification_empty">Chưa có thông báo</string>
     <string name="notification_section_new">Mới</string>
     <string name="notification_section_today">Hôm nay</string>
