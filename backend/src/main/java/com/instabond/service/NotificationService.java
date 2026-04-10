@@ -45,6 +45,11 @@ public class NotificationService {
                         .is_read(false)
                         .metadata(Notification.Metadata.builder()
                                 .conversation_id(conversationId)
+                                .sender_image_url(
+                                        userRepository.findById(senderId)
+                                                .map(User::getAvatar_url)
+                                                .orElse("")
+                                )
                                 .build())
                         .created_at(Instant.now())
                         .build()
