@@ -45,7 +45,7 @@
         android:minWidth="0dp"
         android:background="@drawable/search_follow_button_bg"
         android:text="@string/profile_action_follow"
-        android:textColor="@color/login_text_primary"
+        android:textColor="#F9F6F5"
         android:textSize="11sp"
         android:textStyle="bold"
         android:textAllCaps="false"

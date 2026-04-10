@@ -67,7 +67,7 @@ public class FriendSuggestionCardAdapter extends RecyclerView.Adapter<FriendSugg
         holder.btnFollow.setAlpha(1f);
         holder.btnFollow.setText(R.string.profile_action_follow);
         holder.btnFollow.setBackgroundResource(R.drawable.search_follow_button_bg);
-        holder.btnFollow.setTextColor(ContextCompat.getColor(context, R.color.login_text_primary));
+        holder.btnFollow.setTextColor(ContextCompat.getColor(context, R.color.login_primary_text));
 
         holder.btnFollow.setOnClickListener(v -> followUser(user, position, holder));
 
