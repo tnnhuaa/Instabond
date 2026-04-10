@@ -35,6 +35,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -99,6 +101,15 @@ public class ProfileActivity extends AppCompatActivity {
                     if (imageUri != null) {
                         uploadAvatar(imageUri);
                     }
+                });
+
+        barcodeLauncher = registerForActivityResult(
+                new com.journeyapps.barcodescanner.ScanContract(),
+                result -> {
+                    if (result == null || result.getContents() == null || result.getContents().trim().isEmpty()) {
+                        return;
+                    }
+                    resolveProfileFromPayload(result.getContents().trim());
                 });
 
         Uri data = getIntent().getData();
@@ -414,13 +425,18 @@ public class ProfileActivity extends AppCompatActivity {
             public void onResponse(Call<ProfileShareResponse> call, Response<ProfileShareResponse> response) {
                 String shareText = null;
                 if (response.isSuccessful() && response.body() != null) {
-                    shareText = response.body().getShareText();
+                    shareText = extractShareableProfileLink(response.body());
+                    if (shareText == null || shareText.trim().isEmpty()) {
+                        String backendShareText = response.body().getShareText();
+                        String extractedLink = extractLinkFromText(backendShareText);
+                        shareText = (extractedLink == null || extractedLink.trim().isEmpty())
+                                ? backendShareText
+                                : extractedLink;
+                    }
                 }
 
                 if (shareText == null || shareText.trim().isEmpty()) {
-                    String username = binding.tvFullname.getText().toString().trim();
-                    String deepLink = "instabond://profile?uid=" + currentUserId;
-                    shareText = "Check out " + username + " on Instabond: " + deepLink;
+                    shareText = fallbackShareLink();
                 }
 
                 Intent shareIntent = new Intent(Intent.ACTION_SEND);
@@ -431,9 +447,7 @@ public class ProfileActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<ProfileShareResponse> call, Throwable t) {
-                String username = binding.tvFullname.getText().toString().trim();
-                String deepLink = "instabond://profile?uid=" + currentUserId;
-                String shareText = "Check out " + username + " on Instabond: " + deepLink;
+                String shareText = fallbackShareLink();
 
                 Intent shareIntent = new Intent(Intent.ACTION_SEND);
                 shareIntent.setType("text/plain");
@@ -441,6 +455,49 @@ public class ProfileActivity extends AppCompatActivity {
                 startActivity(Intent.createChooser(shareIntent, getString(R.string.profile_action_share)));
             }
         });
+    }
+
+    private String extractShareableProfileLink(ProfileShareResponse response) {
+        if (response == null) {
+            return null;
+        }
+
+        String deepLink = response.getDeepLink();
+        if (deepLink != null && !deepLink.trim().isEmpty()) {
+            return deepLink.trim();
+        }
+
+        return null;
+    }
+
+    private String fallbackShareLink() {
+        String safeId = currentUserId == null ? "" : currentUserId.trim();
+        if (!safeId.isEmpty()) {
+            return "instabond://profile?userId=" + safeId;
+        }
+        return "instabond://profile";
+    }
+
+    private String extractLinkFromText(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            return null;
+        }
+
+        Matcher matcher = Pattern.compile("(https?://\\S+|instabond://\\S+)").matcher(text);
+        if (!matcher.find()) {
+            return null;
+        }
+
+        String link = matcher.group(1).trim();
+        while (!link.isEmpty()) {
+            char last = link.charAt(link.length() - 1);
+            if (last == '.' || last == ',' || last == ';' || last == ')' || last == ']' || last == '}') {
+                link = link.substring(0, link.length() - 1);
+            } else {
+                break;
+            }
+        }
+        return link;
     }
 
     private boolean isProfilePayload(Uri data) {
