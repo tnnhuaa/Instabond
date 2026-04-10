@@ -228,6 +228,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@null"
             android:padding="8dp"
+            app:tint="@color/login_bg_start"
             android:src="@drawable/baseline_camera_alt_24" />
 
         <com.google.android.material.card.MaterialCardView
