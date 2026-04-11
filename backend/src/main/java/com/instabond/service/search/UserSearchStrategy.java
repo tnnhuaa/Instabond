@@ -3,6 +3,7 @@ package com.instabond.service.search;
 import com.instabond.dto.UserSearchDTO;
 import com.instabond.entity.Relationship;
 import com.instabond.entity.User;
+import com.instabond.exception.ResourceNotFoundException;
 import com.instabond.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -56,8 +57,11 @@ public class UserSearchStrategy implements SearchStrategy {
 
         List<User> users = userRepository.searchUsers(prefixKeyword, PageRequest.of(0, 8));
         Set<String> blockedIds = getBlockedUserIds(callerPrincipal);
+        User currentUser = resolveUserFromPrincipal(callerPrincipal);
+
         return users.stream()
                 .filter(user -> !blockedIds.contains(user.getId()))
+                .filter(user -> currentUser == null || !user.getId().equals(currentUser.getId()))
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
@@ -109,5 +113,15 @@ public class UserSearchStrategy implements SearchStrategy {
         mongoTemplate.find(incomingBlocked, Relationship.class).forEach(rel -> blockedIds.add(rel.getRequester_id()));
 
         return blockedIds;
+    }
+
+    private User resolveUserFromPrincipal(String principal) {
+        if (principal == null || principal.isBlank()) {
+            throw new IllegalArgumentException("Invalid user principal");
+        }
+        return userRepository.findByEmail(principal)
+                .or(() -> userRepository.findByUsername(principal))
+                .or(() -> userRepository.findById(principal))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + principal));
     }
 }
