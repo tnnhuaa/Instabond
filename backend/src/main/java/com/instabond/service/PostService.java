@@ -645,16 +645,28 @@ public class PostService {
         query.with(org.springframework.data.domain.PageRequest.of(sanitizePage(page), sanitizeSize(size)));
 
         List<Interaction> bookmarks = mongoTemplate.find(query, Interaction.class);
-        List<String> postIds = bookmarks.stream().map(Interaction::getTarget_id).toList();
 
-        return postIds.stream()
-                .map(pid -> postRepository.findById(pid).orElse(null))
-                .filter(p -> p != null)
-                .map(post -> {
-                    User author = resolveAuthorById(post.getAuthor_id());
-                    return toPostResponse(post, author, caller);
-                })
-                .toList();
+        List<PostResponse> responses = new ArrayList<>();
+        for (Interaction bookmark : bookmarks) {
+            Post post = postRepository.findById(bookmark.getTarget_id()).orElse(null);
+            if (post == null) {
+                continue;
+            }
+
+            User author = resolveAuthorById(post.getAuthor_id());
+            if (author == null) {
+                continue;
+            }
+
+            if (userService.isBlocked(caller.getId(), author.getId())) {
+                interactionRepository.deleteById(bookmark.getId());
+                continue;
+            }
+
+            responses.add(toPostResponse(post, author, caller));
+        }
+
+        return responses;
     }
 
     public CommentResponse addComment(String postId, String callerPrincipal, CreateCommentRequest request) {
