@@ -34,7 +34,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -66,6 +68,8 @@ public class ProfileActivity extends AppCompatActivity {
     private ActivityResultLauncher<com.journeyapps.barcodescanner.ScanOptions> barcodeLauncher;
     private boolean isFollowing;
     private boolean isOwnProfileView;
+    private boolean shouldAttemptQuickFollow;
+    private String quickFollowTargetUserId;
     private ProfileGridAdapter gridAdapter;
 
     @Override
@@ -109,37 +113,10 @@ public class ProfileActivity extends AppCompatActivity {
                     if (result == null || result.getContents() == null || result.getContents().trim().isEmpty()) {
                         return;
                     }
-                    resolveProfileFromPayload(result.getContents().trim());
+                    resolveProfileFromPayload(result.getContents().trim(), false);
                 });
 
-        Uri data = getIntent().getData();
-        boolean isResolvingDeepLink = false;
-        if (data != null && "instabond".equals(data.getScheme())) {
-            String deepLinkUserId = extractDirectUserId(data);
-            if (deepLinkUserId != null) {
-                getIntent().putExtra("targetUserId", deepLinkUserId);
-            } else if (isProfilePayload(data)) {
-                isResolvingDeepLink = true;
-                resolveProfileFromPayload(data.toString());
-            }
-        }
-
-        String targetUserId = getIntent().getStringExtra("targetUserId");
-        boolean showSearchBottomNav = NAV_CONTEXT_SEARCH.equals(
-                getIntent().getStringExtra(EXTRA_PROFILE_NAV_CONTEXT)
-        );
-        android.util.Log.d("PROFILE_DEBUG", "Nhận được targetUserId từ Intent: " + targetUserId);
-        isOwnProfileView = targetUserId == null || targetUserId.equals(sessionManager.getUserId());
-
-        if (!isResolvingDeepLink) {
-            if (isOwnProfileView) {
-                configureOwnProfileView();
-                loadMyProfile();
-            } else {
-                configureExternalProfileView(targetUserId, showSearchBottomNav);
-                loadUserProfile(targetUserId);
-            }
-        }
+        handleIntentNavigation(getIntent());
         binding.btnScanQr.setOnClickListener(v -> {
             com.journeyapps.barcodescanner.ScanOptions options = new com.journeyapps.barcodescanner.ScanOptions();
             options.setPrompt("Quét mã QR");
@@ -162,6 +139,65 @@ public class ProfileActivity extends AppCompatActivity {
             );
             qrDialog.show(getSupportFragmentManager(), "ProfileQrDialog");
         });
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleIntentNavigation(intent);
+    }
+
+    private void handleIntentNavigation(Intent intent) {
+        if (intent == null) {
+            configureOwnProfileView();
+            loadMyProfile();
+            return;
+        }
+
+        shouldAttemptQuickFollow = false;
+        quickFollowTargetUserId = null;
+
+        Uri data = intent.getData();
+        boolean isResolvingDeepLink = false;
+        if (data != null) {
+            String deepLinkUserId = extractDirectUserId(data);
+            if (deepLinkUserId != null) {
+                shouldAttemptQuickFollow = true;
+                quickFollowTargetUserId = deepLinkUserId;
+                intent.putExtra("targetUserId", deepLinkUserId);
+            } else if (isProfilePayload(data)) {
+                isResolvingDeepLink = true;
+                String payloadToResolve = extractResolvablePayload(data);
+                resolveProfileFromPayload(payloadToResolve, true);
+            }
+        }
+
+        if (!isResolvingDeepLink) {
+            String payloadFromExtras = extractExternalPayloadFromIntent(intent);
+            if (payloadFromExtras != null && !payloadFromExtras.trim().isEmpty()) {
+                isResolvingDeepLink = true;
+                shouldAttemptQuickFollow = true;
+                quickFollowTargetUserId = null;
+                resolveProfileFromPayload(payloadFromExtras.trim(), true);
+            }
+        }
+
+        String targetUserId = intent.getStringExtra("targetUserId");
+        boolean showSearchBottomNav = NAV_CONTEXT_SEARCH.equals(
+                intent.getStringExtra(EXTRA_PROFILE_NAV_CONTEXT)
+        );
+        isOwnProfileView = targetUserId == null || targetUserId.equals(sessionManager.getUserId());
+
+        if (!isResolvingDeepLink) {
+            if (isOwnProfileView) {
+                configureOwnProfileView();
+                loadMyProfile();
+            } else {
+                configureExternalProfileView(targetUserId, showSearchBottomNav);
+                loadUserProfile(targetUserId);
+            }
+        }
     }
 
     private void configureOwnProfileView() {
@@ -293,6 +329,7 @@ public class ProfileActivity extends AppCompatActivity {
         currentUserId = profile.getId();
 
         bindProfile(profile);
+        maybeQuickFollowExternal(profile);
     }
 
     private void bindProfile(UserProfileResponse profile) {
@@ -501,9 +538,20 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private boolean isProfilePayload(Uri data) {
+        String host = data.getHost();
+        String path = data.getPath();
+        String raw = data.toString();
+
         return data.getQueryParameter("uid") != null
-                || "profile".equalsIgnoreCase(data.getHost())
-                || data.toString().contains("instabond://profile");
+            || data.getQueryParameter("qr_uid") != null
+            || data.getQueryParameter("payload") != null
+            || data.getQueryParameter("userId") != null
+            || "profile".equalsIgnoreCase(host)
+            || (path != null && path.toLowerCase(java.util.Locale.ROOT).contains("profile"))
+            || raw.contains("qr_uid=")
+            || raw.contains("uid=")
+            || raw.contains("payload=")
+            || raw.contains("instabond://profile");
     }
 
     private String extractDirectUserId(Uri data) {
@@ -532,11 +580,157 @@ public class ProfileActivity extends AppCompatActivity {
             return userId.trim();
         }
 
+        String path = data.getPath();
+        if (path != null) {
+            String trimmedPath = path.trim();
+            String userPathPrefix = "/user/";
+            if (trimmedPath.toLowerCase(java.util.Locale.ROOT).startsWith(userPathPrefix)) {
+                String targetId = trimmedPath.substring(userPathPrefix.length()).trim();
+                if (!targetId.isEmpty()) {
+                    return targetId;
+                }
+            }
+        }
+
         return null;
     }
 
-    private void resolveProfileFromPayload(String payload) {
-        apiService.resolveProfile(payload).enqueue(new Callback<UserProfileResponse>() {
+    private String extractExternalPayloadFromIntent(Intent intent) {
+        if (intent == null) {
+            return null;
+        }
+
+        String[] keys = new String[] {"qr_uid", "uid", "payload", "profile_payload"};
+        for (String key : keys) {
+            String value = intent.getStringExtra(key);
+            if (value != null && !value.trim().isEmpty()) {
+                return value.trim();
+            }
+        }
+
+        String fromDataString = extractResolvablePayloadFromRawText(intent.getDataString());
+        if (fromDataString != null) {
+            return fromDataString;
+        }
+
+        Bundle extras = intent.getExtras();
+        if (extras != null) {
+            Set<String> keysSet = extras.keySet();
+            for (String key : keysSet) {
+                Object value = extras.get(key);
+                if (value == null) {
+                    continue;
+                }
+
+                if (value instanceof String) {
+                    String parsed = extractResolvablePayloadFromRawText((String) value);
+                    if (parsed != null) {
+                        return parsed;
+                    }
+                } else if (value instanceof Uri) {
+                    String parsed = extractResolvablePayload((Uri) value);
+                    if (parsed != null && !parsed.trim().isEmpty()) {
+                        return parsed.trim();
+                    }
+                }
+            }
+        }
+
+        String sharedText = intent.getStringExtra(Intent.EXTRA_TEXT);
+        if (sharedText != null && !sharedText.trim().isEmpty()) {
+            String extractedLink = extractLinkFromText(sharedText);
+            if (extractedLink != null && !extractedLink.trim().isEmpty()) {
+                return extractedLink.trim();
+            }
+            return sharedText.trim();
+        }
+
+        return null;
+    }
+
+    private String extractResolvablePayload(Uri data) {
+        if (data == null) {
+            return null;
+        }
+
+        String qrUid = data.getQueryParameter("qr_uid");
+        if (qrUid != null && !qrUid.trim().isEmpty()) {
+            return qrUid.trim();
+        }
+
+        String uid = data.getQueryParameter("uid");
+        if (uid != null && !uid.trim().isEmpty()) {
+            return uid.trim();
+        }
+
+        String payload = data.getQueryParameter("payload");
+        if (payload != null && !payload.trim().isEmpty()) {
+            return payload.trim();
+        }
+
+        String raw = data.toString();
+        Matcher matcher = Pattern.compile("(?:[?&#]|^)(qr_uid|uid|payload)=([^&#]+)").matcher(raw);
+        if (matcher.find()) {
+            String value = Uri.decode(matcher.group(2));
+            if (value != null && !value.trim().isEmpty()) {
+                return value.trim();
+            }
+        }
+
+        return data.toString();
+    }
+
+    private String extractResolvablePayloadFromRawText(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return null;
+        }
+
+        String text = raw.trim();
+        Matcher matcher = Pattern.compile("(?:[?&#]|^)(qr_uid|uid|payload)=([^&#]+)").matcher(text);
+        if (matcher.find()) {
+            String value = Uri.decode(matcher.group(2));
+            if (value != null && !value.trim().isEmpty()) {
+                return value.trim();
+            }
+        }
+
+        if (text.startsWith("instabond://") || text.startsWith("http://") || text.startsWith("https://")) {
+            return text;
+        }
+
+        return null;
+    }
+
+    private String buildIntentExtrasSummary(Intent intent) {
+        if (intent == null || intent.getExtras() == null) {
+            return "Intent extras: none";
+        }
+
+        Bundle extras = intent.getExtras();
+        Set<String> keys = extras.keySet();
+        if (keys == null || keys.isEmpty()) {
+            return "Intent extras: empty";
+        }
+
+        List<String> parts = new ArrayList<>();
+        for (String key : keys) {
+            Object value = extras.get(key);
+            String raw = value == null ? "null" : String.valueOf(value);
+            if (raw.length() > 120) {
+                raw = raw.substring(0, 120) + "...";
+            }
+            parts.add(key + "=" + raw);
+        }
+        return "Intent extras: " + parts;
+    }
+
+    private void resolveProfileFromPayload(String payload, boolean shouldQuickFollowFromExternal) {
+        if (payload == null || payload.trim().isEmpty()) {
+            return;
+        }
+
+        final String normalizedPayload = payload.trim();
+        apiService.resolveProfile(normalizedPayload).enqueue(new Callback<UserProfileResponse>() {
             @Override
             public void onResponse(Call<UserProfileResponse> call, Response<UserProfileResponse> response) {
                 if (response.code() == 401) {
@@ -559,6 +753,11 @@ public class ProfileActivity extends AppCompatActivity {
                 currentUserId = profile.getId();
                 isOwnProfileView = currentUserId != null && currentUserId.equals(sessionManager.getUserId());
 
+                if (shouldQuickFollowFromExternal) {
+                    shouldAttemptQuickFollow = true;
+                    quickFollowTargetUserId = currentUserId;
+                }
+
                 if (isOwnProfileView) {
                     configureOwnProfileView();
                 } else {
@@ -566,11 +765,60 @@ public class ProfileActivity extends AppCompatActivity {
                 }
 
                 bindProfile(profile);
+                maybeQuickFollowExternal(profile);
             }
 
             @Override
             public void onFailure(Call<UserProfileResponse> call, Throwable t) {
                 Toast.makeText(ProfileActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void maybeQuickFollowExternal(UserProfileResponse profile) {
+        if (!shouldAttemptQuickFollow || profile == null) {
+            return;
+        }
+
+        String targetId = profile.getId();
+        shouldAttemptQuickFollow = false;
+
+        if (targetId == null || targetId.trim().isEmpty()) {
+            quickFollowTargetUserId = null;
+            return;
+        }
+
+        targetId = targetId.trim();
+        if (quickFollowTargetUserId != null && !quickFollowTargetUserId.trim().isEmpty()
+                && !targetId.equals(quickFollowTargetUserId.trim())) {
+            quickFollowTargetUserId = null;
+            return;
+        }
+        quickFollowTargetUserId = null;
+
+        String myId = sessionManager.getUserId();
+        if (myId != null && targetId.equals(myId.trim())) {
+            return;
+        }
+
+        String relStatus = profile.getRelationshipStatus();
+        if ("accepted".equals(relStatus) || "pending".equals(relStatus)) {
+            return;
+        }
+
+        final String followTargetId = targetId;
+        apiService.followUser(followTargetId).enqueue(new Callback<FollowUserResponse>() {
+            @Override
+            public void onResponse(Call<FollowUserResponse> call, Response<FollowUserResponse> response) {
+                if (response.isSuccessful()) {
+                    Toast.makeText(ProfileActivity.this, "Đã quick follow từ QR/ link", Toast.LENGTH_SHORT).show();
+                    loadUserProfile(followTargetId);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<FollowUserResponse> call, Throwable t) {
+                Toast.makeText(ProfileActivity.this, "Lỗi mạng khi quick follow", Toast.LENGTH_SHORT).show();
             }
         });
     }
