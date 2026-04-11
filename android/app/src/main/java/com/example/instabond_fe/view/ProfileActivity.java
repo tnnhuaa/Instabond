@@ -66,6 +66,7 @@ public class ProfileActivity extends AppCompatActivity {
     private ActivityResultLauncher<com.journeyapps.barcodescanner.ScanOptions> barcodeLauncher;
     private boolean isFollowing;
     private boolean isOwnProfileView;
+    private boolean followRequestInFlight;
     private boolean shouldAttemptQuickFollow;
     private String quickFollowTargetUserId;
     private ProfileGridAdapter gridAdapter;
@@ -241,10 +242,19 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void toggleFollow(String targetUserId) {
+        if (followRequestInFlight) {
+            return;
+        }
+
+        followRequestInFlight = true;
+        setPrimaryFollowButtonLoading(true);
+
         if (isFollowing) {
             apiService.unfollowUser(targetUserId).enqueue(new Callback<Void>() {
                 @Override
                 public void onResponse(Call<Void> call, Response<Void> response) {
+                    followRequestInFlight = false;
+                    setPrimaryFollowButtonLoading(false);
                     if (response.isSuccessful()) {
                         Toast.makeText(ProfileActivity.this, "Đã hủy yêu cầu/Bỏ theo dõi", Toast.LENGTH_SHORT).show();
                         // Tải lại hồ sơ để cập nhật giao diện
@@ -254,12 +264,16 @@ public class ProfileActivity extends AppCompatActivity {
 
                 @Override
                 public void onFailure(Call<Void> call, Throwable t) {
+                    followRequestInFlight = false;
+                    setPrimaryFollowButtonLoading(false);
                 }
             });
         } else {
             apiService.followUser(targetUserId).enqueue(new Callback<FollowUserResponse>() {
                 @Override
                 public void onResponse(Call<FollowUserResponse> call, Response<FollowUserResponse> response) {
+                    followRequestInFlight = false;
+                    setPrimaryFollowButtonLoading(false);
                     if (response.isSuccessful()) {
                         Toast.makeText(ProfileActivity.this, "Đã gửi yêu cầu/Theo dõi", Toast.LENGTH_SHORT).show();
                         // Tải lại hồ sơ để cập nhật giao diện
@@ -269,6 +283,8 @@ public class ProfileActivity extends AppCompatActivity {
 
                 @Override
                 public void onFailure(Call<FollowUserResponse> call, Throwable t) {
+                    followRequestInFlight = false;
+                    setPrimaryFollowButtonLoading(false);
                 }
             });
         }
@@ -358,20 +374,22 @@ public class ProfileActivity extends AppCompatActivity {
         if (!isOwnProfileView) {
             if ("accepted".equals(relStatus)) {
                 isFollowing = true;
-                binding.btnPrimaryAction.setText("Following");
+                binding.btnPrimaryAction.setText(R.string.profile_action_following);
                 binding.btnPrimaryAction.setBackgroundResource(R.drawable.search_follow_back_button_bg);
                 binding.btnPrimaryAction.setTextColor(getColor(R.color.login_text_primary));
             } else if ("pending".equals(relStatus)) {
                 isFollowing = true;
-                binding.btnPrimaryAction.setText("Pending");
+                binding.btnPrimaryAction.setText(R.string.profile_action_pending);
                 binding.btnPrimaryAction.setBackgroundResource(R.drawable.search_follow_back_button_bg);
                 binding.btnPrimaryAction.setTextColor(getColor(R.color.login_text_primary));
             } else {
                 isFollowing = false;
-                binding.btnPrimaryAction.setText("Follow");
+                binding.btnPrimaryAction.setText(R.string.profile_action_follow);
                 binding.btnPrimaryAction.setBackgroundResource(R.drawable.search_follow_button_bg);
                 binding.btnPrimaryAction.setTextColor(getColor(R.color.login_primary_text));
             }
+
+            setPrimaryFollowButtonLoading(followRequestInFlight);
         }
 
         boolean canViewDetails = isOwnProfileView || !isPrivate || "accepted".equals(relStatus);
@@ -421,6 +439,21 @@ public class ProfileActivity extends AppCompatActivity {
             public void onFailure(Call<JsonElement> call, Throwable t) {
             }
         });
+    }
+
+    private void setPrimaryFollowButtonLoading(boolean loading) {
+        if (isOwnProfileView) {
+            return;
+        }
+
+        binding.btnPrimaryAction.setEnabled(!loading);
+        if (loading) {
+            binding.btnPrimaryAction.setText(R.string.profile_action_follow_processing);
+            binding.btnPrimaryAction.setAlpha(0.75f);
+            return;
+        }
+
+        binding.btnPrimaryAction.setAlpha(1f);
     }
 
     private void openFollowList(String userId, String mode) {

@@ -33,6 +33,12 @@ public class FriendSuggestionCardAdapter extends RecyclerView.Adapter<FriendSugg
     private final ApiService apiService;
     private OnFollowListener listener;
 
+    private enum FollowButtonState {
+        FOLLOW,
+        PROCESSING,
+        FOLLOWING
+    }
+
     public interface OnFollowListener {
         void onFollowSuccess(FollowUserResponse user, int position);
     }
@@ -65,9 +71,7 @@ public class FriendSuggestionCardAdapter extends RecyclerView.Adapter<FriendSugg
         holder.tvUsername.setText(user.getUsername());
         holder.btnFollow.setEnabled(true);
         holder.btnFollow.setAlpha(1f);
-        holder.btnFollow.setText(R.string.profile_action_follow);
-        holder.btnFollow.setBackgroundResource(R.drawable.search_follow_button_bg);
-        holder.btnFollow.setTextColor(ContextCompat.getColor(context, R.color.login_text_primary));
+        applyFollowButtonState(holder, FollowButtonState.FOLLOW);
 
         holder.btnFollow.setOnClickListener(v -> followUser(user, position, holder));
 
@@ -92,32 +96,54 @@ public class FriendSuggestionCardAdapter extends RecyclerView.Adapter<FriendSugg
     }
 
     private void followUser(FollowUserResponse user, int position, ViewHolder holder) {
-        holder.btnFollow.setEnabled(false);
+        applyFollowButtonState(holder, FollowButtonState.PROCESSING);
         apiService.followUser(user.getId()).enqueue(new Callback<FollowUserResponse>() {
             @Override
             public void onResponse(Call<FollowUserResponse> call, Response<FollowUserResponse> response) {
-                holder.btnFollow.setEnabled(true);
                 if (response.isSuccessful()) {
                     Toast.makeText(context, "Đã theo dõi", Toast.LENGTH_SHORT).show();
-                    holder.btnFollow.setEnabled(false);
-                    holder.btnFollow.setAlpha(1f);
-                    holder.btnFollow.setText(R.string.profile_action_following);
-                    holder.btnFollow.setBackgroundResource(R.drawable.search_follow_back_button_bg);
-                    holder.btnFollow.setTextColor(ContextCompat.getColor(context, R.color.login_text_primary));
+                    applyFollowButtonState(holder, FollowButtonState.FOLLOWING);
                     if (listener != null) {
                         listener.onFollowSuccess(user, position);
                     }
                 } else {
+                    applyFollowButtonState(holder, FollowButtonState.FOLLOW);
                     Toast.makeText(context, "Theo dõi thất bại", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<FollowUserResponse> call, Throwable t) {
-                holder.btnFollow.setEnabled(true);
+                applyFollowButtonState(holder, FollowButtonState.FOLLOW);
                 Toast.makeText(context, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void applyFollowButtonState(ViewHolder holder, FollowButtonState state) {
+        if (state == FollowButtonState.FOLLOW) {
+            holder.btnFollow.setEnabled(true);
+            holder.btnFollow.setAlpha(1f);
+            holder.btnFollow.setText(R.string.profile_action_follow);
+            holder.btnFollow.setBackgroundResource(R.drawable.search_follow_button_bg);
+            holder.btnFollow.setTextColor(ContextCompat.getColor(context, R.color.login_primary_text));
+            return;
+        }
+
+        if (state == FollowButtonState.PROCESSING) {
+            holder.btnFollow.setEnabled(false);
+            holder.btnFollow.setAlpha(0.75f);
+            holder.btnFollow.setText(R.string.profile_action_follow_processing);
+            holder.btnFollow.setBackgroundResource(R.drawable.search_follow_button_bg);
+            holder.btnFollow.setTextColor(ContextCompat.getColor(context, R.color.login_primary_text));
+            return;
+        }
+
+        holder.btnFollow.setEnabled(false);
+        holder.btnFollow.setAlpha(1f);
+        holder.btnFollow.setText(R.string.profile_action_following);
+        holder.btnFollow.setBackgroundResource(R.drawable.search_follow_back_button_bg);
+        holder.btnFollow.setTextColor(ContextCompat.getColor(context, R.color.login_text_primary));
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {

@@ -141,6 +141,8 @@
     <color name="create_post_filter_selected_bg">#33293D</color>
     <color name="create_post_social_icon_surface">#2A252D</color>
     <color name="create_post_edit_badge">#978F95</color>
+    <color name="create_post_facebook_brand">#73ABFF</color>
+    <color name="create_post_twitter_brand">#7DD7FF</color>
     <color name="search_section_muted">#99AFACAC</color>
     <color name="search_avatar_ring">@color/theme_primary_container</color>
     <color name="search_close_icon">@color/theme_on_surface_subtle</color>

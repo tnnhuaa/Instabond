@@ -22,33 +22,33 @@
 
         <ImageButton
             android:id="@+id/btn_camera"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="@android:color/transparent"
             android:contentDescription="@string/nav_create"
-            android:padding="6dp"
-            android:src="@drawable/baseline_camera_alt_24"
-            android:tint="@color/theme_primary" />
+            android:padding="8dp"
+            android:src="@drawable/instabond_logo" />
 
         <TextView
             android:id="@+id/tv_app_name"
-            android:layout_width="wrap_content"
+            android:layout_width="133dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:layout_weight="1"
             android:fontFamily="sans-serif-black"
             android:text="@string/login_brand_name"
+            android:textAlignment="center"
             android:textColor="@color/theme_primary"
             android:textSize="24sp"
             tools:text="Instabond" />
 
         <ImageButton
             android:id="@+id/btn_inbox"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="@android:color/transparent"
             android:contentDescription="@string/cd_messages"
-            android:padding="6dp"
+            android:padding="8dp"
             android:src="@drawable/ic_send"
             android:tint="@color/theme_primary" />
 
