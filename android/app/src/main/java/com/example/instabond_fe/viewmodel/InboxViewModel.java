@@ -183,7 +183,7 @@ public class InboxViewModel extends AndroidViewModel {
             last = new LastMessage();
             conversation.setLastMessage(last);
         }
-        last.setContent(RichMessageUtils.getConversationPreview(message));
+        last.setContent(RichMessageUtils.getConversationPreview(getApplication(), message));
         last.setSenderId(message.getSenderId());
         last.setSentAt(message.getCreatedAt());
         conversation.setUpdatedAt(message.getCreatedAt());

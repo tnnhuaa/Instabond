@@ -99,7 +99,7 @@ public class SignUpActivity extends AppCompatActivity {
             public void onFailure(Call<AuthResponse> call, Throwable t) {
                 setLoading(false);
                 String message = t.getMessage() == null || t.getMessage().trim().isEmpty()
-                        ? "Vui long thu lai"
+                        ? "Vui lòng thử lại"
                         : t.getMessage();
                 Toast.makeText(SignUpActivity.this,
                         getString(R.string.signup_connection_error, message),
@@ -110,49 +110,49 @@ public class SignUpActivity extends AppCompatActivity {
 
     private boolean validateInput(String username, String email, String password, String confirm) {
         if (username.isEmpty()) {
-            binding.etUsername.setError("Vui long nhap ten dang nhap");
+            binding.etUsername.setError("Vui lòng nhập tên đăng nhập");
             binding.etUsername.requestFocus();
             return false;
         }
 
         if (username.length() < 4) {
-            binding.etUsername.setError("Ten dang nhap toi thieu 4 ky tu");
+            binding.etUsername.setError("Tên đăng nhập tối thiểu 4 kí tự");
             binding.etUsername.requestFocus();
             return false;
         }
 
         if (email.isEmpty()) {
-            binding.etEmail.setError("Vui long nhap email");
+            binding.etEmail.setError("Vui lòng nhập email");
             binding.etEmail.requestFocus();
             return false;
         }
 
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            binding.etEmail.setError("Email khong hop le");
+            binding.etEmail.setError("Email không hợp lệ");
             binding.etEmail.requestFocus();
             return false;
         }
 
         if (password.isEmpty()) {
-            binding.etPassword.setError("Vui long nhap mat khau");
+            binding.etPassword.setError("Vui lòng nhập mật khẩu");
             binding.etPassword.requestFocus();
             return false;
         }
 
         if (password.length() < 6) {
-            binding.etPassword.setError("Mat khau toi thieu 6 ky tu");
+            binding.etPassword.setError("Mật khẩu tối thiểu 6 kí tự");
             binding.etPassword.requestFocus();
             return false;
         }
 
         if (confirm.isEmpty()) {
-            binding.etConfirmPassword.setError("Vui long nhap lai mat khau");
+            binding.etConfirmPassword.setError("Vui lòng nhập lại mật khẩu");
             binding.etConfirmPassword.requestFocus();
             return false;
         }
 
         if (!password.equals(confirm)) {
-            binding.etConfirmPassword.setError("Mat khau nhap lai khong khop");
+            binding.etConfirmPassword.setError("Mật khẩu nhập lại không khớp");
             binding.etConfirmPassword.requestFocus();
             return false;
         }

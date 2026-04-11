@@ -251,6 +251,11 @@
     <string name="notification_section_today">Today</string>
     <string name="notification_section_this_week">This Week</string>
     <string name="notification_section_earlier">Earlier</string>
+    <string name="notification_chat_new_message_suffix">sent you a new message</string>
+    <string name="notification_chat_new_message_generic">You have a new message</string>
+    <string name="notification_chat_photo_suffix">sent a photo</string>
+    <string name="notification_chat_post_share_suffix">shared a post</string>
+    <string name="notification_chat_story_reply_suffix">replied to your story</string>
     <string name="profile_action_message">Message</string>
     <string name="profile_action_edit">Edit Profile</string>
     <string name="profile_action_share">Share</string>

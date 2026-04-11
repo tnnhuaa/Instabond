@@ -1,5 +1,8 @@
 package com.example.instabond_fe.utils;
 
+import android.content.Context;
+
+import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.ChatMessageResponse;
 import com.example.instabond_fe.model.StoryItem;
 import com.google.gson.Gson;
@@ -46,6 +49,10 @@ public final class RichMessageUtils {
     }
 
     public static String getConversationPreview(ChatMessageResponse message) {
+        return getConversationPreview(null, message);
+    }
+
+    public static String getConversationPreview(Context context, ChatMessageResponse message) {
         if (message == null) {
             return "";
         }
@@ -55,15 +62,44 @@ public final class RichMessageUtils {
 
         String type = message.getType() == null ? "" : message.getType().trim().toLowerCase();
         if ("image".equals(type)) {
-            return "sent a photo";
+            return resolveText(context, R.string.notification_chat_photo_suffix, "sent a photo");
         }
         if ("post_share".equals(type)) {
-            return "shared a post";
+            return resolveText(context, R.string.notification_chat_post_share_suffix, "shared a post");
         }
         if ("story_reply".equals(type)) {
-            return "replied to your story";
+            return resolveText(context, R.string.notification_chat_story_reply_suffix, "replied to your story");
         }
         return isBlank(message.getContent()) ? "" : message.getContent().trim();
+    }
+
+    public static String getNotificationChatPreview(Context context, ChatMessageResponse message) {
+        if (message == null) {
+            return resolveText(context, R.string.notification_chat_new_message_generic, "You have a new message");
+        }
+
+        String type = message.getType() == null ? "" : message.getType().trim().toLowerCase();
+        if ("image".equals(type)) {
+            return resolveText(context, R.string.notification_chat_photo_suffix, "sent a photo");
+        }
+        if ("post_share".equals(type)) {
+            return resolveText(context, R.string.notification_chat_post_share_suffix, "shared a post");
+        }
+        if ("story_reply".equals(type)) {
+            return resolveText(context, R.string.notification_chat_story_reply_suffix, "replied to your story");
+        }
+        return resolveText(context, R.string.notification_chat_new_message_suffix, "sent you a new message");
+    }
+
+    private static String resolveText(Context context, int resId, String fallback) {
+        if (context == null) {
+            return fallback;
+        }
+        try {
+            return context.getString(resId);
+        } catch (Exception ignored) {
+            return fallback;
+        }
     }
 
     public static boolean isBlank(String value) {

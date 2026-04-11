@@ -35,9 +35,16 @@ public class UserProfileResponse {
 
     @SerializedName("relationship_status")
     private String relationshipStatus;
+    @SerializedName("settings")
+    private Settings settings;
 
-    @SerializedName("allow_tagging")
-    private String allowTagging; // everyone or none
+    public static class Settings {
+        @SerializedName("allow_tagging")
+        private String allowTagging;
+        public String getAllowTagging() {
+            return allowTagging;
+        }
+    }
     
     public boolean isPrivate() {
         return isPrivate;
@@ -91,6 +98,6 @@ public class UserProfileResponse {
     }
 
     public String getAllowTagging() {
-        return allowTagging;
+        return settings.getAllowTagging();
     }
 }

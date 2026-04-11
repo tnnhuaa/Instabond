@@ -57,6 +57,13 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class NotificationsActivity extends AppCompatActivity {
+    private enum ChatVariant {
+        TEXT,
+        PHOTO,
+        POST_SHARE,
+        STORY_REPLY
+    }
+
     @Override
     protected void attachBaseContext(android.content.Context newBase) {
         super.attachBaseContext(LocaleManager.setLocale(newBase));
@@ -230,6 +237,7 @@ public class NotificationsActivity extends AppCompatActivity {
     private void rebuildSections() {
         adapter.submitSections(buildSections(notificationList));
         updateEmptyState();
+        updateBottomNavBadge();
     }
 
     private void updateEmptyState() {
@@ -258,6 +266,32 @@ public class NotificationsActivity extends AppCompatActivity {
 
     private void handleNotificationClick(Notification notification) {
         String type = notification.getType();
+
+        if (isChatNotification(notification)) {
+            String conversationId = firstNonBlank(
+                    getMetadataValue(notification, "conversation_id"),
+                    getMetadataValue(notification, "conversationId"),
+                    getMetadataValue(notification, "chat_id")
+            );
+
+            if (hasText(conversationId)) {
+                Intent intent = new Intent(this, ChatActivity.class);
+                intent.putExtra("CONVERSATION_ID", conversationId);
+                intent.putExtra("PARTNER_ID", notification.getSenderId());
+                String partnerName = firstNonBlank(
+                        getMetadataValue(notification, "sender_username"),
+                        getMetadataValue(notification, "sender_name"),
+                        getMetadataValue(notification, "sender_display_name")
+                );
+                if (hasText(partnerName)) {
+                    intent.putExtra("PARTNER_NAME", partnerName);
+                }
+                startActivity(intent);
+            } else {
+                startActivity(new Intent(this, InboxActivity.class));
+            }
+            return;
+        }
 
         if ("LIKE".equals(type) || "COMMENT".equals(type) || "REPLY_COMMENT".equals(type) || "LIKE_COMMENT".equals(type) || "TAG".equals(type)) {
             String postId = notification.getPostId();
@@ -290,6 +324,42 @@ public class NotificationsActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         }
+    }
+
+    private boolean isChatNotification(Notification notification) {
+        if (notification == null) {
+            return false;
+        }
+        String type = notification.getType();
+        if ("CHAT".equalsIgnoreCase(type)
+                || "MESSAGE".equalsIgnoreCase(type)
+                || "DM".equalsIgnoreCase(type)) {
+            return true;
+        }
+        return hasText(getMetadataValue(notification, "conversation_id"))
+                || hasText(getMetadataValue(notification, "conversationId"))
+                || hasText(getMetadataValue(notification, "chat_id"));
+    }
+
+    private String getMetadataValue(Notification notification, String key) {
+        Map<String, String> metadata = notification == null ? null : notification.getMetadata();
+        return metadata != null ? metadata.get(key) : null;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (hasText(value)) {
+                return value.trim();
+            }
+        }
+        return null;
     }
 
     private void bindActions() {
@@ -504,11 +574,11 @@ public class NotificationsActivity extends AppCompatActivity {
 
                 String type = item.getType();
                 boolean followAction = "FOLLOW".equals(type)
-                        && !containsText(item.getContent(), "follow request");
+                        && !(item.getContent() != null
+                        && item.getContent().toLowerCase(Locale.getDefault()).contains("follow request"));
                 String previewUrl = getMetadataValue(item, "post_image_url");
 
-                cardBinding.smallChip.setVisibility(shouldShowAvatarChip(type) ? View.VISIBLE : View.GONE);
-                cardBinding.ivSmallIcon.setImageResource(resolveChipIcon(type));
+                cardBinding.smallChip.setVisibility(View.GONE);
 
                 cardBinding.btnFollow.setVisibility(followAction ? View.VISIBLE : View.GONE);
                 cardBinding.cardPreview.setVisibility(
@@ -535,17 +605,31 @@ public class NotificationsActivity extends AppCompatActivity {
 
             private void bindMessage(ViewNotificationCardBinding cardBinding, Notification item) {
                 String content = item.getContent() == null ? "" : item.getContent().trim();
-                int firstSpace = content.indexOf(' ');
-                if (firstSpace <= 0) {
+                String senderName = resolveSenderDisplayName(item);
+                android.content.Context context = cardBinding.getRoot().getContext();
+
+                int actorLength = -1;
+                if (isChatNotification(item)) {
+                    String chatPreview = resolveChatPreviewSuffix(item, context);
+                    if (hasText(senderName)) {
+                        content = senderName + " " + chatPreview;
+                        actorLength = senderName.length();
+                    } else {
+                        content = chatPreview;
+                    }
+                } else {
+                    int firstSpace = content.indexOf(' ');
+                    actorLength = firstSpace <= 0 ? -1 : firstSpace;
+                }
+
+                if (actorLength <= 0 || actorLength > content.length()) {
                     cardBinding.tvMessage.setText(content);
                 } else {
-                    String actor = content.substring(0, firstSpace);
-                    String remainder = content.substring(firstSpace);
-                    SpannableStringBuilder builder = new SpannableStringBuilder(actor + remainder);
+                    SpannableStringBuilder builder = new SpannableStringBuilder(content);
                     builder.setSpan(
                             new StyleSpan(Typeface.BOLD),
                             0,
-                            actor.length(),
+                            actorLength,
                             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                     );
                     builder.setSpan(
@@ -554,7 +638,7 @@ public class NotificationsActivity extends AppCompatActivity {
                                     R.color.notification_primary_text
                             )),
                             0,
-                            actor.length(),
+                            actorLength,
                             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                     );
                     cardBinding.tvMessage.setText(builder);
@@ -562,23 +646,88 @@ public class NotificationsActivity extends AppCompatActivity {
                 cardBinding.tvTime.setText(TimeUtils.getConversationTimeLabel(item.getCreatedAt()));
             }
 
-            private boolean shouldShowAvatarChip(String type) {
-                return "LIKE".equals(type)
-                        || "COMMENT".equals(type)
-                        || "LIKE_COMMENT".equals(type)
-                        || "REPLY_COMMENT".equals(type);
+            private String resolveSenderDisplayName(Notification item) {
+                String[] senderKeys = new String[] {
+                        "sender_username",
+                        "sender_name",
+                        "sender_full_name",
+                        "sender_display_name",
+                        "username",
+                        "full_name",
+                        "name"
+                };
+
+                for (String key : senderKeys) {
+                    String value = getMetadataValue(item, key);
+                    if (hasText(value)) {
+                        return value.trim();
+                    }
+                }
+
+                String cachedName = webSocketManager != null
+                        ? webSocketManager.getCachedUsername(item.getSenderId())
+                        : null;
+                return hasText(cachedName) ? cachedName.trim() : null;
             }
 
-            private int resolveChipIcon(String type) {
-                if ("COMMENT".equals(type) || "REPLY_COMMENT".equals(type)) {
-                    return R.drawable.ic_message_circle;
+            private boolean isChatNotification(Notification item) {
+                String type = item.getType();
+                if ("CHAT".equalsIgnoreCase(type)
+                        || "MESSAGE".equalsIgnoreCase(type)
+                        || "DM".equalsIgnoreCase(type)) {
+                    return true;
                 }
-                return R.drawable.ic_heart;
+                return hasText(getMetadataValue(item, "conversation_id"))
+                        || hasText(getMetadataValue(item, "conversationId"))
+                        || hasText(getMetadataValue(item, "chat_id"));
+            }
+
+            private ChatVariant resolveChatVariant(Notification item) {
+                if (!isChatNotification(item)) {
+                    return ChatVariant.TEXT;
+                }
+
+                String kind = firstNonBlank(
+                        getMetadataValue(item, "message_type"),
+                        getMetadataValue(item, "messageType"),
+                        getMetadataValue(item, "attachment_type"),
+                        getMetadataValue(item, "content_type")
+                );
+                String content = item.getContent() == null ? "" : item.getContent().trim().toLowerCase(Locale.getDefault());
+
+                if (hasText(kind) && "image".equalsIgnoreCase(kind) || content.contains("sent a photo") || content.contains("photo")) {
+                    return ChatVariant.PHOTO;
+                }
+                if (hasText(kind) && "post_share".equalsIgnoreCase(kind) || content.contains("shared a post")) {
+                    return ChatVariant.POST_SHARE;
+                }
+                if (hasText(kind) && "story_reply".equalsIgnoreCase(kind) || content.contains("story")) {
+                    return ChatVariant.STORY_REPLY;
+                }
+                return ChatVariant.TEXT;
+            }
+
+            private String resolveChatPreviewSuffix(Notification item, android.content.Context context) {
+                switch (resolveChatVariant(item)) {
+                    case PHOTO:
+                        return context.getString(R.string.notification_chat_photo_suffix);
+                    case POST_SHARE:
+                        return context.getString(R.string.notification_chat_post_share_suffix);
+                    case STORY_REPLY:
+                        return context.getString(R.string.notification_chat_story_reply_suffix);
+                    case TEXT:
+                    default:
+                        return context.getString(R.string.notification_chat_new_message_suffix);
+                }
             }
 
             private int resolvePlaceholderIcon(Notification item) {
                 String type = item.getType();
                 String content = item.getContent() == null ? "" : item.getContent().toLowerCase(Locale.getDefault());
+
+                if (isChatNotification(item)) {
+                    return R.drawable.ic_message_circle;
+                }
 
                 if ("FOLLOW".equals(type)) {
                     return R.drawable.ic_user_plus;
@@ -600,19 +749,27 @@ public class NotificationsActivity extends AppCompatActivity {
                 return metadata != null ? metadata.get(key) : null;
             }
 
-            private boolean hasText(String value) {
-                return value != null && !value.trim().isEmpty();
-            }
-
-            private boolean containsText(String value, String query) {
-                return value != null && value.toLowerCase(Locale.getDefault()).contains(query);
-            }
-
             private int dp(int value) {
                 float density = sectionBinding.getRoot().getResources().getDisplayMetrics().density;
                 return Math.round(value * density);
             }
         }
+    }
+
+    private void updateBottomNavBadge() {
+        if (binding == null) {
+            return;
+        }
+        binding.bottomNav.setNotificationsBadgeVisible(hasUnreadNotifications());
+    }
+
+    private boolean hasUnreadNotifications() {
+        for (Notification notification : notificationList) {
+            if (notification != null && !notification.isRead()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private interface OnNotificationClickListener {

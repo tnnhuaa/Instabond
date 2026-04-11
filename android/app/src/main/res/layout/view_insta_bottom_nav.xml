@@ -89,6 +89,17 @@
                 android:contentDescription="@string/nav_notifications"
                 android:src="@drawable/ic_heart" />
 
+            <ImageView
+                android:id="@+id/iv_nav_notifications_badge"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="12dp"
+                android:contentDescription="@string/nav_notifications"
+                android:src="@drawable/badge_dot"
+                android:visibility="gone" />
+
         </FrameLayout>
 
         <FrameLayout
