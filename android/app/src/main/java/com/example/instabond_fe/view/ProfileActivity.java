@@ -564,11 +564,6 @@ public class ProfileActivity extends AppCompatActivity {
             return userId.trim();
         }
 
-        String uid = data.getQueryParameter("uid");
-        if (uid != null && !uid.trim().isEmpty()) {
-            return uid.trim();
-        }
-
         return null;
     }
 
@@ -590,6 +585,15 @@ public class ProfileActivity extends AppCompatActivity {
         String payload = data.getQueryParameter("payload");
         if (payload != null && !payload.trim().isEmpty()) {
             return payload.trim();
+        }
+
+        String raw = data.toString();
+        Matcher matcher = Pattern.compile("(?:[?&#]|^)(qr_uid|uid|payload)=([^&#]+)").matcher(raw);
+        if (matcher.find()) {
+            String value = Uri.decode(matcher.group(2));
+            if (value != null && !value.trim().isEmpty()) {
+                return value.trim();
+            }
         }
 
         return data.toString();
@@ -621,7 +625,13 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void resolveProfileFromPayload(String payload, boolean shouldQuickFollowFromExternal) {
-        apiService.resolveProfile(payload).enqueue(new Callback<UserProfileResponse>() {
+        if (payload == null || payload.trim().isEmpty()) {
+            Toast.makeText(ProfileActivity.this, "Không thể mở hồ sơ từ QR", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        final String normalizedPayload = payload.trim();
+        apiService.resolveProfile(normalizedPayload).enqueue(new Callback<UserProfileResponse>() {
             @Override
             public void onResponse(Call<UserProfileResponse> call, Response<UserProfileResponse> response) {
                 if (response.code() == 401) {
@@ -702,7 +712,7 @@ public class ProfileActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<FollowUserResponse> call, Response<FollowUserResponse> response) {
                 if (response.isSuccessful()) {
-                    Toast.makeText(ProfileActivity.this, "Đã quick follow từ /link", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ProfileActivity.this, "Đã quick follow từ QR/link", Toast.LENGTH_SHORT).show();
                     loadUserProfile(followTargetId);
                 }
             }
