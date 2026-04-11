@@ -67,8 +67,12 @@ public class User {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Setting {
-        private String allow_tagging;
-        private Boolean is_private;
+        @Builder.Default
+        private String allow_tagging = "everyone";
+
+        @Builder.Default
+        private Boolean is_private = false;
+
         private String theme;
     }
 }
