@@ -20,11 +20,16 @@ import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.utils.ThemePreferenceManager;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
+import java.util.Locale;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 public class SettingsActivity extends AppCompatActivity {
+    private static final String TAG_NONE = "none";
+    private static final String TAG_EVERYONE = "everyone";
+
     @Override
     protected void attachBaseContext(android.content.Context newBase) {
         super.attachBaseContext(LocaleManager.setLocale(newBase));
@@ -38,7 +43,7 @@ public class SettingsActivity extends AppCompatActivity {
     private boolean suppressPrivacyToggleListener;
     private boolean suppressThemeToggleListener;
     private boolean currentPrivacyState;
-    private String currentTagPreference = "everyone";
+    private String currentTagPreference;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +61,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         setupListeners();
         syncThemeToggle();
+        updateLanguageDisplay();
         setUiEnabled(false);
         loadMe();
     }
@@ -64,6 +70,7 @@ public class SettingsActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         syncThemeToggle();
+        updateLanguageDisplay();
         loadMe();
     }
 
@@ -125,10 +132,8 @@ public class SettingsActivity extends AppCompatActivity {
                     binding.etPhoneNumber.setText(me.getPhoneNumber() != null ? me.getPhoneNumber() : "");
                     applyPrivacyState(me.isPrivate());
 
-                    if (me.getAllowTagging() != null) {
-                        currentTagPreference = me.getAllowTagging();
-                        updateTagPreferenceUi();
-                    }
+                    currentTagPreference = normalizeTagPreference(me.getAllowTagging());
+                    updateTagPreferenceUi();
 
                     setUiEnabled(true);
                 } else {
@@ -154,11 +159,11 @@ public class SettingsActivity extends AppCompatActivity {
                 getString(R.string.tag_preference_none),
                 getString(R.string.tag_preference_everyone)
         };
-        String[] values = {"none", "everyone"};
+        String[] values = {TAG_NONE, TAG_EVERYONE};
 
-        int checkedItem = 1;
+        int checkedItem = -1;
         for (int i = 0; i < values.length; i++) {
-            if (values[i].equalsIgnoreCase(currentTagPreference)) {
+            if (values[i].equals(currentTagPreference)) {
                 checkedItem = i;
                 break;
             }
@@ -181,11 +186,15 @@ public class SettingsActivity extends AppCompatActivity {
             public void onResponse(Call<UpdateAllowTaggingResponse> call, Response<UpdateAllowTaggingResponse> response) {
                 setUiEnabled(true);
                 if (response.isSuccessful() && response.body() != null) {
-                    currentTagPreference = response.body().getAllowTagging();
+                    currentTagPreference = normalizeTagPreference(response.body().getAllowTagging());
                     updateTagPreferenceUi();
-                    Toast.makeText(SettingsActivity.this, "Tag preference updated", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(SettingsActivity.this, R.string.msg_profile_updated, Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(SettingsActivity.this, "Could not update tag preference", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(
+                            SettingsActivity.this,
+                            getString(R.string.msg_update_error, getString(R.string.allow_tagging_label)),
+                            Toast.LENGTH_SHORT
+                    ).show();
                 }
             }
 
@@ -202,10 +211,29 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void updateTagPreferenceUi() {
-        String displayValue = "none".equalsIgnoreCase(currentTagPreference)
-                ? getString(R.string.tag_preference_none)
-                : getString(R.string.tag_preference_everyone);
+        String displayValue;
+        if (TAG_NONE.equals(currentTagPreference)) {
+            displayValue = getString(R.string.tag_preference_none);
+        } else if (TAG_EVERYONE.equals(currentTagPreference)) {
+            displayValue = getString(R.string.tag_preference_everyone);
+        } else {
+            displayValue = "";
+        }
         binding.tvTagPreferenceValue.setText(displayValue);
+    }
+
+    private String normalizeTagPreference(String rawValue) {
+        if (rawValue == null) {
+            return null;
+        }
+        String value = rawValue.trim().toLowerCase(Locale.ROOT);
+        if (TAG_EVERYONE.equals(value)) {
+            return TAG_EVERYONE;
+        }
+        if (TAG_NONE.equals(value)) {
+            return TAG_NONE;
+        }
+        return null;
     }
 
     private UpdateProfileRequest createRequest() {
@@ -215,7 +243,10 @@ public class SettingsActivity extends AppCompatActivity {
         request.setPhoneNumber(binding.etPhoneNumber.getText().toString().trim());
 
         UpdateProfileRequest.SettingsRequest settings = new UpdateProfileRequest.SettingsRequest();
-        settings.setAllowTagging(currentTagPreference.toLowerCase());
+        String normalizedTagPreference = normalizeTagPreference(currentTagPreference);
+        if (normalizedTagPreference != null) {
+            settings.setAllowTagging(normalizedTagPreference);
+        }
         settings.setTheme(ThemePreferenceManager.isDarkModeEnabled(this) ? "dark" : "light");
         request.setSettings(settings);
 

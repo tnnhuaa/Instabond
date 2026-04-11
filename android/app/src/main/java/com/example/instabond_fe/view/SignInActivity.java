@@ -106,7 +106,7 @@ public class SignInActivity extends AppCompatActivity {
             public void onFailure(Call<AuthResponse> call, Throwable t) {
                 setLoading(false);
                 String message = t.getMessage() == null || t.getMessage().trim().isEmpty()
-                        ? "Vui long thu lai"
+                        ? "Vui lòng thử lại"
                         : t.getMessage();
                 Toast.makeText(SignInActivity.this,
                         getString(R.string.login_connection_error, message),
@@ -117,19 +117,19 @@ public class SignInActivity extends AppCompatActivity {
 
     private boolean validateInput(String email, String password) {
         if (email.isEmpty()) {
-            binding.etEmail.setError("Vui long nhap email");
+            binding.etEmail.setError("Vui lòng nhập email");
             binding.etEmail.requestFocus();
             return false;
         }
 
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            binding.etEmail.setError("Email khong hop le");
+            binding.etEmail.setError("Email không hợp lệ");
             binding.etEmail.requestFocus();
             return false;
         }
 
         if (password.isEmpty()) {
-            binding.etPassword.setError("Vui long nhap mat khau");
+            binding.etPassword.setError("Vui lòng nhập mật khẩu");
             binding.etPassword.requestFocus();
             return false;
         }

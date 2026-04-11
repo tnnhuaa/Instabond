@@ -68,6 +68,10 @@ public class InstaBottomNavView extends FrameLayout {
         applyState(binding.navProfile, binding.ivNavProfile, activeTab == Tab.PROFILE, activeColor, inactiveColor);
     }
 
+    public void setNotificationsBadgeVisible(boolean visible) {
+        binding.ivNavNotificationsBadge.setVisibility(visible ? VISIBLE : GONE);
+    }
+
     private void applyState(FrameLayout container, ImageView icon, boolean active, int activeColor, int inactiveColor) {
         int color = active ? activeColor : inactiveColor;
         icon.setImageTintList(ColorStateList.valueOf(color));

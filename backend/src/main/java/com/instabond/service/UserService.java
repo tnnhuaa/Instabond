@@ -6,6 +6,7 @@ import com.instabond.dto.ProfileResponse;
 import com.instabond.dto.ProfileShareResponse;
 import com.instabond.dto.UpdateAllowTaggingResponse;
 import com.instabond.dto.UpdateProfileRequest;
+import com.instabond.entity.Interaction;
 import com.instabond.entity.Post;
 import com.instabond.entity.Relationship;
 import com.instabond.entity.User;
@@ -35,6 +36,8 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -823,6 +826,9 @@ public class UserService {
             relationshipRepository.deleteById(targetToCaller.getId());
         }
 
+        // Remove bookmarks both ways so blocked users do not remain in bookmark flows.
+        removeBookmarksBetweenUsers(caller.getId(), target.getId());
+
         // Create block relationship
         Relationship blockRel = Relationship.builder()
                 .requester_id(caller.getId())
@@ -969,8 +975,12 @@ public class UserService {
         }
 
         String trimmed = payload.trim();
+        String deepLinkFromText = extractDeepLinkFromText(trimmed);
+        if (deepLinkFromText != null) {
+            trimmed = deepLinkFromText;
+        }
 
-        if (trimmed.startsWith("instabond://")) {
+        if (trimmed.toLowerCase(Locale.ROOT).startsWith("instabond://")) {
             String uid = getQueryParam(trimmed, "uid");
             if (uid != null && !uid.isBlank()) {
                 return userRepository.findByQrCodeUid(uid)
@@ -999,11 +1009,95 @@ public class UserService {
             return resolveTargetFromPayload("instabond://profile?" + trimmed);
         }
 
-        return userRepository.findByQrCodeUid(trimmed)
-                .or(() -> userRepository.findById(trimmed))
-                .or(() -> userRepository.findByUsername(trimmed))
-                .or(() -> userRepository.findByEmail(trimmed))
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + trimmed));
+        final String normalizedPayload = trimmed;
+
+        return userRepository.findByQrCodeUid(normalizedPayload)
+                .or(() -> userRepository.findById(normalizedPayload))
+                .or(() -> userRepository.findByUsername(normalizedPayload))
+                .or(() -> userRepository.findByEmail(normalizedPayload))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + normalizedPayload));
+    }
+
+    private String extractDeepLinkFromText(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+
+        Matcher matcher = Pattern.compile("(?i)(instabond://[^\\s]+)").matcher(text);
+        if (!matcher.find()) {
+            return null;
+        }
+
+        String candidate = matcher.group(1);
+        while (!candidate.isEmpty()) {
+            char last = candidate.charAt(candidate.length() - 1);
+            if (Character.isLetterOrDigit(last) || last == '/' || last == '?' || last == '&' || last == '=' || last == '_' || last == '-') {
+                break;
+            }
+            candidate = candidate.substring(0, candidate.length() - 1);
+        }
+
+        return candidate.isBlank() ? null : candidate;
+    }
+
+    private void removeBookmarksBetweenUsers(String userAId, String userBId) {
+        Set<String> postsByA = getAuthoredPostIds(userAId);
+        Set<String> postsByB = getAuthoredPostIds(userBId);
+
+        removeBookmarksForAuthorPosts(userAId, postsByB);
+        removeBookmarksForAuthorPosts(userBId, postsByA);
+    }
+
+    private Set<String> getAuthoredPostIds(String authorId) {
+        Query query = new Query(idCriteria("author_id", authorId));
+        query.fields().include("_id");
+
+        return mongoTemplate.find(query, Post.class).stream()
+                .map(Post::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
+    private void removeBookmarksForAuthorPosts(String bookmarkOwnerId, Set<String> targetPostIds) {
+        if (targetPostIds == null || targetPostIds.isEmpty()) {
+            return;
+        }
+
+        Query deleteQuery = new Query(new Criteria().andOperator(
+                idCriteria("user_id", bookmarkOwnerId),
+                Criteria.where("type").is("bookmark"),
+                Criteria.where("target_type").is("post"),
+                idInCriteria("target_id", targetPostIds)));
+
+        mongoTemplate.remove(deleteQuery, Interaction.class);
+    }
+
+    private Criteria idInCriteria(String field, Collection<String> ids) {
+        List<String> stringIds = ids.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+
+        if (stringIds.isEmpty()) {
+            return Criteria.where(field).in(Collections.emptyList());
+        }
+
+        List<ObjectId> objectIds = new ArrayList<>();
+        for (String id : stringIds) {
+            try {
+                objectIds.add(new ObjectId(id));
+            } catch (Exception ignored) {
+            }
+        }
+
+        if (objectIds.isEmpty()) {
+            return Criteria.where(field).in(stringIds);
+        }
+
+        return new Criteria().orOperator(
+                Criteria.where(field).in(stringIds),
+                Criteria.where(field).in(objectIds));
     }
 
     private String getQueryParam(String uriString, String key) {

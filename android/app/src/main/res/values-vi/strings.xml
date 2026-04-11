@@ -253,6 +253,11 @@
     <string name="notification_section_today">Hôm nay</string>
     <string name="notification_section_this_week">Tuần này</string>
     <string name="notification_section_earlier">Trước đó</string>
+    <string name="notification_chat_new_message_suffix">đã gửi cho bạn một tin nhắn mới</string>
+    <string name="notification_chat_new_message_generic">Bạn có một tin nhắn mới</string>
+    <string name="notification_chat_photo_suffix">đã gửi một ảnh</string>
+    <string name="notification_chat_post_share_suffix">đã chia sẻ một bài viết</string>
+    <string name="notification_chat_story_reply_suffix">đã trả lời tin của bạn</string>
     <string name="profile_action_message">Nhắn tin</string>
     <string name="profile_action_edit">Chỉnh sửa hồ sơ</string>
     <string name="profile_action_share">Chia sẻ</string>
