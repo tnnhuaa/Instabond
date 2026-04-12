@@ -1,9 +1,30 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.Instabond_FE" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.InstaBond" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/theme_surface_base</item>
+        <item name="android:statusBarColor">@color/status_bar</item>
+        <item name="android:navigationBarColor">@color/theme_surface_base</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="colorPrimary">@color/theme_primary</item>
+        <item name="colorOnPrimary">@color/theme_on_primary</item>
+        <item name="colorSecondary">@color/theme_primary_container</item>
+        <item name="colorOnSecondary">@color/theme_on_surface</item>
+        <item name="colorSurface">@color/theme_surface_base</item>
+        <item name="colorOnSurface">@color/theme_on_surface</item>
+        <item name="android:colorBackground">@color/theme_surface_base</item>
     </style>
 
-    <style name="Theme.Instabond_FE" parent="Base.Theme.Instabond_FE" />
+    <style name="InstaBond.Toolbar" parent="Widget.MaterialComponents.Toolbar">
+        <item name="android:background">@color/theme_surface_base</item>
+        <item name="titleTextColor">@color/theme_on_surface</item>
+        <item name="subtitleTextColor">@color/theme_on_surface_muted</item>
+    </style>
+
+    <style name="InstaBond.BottomNav" parent="Widget.MaterialComponents.BottomNavigationView">
+        <item name="android:background">@color/theme_surface_base</item>
+        <item name="itemIconTint">@color/bottom_nav_tint</item>
+        <item name="itemTextColor">@color/bottom_nav_tint</item>
+        <item name="labelVisibilityMode">labeled</item>
+    </style>
 </resources>

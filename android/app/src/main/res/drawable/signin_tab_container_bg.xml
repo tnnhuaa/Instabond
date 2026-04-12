@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Sign-in tab container background.
+    Figma node 6:142 — #141419, radius 16dp, no border.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <solid android:color="@color/signin_surface" />
+
+    <corners android:radius="16dp" />
+
+</shape>

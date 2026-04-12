@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Active tab pill background: left-to-right gradient (blue → gold alpha 20%).
+    Figma node 6:143 — gradient from rgba(209,237,249,0.2) to rgba(213,173,65,0.2), radius 14dp.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Closest opaque approximation of the translucent gradient -->
+    <gradient
+        android:angle="0"
+        android:startColor="#33D1EDF9"
+        android:endColor="#33D5AD41"
+        android:type="linear" />
+
+    <corners android:radius="14dp" />
+
+</shape>

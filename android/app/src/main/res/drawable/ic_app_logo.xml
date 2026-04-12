@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Sign-in screen: logo heart/camera vector icon.
+    Figma node 6:128 — simplified heart-camera monogram in teal.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="90dp"
+    android:height="90dp"
+    android:viewportWidth="90"
+    android:viewportHeight="90">
+
+    <!-- Rounded-square background -->
+    <path
+        android:fillColor="#1A1A2E"
+        android:pathData="M20,0 L70,0 Q90,0 90,20 L90,70 Q90,90 70,90 L20,90 Q0,90 0,70 L0,20 Q0,0 20,0 Z" />
+
+    <!-- Teal border ring -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#4DD0E1"
+        android:strokeWidth="3"
+        android:pathData="M20,1.5 L70,1.5 Q88.5,1.5 88.5,20 L88.5,70 Q88.5,88.5 70,88.5 L20,88.5 Q1.5,88.5 1.5,70 L1.5,20 Q1.5,1.5 20,1.5 Z" />
+
+    <!-- Heart icon (teal outline) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#4DD0E1"
+        android:strokeWidth="3.5"
+        android:strokeLineJoin="round"
+        android:strokeLineCap="round"
+        android:pathData="M45,60 C45,60 25,48 25,36 C25,29.4 30.4,24 37,24 C40.4,24 43.5,25.5 45,28 C46.5,25.5 49.6,24 53,24 C59.6,24 65,29.4 65,36 C65,48 45,60 45,60 Z" />
+
+</vector>

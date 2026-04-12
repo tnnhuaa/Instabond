@@ -1,17 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
     <application
+        android:name=".InstabondApplication"
         android:usesCleartextTraffic="true"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/instabond_logo"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/instabond_logo"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Instabond_FE">
+        android:theme="@style/Theme.InstaBond">
+        <activity
+            android:name=".view.ProfilePostDetailActivity"
+            android:exported="false" />
         <activity
             android:name=".view.MainActivity"
             android:exported="true">
@@ -21,6 +28,98 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".view.SignInActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.SignUpActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.CreatePostActivity"
+            android:exported="false" />
+        <activity
+            android:name=".view.CreateStoryActivity"
+            android:exported="false" />
+        <activity
+            android:name=".view.ImageEditorActivity"
+            android:exported="false" />
+        <activity
+            android:name=".view.StoryViewerActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.NewsfeedActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.SearchActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.NotificationsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.ProfileActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="user"
+                    android:scheme="instabond" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="profile"
+                    android:scheme="instabond" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".view.SettingsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".view.CommentActivity"
+            android:exported="false" />
+        <activity
+            android:name=".view.FollowListActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.InboxActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.ChatActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.ForgotPasswordActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.ResetPasswordActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.BookmarksActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.BlockedUsersActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.TagUserActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Profile avatar ring — white/light dashed circle (Figma node 6:281).
+    Rendered as a vector oval outline to mimic the story-ring indicator.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="128dp"
+    android:height="128dp"
+    android:viewportWidth="128"
+    android:viewportHeight="128">
+
+    <!-- Outer dashed-style ring: two arcs approximating a dashed circle -->
+    <!-- Top-left arc segment -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M64,4 A60,60 0 0 1 117.57,34"
+        android:strokeColor="#D7EDFB"
+        android:strokeLineCap="round"
+        android:strokeWidth="3" />
+
+    <!-- Top-right to bottom-right arc segment -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M121,64 A60,60 0 0 1 94,117.57"
+        android:strokeColor="#D7EDFB"
+        android:strokeLineCap="round"
+        android:strokeWidth="3" />
+
+    <!-- Bottom arc segment -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M64,124 A60,60 0 0 1 10.43,94"
+        android:strokeColor="#D7EDFB"
+        android:strokeLineCap="round"
+        android:strokeWidth="3" />
+
+    <!-- Left arc segment -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M7,64 A60,60 0 0 1 34,10.43"
+        android:strokeColor="#D7EDFB"
+        android:strokeLineCap="round"
+        android:strokeWidth="3" />
+
+</vector>

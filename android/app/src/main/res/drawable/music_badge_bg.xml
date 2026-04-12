@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Music / Audio badge background circle.
+    Node 2:631: rgba(0,0,0,0.6) with shape = full circle (32dp)
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+
+    <solid android:color="@color/overlay_60" />
+
+</shape>

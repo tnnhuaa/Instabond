@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Avatar ring default (gold gradient — used for "Minh Anh", node 2:627)
+    gradient: 135deg  #D5AD41 → #FFDF20 → #D5AD41
+    shape: circle (oval)
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+
+    <gradient
+        android:angle="135"
+        android:centerColor="@color/gradient_ring_gold_mid"
+        android:endColor="@color/gradient_ring_gold_end"
+        android:gradientRadius="50%p"
+        android:startColor="@color/gradient_ring_gold_start"
+        android:type="linear" />
+
+</shape>

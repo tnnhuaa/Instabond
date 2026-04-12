@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingEnd="16dp">
+
+    <FrameLayout
+        android:id="@+id/story_ring_frame"
+        android:layout_width="@dimen/feed_story_outer_size"
+        android:layout_height="@dimen/feed_story_outer_size"
+        android:background="@drawable/feed_story_active_ring"
+        android:padding="@dimen/feed_story_ring_padding">
+
+        <FrameLayout
+            android:id="@+id/story_inner_frame"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/feed_story_inner_frame_bg"
+            android:padding="@dimen/feed_story_ring_padding">
+
+            <ImageView
+                android:id="@+id/iv_story_avatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/avatar_circle_bg"
+                android:clipToOutline="true"
+                android:contentDescription="@string/cd_user_avatar"
+                android:scaleType="centerCrop"
+                android:src="@drawable/profile_placeholder_bg"
+                tools:src="@tools:sample/avatars" />
+
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/story_plus_badge"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="bottom|end"
+            android:background="@drawable/feed_story_badge_bg">
+
+            <ImageView
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/story_create_cta"
+                android:src="@drawable/ic_plus_tiny" />
+
+        </FrameLayout>
+
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/tv_story_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:ellipsize="end"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:maxLines="1"
+        android:minWidth="56dp"
+        android:textColor="@color/feed_story_label"
+        android:textSize="11sp"
+        tools:text="Your Story" />
+
+</LinearLayout>

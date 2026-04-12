@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Active tab indicator for the Profile screen tab bar.
+    Figma node 6:303 — #D7EDFB (light blue) 1dp bottom border on the active tab.
+    Implemented as a layer-list: transparent fill + 1dp bottom line only.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Transparent fill -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+
+    <!-- 1dp bottom border in brand light-blue -->
+    <item
+        android:bottom="0dp"
+        android:left="-4dp"
+        android:right="-4dp"
+        android:top="-4dp">
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="2dp"
+                android:color="@color/gradient_ring_blue_start" />
+        </shape>
+    </item>
+
+</layer-list>

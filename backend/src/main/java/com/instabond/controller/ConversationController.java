@@ -1,0 +1,97 @@
+package com.instabond.controller;
+
+import com.instabond.dto.ConversationDTO;
+import com.instabond.dto.ConversationPageResponse;
+import com.instabond.service.ConversationService;
+import com.instabond.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.Instant;
+
+@RestController
+@RequestMapping("/api/conversations")
+@RequiredArgsConstructor
+@Tag(name = "Conversations", description = "REST APIs for managing chat rooms and inboxes")
+public class ConversationController {
+
+    private final ConversationService conversationService;
+    private final UserService userService;
+
+    @Operation(
+            summary = "Get or Create Direct Conversation",
+            description = "Find a 1-1 chat room between the current user and partnerId. If no prior chat exists, the system will automatically create a new chat room and return its information."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Return conversation details (existing or newly created)",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ConversationDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Logic error such as trying to chat with oneself",
+                    content = @Content)
+    })
+    @PostMapping("/direct")
+    public ResponseEntity<ConversationDTO> getOrCreateDirectConversation(
+            @Parameter(description = "ID of user", required = true, example = "65e2a1b2c3d4e5f6g7h8i9j0")
+            @RequestParam String partnerId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        // Get email from token
+        String email = userDetails.getUsername();
+
+        // Query database for current user ID
+        String currentUserId = userService.getUserIdByEmail(email);
+
+        ConversationDTO conversation = conversationService.getOrCreateDirectConversationDto(
+                currentUserId,
+                partnerId
+        );
+
+        return ResponseEntity.ok(conversation);
+    }
+
+    @Operation(
+            summary = "Get current user conversations",
+            description = "Cursor pagination endpoint for inbox conversations sorted by updated_at descending."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Return paginated conversation list",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ConversationPageResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid cursor format",
+                    content = @Content)
+    })
+    @GetMapping
+    public ResponseEntity<ConversationPageResponse> getUserConversations(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int limit,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        String email = userDetails.getUsername();
+        String currentUserId = userService.getUserIdByEmail(email);
+
+        Instant parsedCursor = parseCursor(cursor);
+        ConversationPageResponse response = conversationService.getUserConversations(currentUserId, parsedCursor, limit);
+
+        return ResponseEntity.ok(response);
+    }
+
+    private Instant parseCursor(String cursor) {
+        if (cursor == null || cursor.isBlank()) {
+            return null;
+        }
+
+        try {
+            return Instant.parse(cursor);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("cursor must be ISO-8601 datetime");
+        }
+    }
+}
