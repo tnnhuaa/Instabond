@@ -2,6 +2,7 @@ package com.instabond.service;
 
 import com.instabond.dto.ChatMessageRequest;
 import com.instabond.dto.ChatMessageResponse;
+import com.instabond.dto.UserInteractionDTO;
 import com.instabond.entity.Conversation;
 import com.instabond.entity.Message;
 import com.instabond.entity.User;
@@ -10,7 +11,11 @@ import com.instabond.exception.ResourceNotFoundException;
 import com.instabond.repository.ConversationRepository;
 import com.instabond.repository.MessageRepository;
 import com.instabond.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -18,6 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -25,12 +32,14 @@ import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MessageService {
 
     private final MessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
     private final UserRepository userRepository;
     private final FileService fileService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public Message saveTextMessage(ChatMessageRequest request, String senderEmail) {
         if (request == null) {
@@ -64,8 +73,11 @@ public class MessageService {
                 .created_at(Instant.now())
                 .build();
 
+        publishChatInteractionIfFirstOfDay(conversation, sender.getId());
+
         Message saved = messageRepository.save(message);
         updateConversationLastMessage(conversation, saved);
+
         return saved;
     }
 
@@ -93,8 +105,11 @@ public class MessageService {
                 .created_at(Instant.now())
                 .build();
 
+        publishChatInteractionIfFirstOfDay(conversation, sender.getId());
+
         Message saved = messageRepository.save(message);
         updateConversationLastMessage(conversation, saved);
+
         return saved;
     }
 
@@ -224,5 +239,37 @@ public class MessageService {
             return "text";
         }
         return normalized.toLowerCase(Locale.ROOT);
+    }
+
+    // === HELPERS ===
+    private void publishChatInteractionIfFirstOfDay(Conversation conversation, String senderId) {
+        // Only publish event for 1-on-1 conversations
+        if (conversation.getParticipants() == null || conversation.getParticipants().size() != 2) {
+            return;
+        }
+
+        String receiverId = conversation.getParticipants().stream()
+                .filter(id -> !id.equals(senderId))
+                .findFirst()
+                .orElse(null);
+
+        if (receiverId == null) return;
+
+        Instant startOfToday = LocalDate.now(ZoneId.systemDefault())
+                .atStartOfDay(ZoneId.systemDefault())
+                .toInstant();
+
+        // Check the first message of sender
+        boolean alreadyChattedToday = messageRepository.existsMessageCheck(
+                conversation.getId(), senderId, startOfToday
+        );
+
+        String lastSenderInDB = conversation.getLast_message() != null ? conversation.getLast_message().getSender_id() : null;
+        boolean isNewTurn = lastSenderInDB == null || !lastSenderInDB.equals(senderId);
+
+        if (!alreadyChattedToday || isNewTurn) {
+            UserInteractionDTO event = new UserInteractionDTO(senderId, receiverId, "CHAT");
+            eventPublisher.publishEvent(event);
+        }
     }
 }

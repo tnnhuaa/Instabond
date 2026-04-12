@@ -40,7 +40,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             String authHeader = accessor.getFirstNativeHeader("Authorization");
 
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String jwt = authHeader.substring(7);
+                String jwt = authHeader.substring(7).trim();
                 try {
                     String email = jwtUtil.extractEmail(jwt);
 

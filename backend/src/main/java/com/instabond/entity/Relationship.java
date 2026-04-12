@@ -27,6 +27,7 @@ public class Relationship {
 
     private int intimacy_score;
 
+    // Default: Normal | 101-500: Close friends | 501-2000: Besties | >2000: Soulmates
     private String friendship_level;
 
     private Streak streak;
@@ -36,6 +37,8 @@ public class Relationship {
     private Instant created_at;
 
     private Instant updated_at;
+
+    private Instant last_interaction_at;
 
     // Embedded Documents
 
@@ -47,6 +50,8 @@ public class Relationship {
         private int count;
         private boolean has_fired_streak;
         private Instant last_interaction_date;
+        private String last_sender_id;
+        private Boolean is_pending_reply;
     }
 
     @Data

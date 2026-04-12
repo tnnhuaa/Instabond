@@ -4,6 +4,18 @@
 - Python 3.10+
 - Đã cài đặt pip
 
+## ⚙️ Cấu hình môi trường (file `.env`)
+```env
+# MongoDB Configuration
+MONGO_URL=mongodb://localhost:27017
+MONGO_DB_NAME=your_database_name
+
+# Florence-2 Model Settings
+FLORENCE_TASK_PROMPT=<CAPTION>
+FLORENCE_MAX_NEW_TOKENS=48
+FLORENCE_NUM_BEAMS=1
+```
+
 ## 🛠 Cài đặt (Setup)
 
 ### Bước 1: Tạo môi trường ảo (Virtual Environment)

@@ -12,9 +12,13 @@ import com.instabond.exception.ResourceNotFoundException;
 import com.instabond.repository.InteractionRepository;
 import com.instabond.repository.PostRepository;
 import com.instabond.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
+
 import org.bson.types.ObjectId;
+
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -54,6 +58,8 @@ public class PostService {
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 20;
     private static final int MAX_SIZE = 100;
+
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${ai.service.url:http://localhost:8000}")
     private String aiServiceUrl;
@@ -341,7 +347,14 @@ public class PostService {
                 .build();
 
         Post savedPost = postRepository.save(post);
-        sendTagNotifications(authorId, savedPost.getId(), extractTaggedUserIds(savedPost.getTagged_users()));
+        Set<String> newTaggedIds = extractTaggedUserIds(savedPost.getTagged_users());
+
+        sendTagNotifications(authorId, savedPost.getId(), newTaggedIds);
+
+        for (String taggedId : newTaggedIds) {
+            eventPublisher.publishEvent(new UserInteractionDTO(authorId, taggedId, "TAG"));
+        }
+
         return toPostResponse(savedPost, author, author);
     }
 
@@ -533,6 +546,7 @@ public class PostService {
             String postAuthorId = post.getAuthor_id();
             if (postAuthorId != null && !postAuthorId.equals(caller.getId())) {
                 notificationService.sendLikeNotification(caller.getId(), postAuthorId, postId);
+                eventPublisher.publishEvent(new UserInteractionDTO(caller.getId(), postAuthorId, "LIKE"));
             }
         }
 
@@ -588,6 +602,11 @@ public class PostService {
                     int currentLikes = post.getStats() != null ? post.getStats().getLikes() : 0;
                     if (currentLikes > 0) {
                         incrementPostStat(postId, "stats.likes", -1);
+                    }
+
+                    String postAuthorId = post.getAuthor_id();
+                    if (postAuthorId != null && !postAuthorId.equals(caller.getId())) {
+                        eventPublisher.publishEvent(new UserInteractionDTO(caller.getId(), postAuthorId, "UNLIKE"));
                     }
                 });
 
@@ -710,6 +729,20 @@ public class PostService {
             }
         }
 
+        if (postAuthorId != null && !postAuthorId.equals(caller.getId())) {
+            Query query = new Query(new Criteria().andOperator(
+                    Criteria.where("user_id").is(caller.getId()),
+                    Criteria.where("target_id").is(postId),
+                    Criteria.where("target_type").is("post"),
+                    Criteria.where("type").is("comment")
+            ));
+
+            long userCommentCount = mongoTemplate.count(query, Interaction.class);
+            if (userCommentCount == 1) {
+                eventPublisher.publishEvent(new UserInteractionDTO(caller.getId(), postAuthorId, "COMMENT"));
+            }
+        }
+
         return toCommentResponse(saved, caller, 0, false);
     }
 
@@ -824,6 +857,21 @@ public class PostService {
         int currentComments = post.getStats() != null ? post.getStats().getComments() : 0;
         if (currentComments > 0) {
             incrementPostStat(postId, "stats.comments", -1);
+        }
+
+        String postAuthorId = post.getAuthor_id();
+        if (postAuthorId != null && !postAuthorId.equals(caller.getId())) {
+            Query query = new Query(new Criteria().andOperator(
+                    Criteria.where("user_id").is(caller.getId()),
+                    Criteria.where("target_id").is(postId),
+                    Criteria.where("target_type").is("post"),
+                    Criteria.where("type").is("comment")
+            ));
+
+            long remainingComments = mongoTemplate.count(query, Interaction.class);
+            if (remainingComments == 0) {
+                eventPublisher.publishEvent(new UserInteractionDTO(caller.getId(), postAuthorId, "DELETE_COMMENT"));
+            }
         }
     }
 

@@ -22,10 +22,6 @@ public class SearchContext {
         this.postSearchStrategy = postSearchStrategy;
     }
 
-    public List<?> executeSearch(String type, String keyword, Pageable pageable) {
-        return executeSearch(type, keyword, pageable, null);
-    }
-
     public List<?> executeSearch(String type, String keyword, Pageable pageable, String callerPrincipal) {
         SearchStrategy strategy = strategies.get(type.toUpperCase());
 
@@ -34,10 +30,6 @@ public class SearchContext {
         }
 
         return strategy.search(keyword, pageable, callerPrincipal);
-    }
-
-    public List<?> executeSuggest(String type, String keyword) {
-        return executeSuggest(type, keyword, null);
     }
 
     public List<?> executeSuggest(String type, String keyword, String callerPrincipal) {
