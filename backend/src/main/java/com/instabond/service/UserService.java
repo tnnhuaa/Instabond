@@ -757,9 +757,9 @@ public class UserService {
             throw new IllegalArgumentException("Request body is required");
         }
 
-        String currentPassword = request.getCurrentPassword() != null ? request.getCurrentPassword().trim() : "";
-        String newPassword = request.getNewPassword() != null ? request.getNewPassword().trim() : "";
-        String confirmNewPassword = request.getConfirmNewPassword() != null ? request.getConfirmNewPassword().trim() : "";
+        String currentPassword = request.getCurrentPassword() != null ? request.getCurrentPassword() : "";
+        String newPassword = request.getNewPassword() != null ? request.getNewPassword() : "";
+        String confirmNewPassword = request.getConfirmNewPassword() != null ? request.getConfirmNewPassword() : "";
 
         if (currentPassword.isEmpty() || newPassword.isEmpty() || confirmNewPassword.isEmpty()) {
             throw new IllegalArgumentException("Current password, new password and confirmation are required");
