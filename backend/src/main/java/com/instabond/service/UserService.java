@@ -1,6 +1,7 @@
 package com.instabond.service;
 
 import com.instabond.dto.UserMeResponse;
+import com.instabond.dto.ChangePasswordRequest;
 import com.instabond.dto.FollowUserResponse;
 import com.instabond.dto.ProfileResponse;
 import com.instabond.dto.ProfileShareResponse;
@@ -25,6 +26,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -46,6 +48,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RelationshipRepository relationshipRepository;
+    private final PasswordEncoder passwordEncoder;
     private final FileService fileService;
     private final MongoTemplate mongoTemplate;
     private final NotificationService notificationService;
@@ -747,6 +750,38 @@ public class UserService {
         }
 
         return toProfileResponse(savedUser);
+    }
+
+    public void changeMyPassword(String callerPrincipal, ChangePasswordRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Request body is required");
+        }
+
+        String currentPassword = request.getCurrentPassword() != null ? request.getCurrentPassword() : "";
+        String newPassword = request.getNewPassword() != null ? request.getNewPassword() : "";
+        String confirmNewPassword = request.getConfirmNewPassword() != null ? request.getConfirmNewPassword() : "";
+
+        if (currentPassword.isEmpty() || newPassword.isEmpty() || confirmNewPassword.isEmpty()) {
+            throw new IllegalArgumentException("Current password, new password and confirmation are required");
+        }
+        if (!newPassword.equals(confirmNewPassword)) {
+            throw new IllegalArgumentException("New password and confirmation do not match");
+        }
+        if (newPassword.length() < 8) {
+            throw new IllegalArgumentException("New password must be at least 8 characters");
+        }
+
+        User user = resolveUserFromPrincipal(callerPrincipal);
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new IllegalArgumentException("New password must be different from current password");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
 
     public UpdateAllowTaggingResponse updateMyAllowTagging(String callerPrincipal, String value) {
