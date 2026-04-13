@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivitySettingsBinding;
+import com.example.instabond_fe.model.ChangePasswordRequest;
 import com.example.instabond_fe.model.UpdateAllowTaggingResponse;
 import com.example.instabond_fe.model.UpdateProfileRequest;
 import com.example.instabond_fe.model.UserProfileResponse;
@@ -21,7 +22,11 @@ import com.example.instabond_fe.utils.ThemePreferenceManager;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.Locale;
+import java.io.IOException;
 
+import okhttp3.ResponseBody;
+import org.json.JSONException;
+import org.json.JSONObject;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -86,6 +91,7 @@ public class SettingsActivity extends AppCompatActivity {
         binding.btnBlockedUsers.setOnClickListener(v -> openBlockedUsers());
         binding.btnTagPreference.setOnClickListener(v -> showTagPreferenceDialog());
         binding.btnLanguage.setOnClickListener(v -> showLanguageDialog());
+        binding.btnChangePassword.setOnClickListener(v -> changePassword());
 
         binding.swPrivateAccount.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (suppressPrivacyToggleListener || isUpdatingPrivacy) {
@@ -336,17 +342,178 @@ public class SettingsActivity extends AppCompatActivity {
         });
     }
 
+    private void changePassword() {
+        String currentPassword = binding.etCurrentPassword.getText().toString().trim();
+        String newPassword = binding.etNewPassword.getText().toString().trim();
+        String confirmPassword = binding.etConfirmNewPassword.getText().toString().trim();
+        clearPasswordInputErrors();
+
+        if (currentPassword.isEmpty() || newPassword.isEmpty() || confirmPassword.isEmpty()) {
+            if (currentPassword.isEmpty()) {
+                binding.etCurrentPassword.setError(getString(R.string.settings_change_password_required_field));
+            }
+            if (newPassword.isEmpty()) {
+                binding.etNewPassword.setError(getString(R.string.settings_change_password_required_field));
+            }
+            if (confirmPassword.isEmpty()) {
+                binding.etConfirmNewPassword.setError(getString(R.string.settings_change_password_required_field));
+            }
+            Toast.makeText(this, R.string.settings_change_password_empty, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (newPassword.length() < 8) {
+            binding.etNewPassword.setError(getString(R.string.settings_change_password_length));
+            Toast.makeText(this, R.string.settings_change_password_length, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (!newPassword.equals(confirmPassword)) {
+            binding.etConfirmNewPassword.setError(getString(R.string.settings_change_password_mismatch));
+            Toast.makeText(this, R.string.settings_change_password_mismatch, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (currentPassword.equals(newPassword)) {
+            binding.etNewPassword.setError(getString(R.string.settings_change_password_same));
+            Toast.makeText(this, R.string.settings_change_password_same, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        setChangePasswordEnabled(false);
+        apiService.changePassword(new ChangePasswordRequest(currentPassword, newPassword, confirmPassword))
+                .enqueue(new Callback<ResponseBody>() {
+                    @Override
+                    public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                        setChangePasswordEnabled(true);
+
+                        if (response.code() == 401) {
+                            handleUnauthorized();
+                            return;
+                        }
+
+                        if (response.isSuccessful()) {
+                            binding.etCurrentPassword.setText("");
+                            binding.etNewPassword.setText("");
+                            binding.etConfirmNewPassword.setText("");
+                            clearPasswordInputErrors();
+                            Toast.makeText(SettingsActivity.this, R.string.settings_change_password_success, Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        String errorText = getErrorText(response.errorBody());
+                        if (errorText == null || errorText.isEmpty()) {
+                            errorText = getString(R.string.settings_change_password_failed);
+                        }
+                        applyPasswordErrorToField(errorText);
+                        Toast.makeText(SettingsActivity.this, errorText, Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onFailure(Call<ResponseBody> call, Throwable t) {
+                        setChangePasswordEnabled(true);
+                        Toast.makeText(
+                                SettingsActivity.this,
+                                getString(R.string.msg_connection_error, t.getMessage()),
+                                Toast.LENGTH_SHORT
+                        ).show();
+                    }
+                });
+    }
+
+    private String getErrorText(ResponseBody errorBody) {
+        if (errorBody == null) {
+            return null;
+        }
+        try {
+            String body = errorBody.string();
+            if (body == null) {
+                return null;
+            }
+            body = body.trim();
+            if (body.startsWith("{")) {
+                JSONObject json = new JSONObject(body);
+                String message = json.optString("message", "").trim();
+                if (!message.isEmpty()) {
+                    return mapPasswordErrorMessage(message);
+                }
+            }
+            return mapPasswordErrorMessage(body);
+        } catch (IOException ignored) {
+            return null;
+        } catch (JSONException ignored) {
+            return null;
+        }
+    }
+
+    private String mapPasswordErrorMessage(String serverMessage) {
+        if (serverMessage == null || serverMessage.trim().isEmpty()) {
+            return getString(R.string.settings_change_password_failed);
+        }
+
+        String normalized = serverMessage.trim().toLowerCase(Locale.ROOT);
+        if (normalized.contains("current password is incorrect")) {
+            return getString(R.string.settings_change_password_wrong_current);
+        }
+        if (normalized.contains("new password and confirmation do not match")) {
+            return getString(R.string.settings_change_password_mismatch);
+        }
+        if (normalized.contains("new password must be at least 8 characters")) {
+            return getString(R.string.settings_change_password_length);
+        }
+        if (normalized.contains("new password must be different from current password")) {
+            return getString(R.string.settings_change_password_same);
+        }
+        if (normalized.contains("required")) {
+            return getString(R.string.settings_change_password_empty);
+        }
+        return serverMessage;
+    }
+
+    private void applyPasswordErrorToField(String errorText) {
+        clearPasswordInputErrors();
+        if (errorText == null) {
+            return;
+        }
+
+        String normalized = errorText.toLowerCase(Locale.ROOT);
+        if (normalized.contains(getString(R.string.settings_change_password_wrong_current).toLowerCase(Locale.ROOT))) {
+            binding.etCurrentPassword.setError(errorText);
+            return;
+        }
+        if (normalized.contains(getString(R.string.settings_change_password_mismatch).toLowerCase(Locale.ROOT))) {
+            binding.etConfirmNewPassword.setError(errorText);
+            return;
+        }
+        if (normalized.contains(getString(R.string.settings_change_password_length).toLowerCase(Locale.ROOT))
+                || normalized.contains(getString(R.string.settings_change_password_same).toLowerCase(Locale.ROOT))) {
+            binding.etNewPassword.setError(errorText);
+        }
+    }
+
+    private void clearPasswordInputErrors() {
+        binding.etCurrentPassword.setError(null);
+        binding.etNewPassword.setError(null);
+        binding.etConfirmNewPassword.setError(null);
+    }
+
     private void setUiEnabled(boolean enabled) {
         binding.etFullName.setEnabled(enabled);
         binding.etBio.setEnabled(enabled);
         binding.etPhoneNumber.setEnabled(enabled);
+        binding.etCurrentPassword.setEnabled(enabled);
+        binding.etNewPassword.setEnabled(enabled);
+        binding.etConfirmNewPassword.setEnabled(enabled);
         binding.btnSaveProfile.setEnabled(enabled);
         binding.btnSaveProfile.setAlpha(enabled ? 1.0f : 0.5f);
+        setChangePasswordEnabled(enabled);
         binding.btnTagPreference.setEnabled(enabled);
         binding.btnTagPreference.setAlpha(enabled ? 1.0f : 0.7f);
         binding.swTheme.setEnabled(true);
         binding.swTheme.setAlpha(1.0f);
         setPrivacyToggleEnabled(enabled && !isUpdatingPrivacy);
+    }
+
+    private void setChangePasswordEnabled(boolean enabled) {
+        binding.btnChangePassword.setEnabled(enabled);
+        binding.btnChangePassword.setAlpha(enabled ? 1.0f : 0.5f);
     }
 
     private void setPrivacyToggleEnabled(boolean enabled) {

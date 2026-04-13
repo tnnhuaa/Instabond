@@ -4,6 +4,7 @@ import com.instabond.dto.FollowUserResponse;
 import com.instabond.dto.ProfileResponse;
 import com.instabond.dto.ProfileShareResponse;
 import com.instabond.dto.ResolveProfileRequest;
+import com.instabond.dto.ChangePasswordRequest;
 import com.instabond.dto.UpdateAllowTaggingResponse;
 import com.instabond.dto.UpdatePrivacyRequest;
 import com.instabond.dto.UpdateProfileRequest;
@@ -124,6 +125,24 @@ public class UserController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         return ResponseEntity.ok(userService.updateMyPrivacy(userDetails.getUsername(), false));
+    }
+
+    @Operation(
+            summary = "Change account password",
+            description = "Changes password for the authenticated account after validating current password and confirmation."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Password changed successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid password payload or validation failure"),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token")
+    })
+    @PatchMapping("/me/password")
+    public ResponseEntity<String> changeMyPassword(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody ChangePasswordRequest request) {
+
+        userService.changeMyPassword(userDetails.getUsername(), request);
+        return ResponseEntity.ok("Password changed successfully.");
     }
 
     // Get all users

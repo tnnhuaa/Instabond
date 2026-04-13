@@ -20,6 +20,7 @@ import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.model.ChatMessageResponse;
 import com.example.instabond_fe.model.Conversation;
 import com.example.instabond_fe.model.ConversationPageResponse;
+import com.example.instabond_fe.model.ChangePasswordRequest;
 import com.example.instabond_fe.model.UserSearchDTO;
 import com.google.gson.JsonElement;
 
@@ -289,4 +290,7 @@ public interface ApiService {
 
     @PATCH("api/users/me/allow-tagging")
     Call<UpdateAllowTaggingResponse> updateAllowTagging(@Query("value") String value);
+
+        @PATCH("api/users/me/password")
+        Call<ResponseBody> changePassword(@Body ChangePasswordRequest request);
 }
