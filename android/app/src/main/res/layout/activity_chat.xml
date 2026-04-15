@@ -229,7 +229,7 @@
             android:contentDescription="@null"
             android:padding="8dp"
             app:tint="@color/login_bg_start"
-            android:src="@drawable/baseline_camera_alt_24" />
+            android:src="@drawable/outline_add_reaction_24" />
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="0dp"
