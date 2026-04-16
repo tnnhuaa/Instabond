@@ -366,6 +366,9 @@
     <string name="chat_type_message">Nhập tin nhắn...</string>
     <string name="chat_reconnecting">Đang kết nối lại...</string>
     <string name="chat_missing_conversation">Thiếu cuộc trò chuyện</string>
+    <string name="chat_image_picker_unavailable">Không mở được bộ chọn ảnh</string>
+    <string name="chat_image_selected">Đã chọn ảnh</string>
+    <string name="chat_upload_some_images_failed">Tải lên thất bại %1$d ảnh</string>
     <string name="chat_story_reply_header">Trả lời tin</string>
     <string name="chat_story_reply_title">Tin</string>
     <string name="chat_story_reply_title_named">Tin của %1$s</string>
@@ -400,6 +403,13 @@
     <string name="image_editor_select_text_first">Chọn sticker văn bản trước</string>
     <string name="image_editor_text_dialog_supporting">Tạo một chú thích nghệ thuật ngắn cảm thấy phù hợp với ảnh.</string>
     <string name="image_editor_text_required">Vui lòng nhập văn bản</string>
+
+    <plurals name="chat_images_selected_count">
+        <item quantity="one">Đã chọn %1$d ảnh</item>
+        <item quantity="other">Đã chọn %1$d ảnh</item>
+    </plurals>
+
+    <string name="chat_images_more_count">+%1$d</string>
 
     <plurals name="story_view_viewers_count">
         <item quantity="one">%1$d người xem</item>

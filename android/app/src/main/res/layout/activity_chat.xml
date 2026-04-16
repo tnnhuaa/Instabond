@@ -42,7 +42,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@drawable/avatar_circle_bg"
-                android:clipToOutline="true"
+                android:contentDescription="@string/profile_avatar"
                 android:scaleType="centerCrop"
                 tools:src="@drawable/profile_placeholder_bg" />
 
@@ -80,7 +80,7 @@
                 android:letterSpacing="0.08"
                 android:text="@string/chat_online_now"
                 android:textColor="@color/login_bg_start"
-                android:textSize="10sp" />
+                android:textSize="11sp" />
 
         </LinearLayout>
 
@@ -143,7 +143,7 @@
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/layout_image_preview"
         android:layout_width="0dp"
-        android:layout_height="72dp"
+        android:layout_height="88dp"
         android:layout_marginStart="12dp"
         android:layout_marginEnd="12dp"
         android:layout_marginBottom="8dp"
@@ -163,16 +163,75 @@
             android:paddingStart="10dp"
             android:paddingEnd="8dp">
 
-            <ImageView
-                android:id="@+id/iv_selected_image_preview"
-                android:layout_width="52dp"
-                android:layout_height="52dp"
-                android:background="@drawable/avatar_circle_bg"
-                android:contentDescription="@string/cd_post_image"
-                android:scaleType="centerCrop"
-                tools:src="@drawable/profile_placeholder_bg" />
+            <LinearLayout
+                android:id="@+id/layout_selected_image_thumbnails"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <FrameLayout
+                    android:id="@+id/slot_selected_image_1"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp">
+
+                    <ImageView
+                        android:id="@+id/iv_selected_image_preview_1"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/avatar_circle_bg"
+                        android:contentDescription="@string/cd_post_image"
+                        android:scaleType="centerCrop"
+                        tools:src="@drawable/profile_placeholder_bg" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/slot_selected_image_2"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp">
+
+                    <ImageView
+                        android:id="@+id/iv_selected_image_preview_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/avatar_circle_bg"
+                        android:contentDescription="@string/cd_post_image"
+                        android:scaleType="centerCrop"
+                        tools:src="@drawable/profile_placeholder_bg" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/slot_selected_image_3"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp">
+
+                    <ImageView
+                        android:id="@+id/iv_selected_image_preview_3"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/avatar_circle_bg"
+                        android:contentDescription="@string/cd_post_image"
+                        android:scaleType="centerCrop"
+                        tools:src="@drawable/profile_placeholder_bg" />
+
+                    <TextView
+                        android:id="@+id/tv_selected_image_preview_more"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/bg_chat_image_count_badge"
+                        android:gravity="center"
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:visibility="gone"
+                        tools:text="+4" />
+                </FrameLayout>
+
+            </LinearLayout>
 
             <TextView
+                android:id="@+id/tv_selected_image_preview_label"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
@@ -250,6 +309,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@android:color/transparent"
+                    android:importantForAutofill="no"
                     android:hint="@string/chat_type_message"
                     android:inputType="textCapSentences|textMultiLine"
                     android:maxLines="4"
