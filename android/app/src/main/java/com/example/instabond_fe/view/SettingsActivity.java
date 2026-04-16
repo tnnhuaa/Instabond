@@ -83,8 +83,6 @@ public class SettingsActivity extends AppCompatActivity {
         binding.btnBack.setOnClickListener(v -> finish());
         binding.btnSaveProfile.setOnClickListener(v -> updateProfile());
         binding.btnLogout.setOnClickListener(v -> logout());
-        binding.btnEditAvatar.setOnClickListener(v ->
-                Toast.makeText(this, R.string.settings_feature_soon, Toast.LENGTH_SHORT).show());
         binding.btnHelpFab.setOnClickListener(v ->
                 Toast.makeText(this, R.string.settings_feature_soon, Toast.LENGTH_SHORT).show());
         binding.btnBookmarks.setOnClickListener(v -> openBookmarks());
