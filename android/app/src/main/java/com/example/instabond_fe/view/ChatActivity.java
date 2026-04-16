@@ -5,6 +5,9 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
+import android.widget.PopupWindow;
+import android.view.LayoutInflater;
+import android.view.ViewGroup;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -190,9 +193,58 @@ public class ChatActivity extends AppCompatActivity {
         });
 
         binding.btnAddAttachment.setOnClickListener(v -> openImagePicker());
+        binding.btnCameraAction.setOnClickListener(this::showChatIconPicker);
         binding.btnClearImagePreview.setOnClickListener(v -> clearPendingImagePreview());
     }
 
+    private void showChatIconPicker(View anchorView) {
+        LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+        View popupView = inflater.inflate(R.layout.bottom_sheet_chat_icons, null);
+
+        PopupWindow popupWindow = new PopupWindow(
+                popupView,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                true
+        );
+        popupWindow.setElevation(10f);
+
+        setupIcon(popupWindow, popupView, R.id.tv_icon_heart, "\uD83D\uDE0D");
+        setupIcon(popupWindow, popupView, R.id.tv_icon_laugh, "\uD83D\uDE02");
+        setupIcon(popupWindow, popupView, R.id.tv_icon_love, "\u2764\uFE0F");
+        setupIcon(popupWindow, popupView, R.id.tv_icon_fire, "\uD83D\uDD25");
+        setupIcon(popupWindow, popupView, R.id.tv_icon_party, "\uD83C\uDF89");
+        setupIcon(popupWindow, popupView, R.id.tv_icon_thumbs_up, "\uD83D\uDC4D");
+
+        popupView.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        int popupHeight = popupView.getMeasuredHeight();
+
+        popupWindow.showAsDropDown(anchorView, 0, -anchorView.getHeight() - popupHeight - 20);
+    }
+
+    private void setupIcon(PopupWindow popupWindow, View popupView, int viewId, String icon) {
+        android.widget.TextView tvIcon = popupView.findViewById(viewId);
+        if (tvIcon != null) {
+            tvIcon.setText(icon);
+
+            tvIcon.setOnClickListener(v -> {
+                appendChatIcon(icon);
+                popupWindow.dismiss();
+            });
+        }
+    }
+
+    private void appendChatIcon(String icon) {
+        if (icon == null || icon.trim().isEmpty()) {
+            return;
+        }
+        String current = binding.etMessage.getText() == null ? "" : binding.etMessage.getText().toString();
+        String spacer = current.trim().isEmpty() ? "" : " ";
+        String updated = current + spacer + icon;
+        binding.etMessage.setText(updated);
+        binding.etMessage.setSelection(updated.length());
+        updateSendButtonState(hasTypedText());
+    }
     private void registerLaunchers() {
         pickImageLauncher = registerForActivityResult(new ActivityResultContracts.GetContent(), this::onImagePicked);
     }
