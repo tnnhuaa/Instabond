@@ -272,6 +272,8 @@
     <string name="notification_chat_photo_suffix">đã gửi một ảnh</string>
     <string name="notification_chat_post_share_suffix">đã chia sẻ một bài viết</string>
     <string name="notification_chat_story_reply_suffix">đã trả lời tin của bạn</string>
+.    <string name="notification_mark_all_read">Đọc tất cả</string>
+    <string name="notification_mark_all_read_failed">Không thể đánh dấu đã đọc tất cả thông báo</string>
     <string name="profile_action_message">Nhắn tin</string>
     <string name="profile_action_edit">Chỉnh sửa hồ sơ</string>
     <string name="profile_action_share">Chia sẻ</string>

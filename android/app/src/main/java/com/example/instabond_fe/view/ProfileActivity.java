@@ -23,6 +23,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiListParser;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.repository.NotificationCountManager;
 import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
@@ -71,6 +72,7 @@ public class ProfileActivity extends AppCompatActivity {
     private boolean shouldAttemptQuickFollow;
     private String quickFollowTargetUserId;
     private ProfileGridAdapter gridAdapter;
+    private NotificationCountManager notificationCountManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,6 +83,7 @@ public class ProfileActivity extends AppCompatActivity {
 
         apiService = ApiClient.getApiService(this);
         sessionManager = new SessionManager(this);
+        notificationCountManager = NotificationCountManager.getInstance(this);
 
         gridAdapter = new ProfileGridAdapter();
         binding.rvProfileGrid.setAdapter(gridAdapter);
@@ -146,6 +149,13 @@ public class ProfileActivity extends AppCompatActivity {
         super.onNewIntent(intent);
         setIntent(intent);
         handleIntentNavigation(intent);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Fetch fresh unread notification count
+        notificationCountManager.fetchUnreadCount();
     }
 
     private void handleIntentNavigation(Intent intent) {
