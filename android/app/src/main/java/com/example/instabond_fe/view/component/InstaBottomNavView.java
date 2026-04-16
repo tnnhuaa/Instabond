@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat;
 
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ViewInstaBottomNavBinding;
+import com.example.instabond_fe.repository.NotificationCountManager;
 import com.example.instabond_fe.view.CreatePostActivity;
 import com.example.instabond_fe.view.NewsfeedActivity;
 import com.example.instabond_fe.view.NotificationsActivity;
@@ -32,6 +33,9 @@ public class InstaBottomNavView extends FrameLayout {
     }
 
     private final ViewInstaBottomNavBinding binding;
+    private NotificationCountManager countManager;
+    private final NotificationCountManager.UnreadCountListener unreadCountListener = count ->
+            setNotificationsBadgeVisible(count > 0);
 
     public InstaBottomNavView(@NonNull Context context) {
         this(context, null);
@@ -48,6 +52,12 @@ public class InstaBottomNavView extends FrameLayout {
 
     public void bind(Activity activity, Tab activeTab) {
         setActiveTab(activeTab);
+        
+        // Initialize notification count manager
+        countManager = NotificationCountManager.getInstance(getContext());
+        countManager.addListener(unreadCountListener);
+        // Set initial badge state
+        setNotificationsBadgeVisible(countManager.getUnreadCount() > 0);
 
         binding.navHome.setOnClickListener(v -> navigateTo(activity, NewsfeedActivity.class));
         binding.navSearch.setOnClickListener(v -> navigateTo(activity, SearchActivity.class));

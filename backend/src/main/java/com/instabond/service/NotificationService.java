@@ -368,6 +368,20 @@ public class NotificationService {
         return notificationRepository.save(notification);
     }
 
+    public void markAllAsRead(String recipientId) {
+        List<Notification> unreadNotifications = notificationRepository.findUnreadByRecipientId(recipientId);
+        if (unreadNotifications.isEmpty()) {
+            return;
+        }
+
+        unreadNotifications.forEach(notification -> notification.set_read(true));
+        notificationRepository.saveAll(unreadNotifications);
+    }
+
+    public long getUnreadNotificationCount(String recipientId) {
+        return notificationRepository.countUnreadByRecipientId(recipientId);
+    }
+
     private int normalizeSize(int size) {
         if (size <= 0) {
             return DEFAULT_SIZE;

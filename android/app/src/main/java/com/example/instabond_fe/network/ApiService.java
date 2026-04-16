@@ -22,6 +22,7 @@ import com.example.instabond_fe.model.Conversation;
 import com.example.instabond_fe.model.ConversationPageResponse;
 import com.example.instabond_fe.model.ChangePasswordRequest;
 import com.example.instabond_fe.model.UserSearchDTO;
+import com.example.instabond_fe.model.UnreadCountResponse;
 import com.google.gson.JsonElement;
 
 import okhttp3.MultipartBody;
@@ -199,9 +200,12 @@ public interface ApiService {
             @Query("page") int page,
             @Query("size") int size
     );
-
+    @GET("api/notifications/count/unread")
+    Call<UnreadCountResponse> getUnreadNotificationCount();
     @PUT("api/notifications/{id}/read")
     Call<Notification> markNotificationAsRead(@Path("id") String notificationId);
+    @PUT("api/notifications/read-all")
+    Call<Void> markAllNotificationsAsRead();
     @GET("api/users/follow-requests/incoming")
     Call<List<FollowUserResponse>> getIncomingFollowRequests();
 

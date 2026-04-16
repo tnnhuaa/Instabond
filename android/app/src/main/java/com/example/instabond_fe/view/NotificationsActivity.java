@@ -35,6 +35,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.WebSocketManager;
+import com.example.instabond_fe.repository.NotificationCountManager;
 import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.utils.ThemePreferenceManager;
@@ -80,6 +81,7 @@ public class NotificationsActivity extends AppCompatActivity {
     private NotificationSectionAdapter adapter;
     private final List<Notification> notificationList = new ArrayList<>();
     private WebSocketManager webSocketManager;
+    private NotificationCountManager countManager;
     private boolean isLoading = false;
     private boolean hasNextPage = true;
     private int currentPage = 0;
@@ -95,6 +97,7 @@ public class NotificationsActivity extends AppCompatActivity {
 
         apiService = ApiClient.getApiService(this);
         webSocketManager = WebSocketManager.getInstance(this);
+        countManager = NotificationCountManager.getInstance(this);
 
         setupRecyclerView();
         setupSwipeRefresh();
@@ -109,6 +112,8 @@ public class NotificationsActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         webSocketManager.addNotificationListener(notificationListener);
+        // Fetch fresh unread count when activity resumes
+        countManager.fetchUnreadCount();
     }
 
     @Override
@@ -251,6 +256,9 @@ public class NotificationsActivity extends AppCompatActivity {
 
         notification.setRead(true);
         addOrUpdateNotification(notification);
+        
+        // Decrement unread count when marking notification as read
+        countManager.decrementUnreadCount();
 
         apiService.markNotificationAsRead(notification.getId()).enqueue(new Callback<Notification>() {
             @Override
@@ -365,8 +373,49 @@ public class NotificationsActivity extends AppCompatActivity {
     private void bindActions() {
         binding.btnCamera.setOnClickListener(v ->
                 startActivity(new Intent(this, CreatePostActivity.class)));
+        binding.btnMarkAllRead.setOnClickListener(v -> markAllAsRead());
         binding.btnInbox.setOnClickListener(v ->
                 Toast.makeText(this, getString(R.string.feed_messages_coming_soon), Toast.LENGTH_SHORT).show());
+    }
+
+    private void markAllAsRead() {
+        boolean hasUnread = false;
+        for (Notification notification : notificationList) {
+            if (notification != null && !notification.isRead()) {
+                notification.setRead(true);
+                hasUnread = true;
+            }
+        }
+
+        if (!hasUnread) {
+            return;
+        }
+
+        rebuildSections();
+        countManager.setUnreadCount(0);
+        apiService.markAllNotificationsAsRead().enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
+                if (!response.isSuccessful()) {
+                    Toast.makeText(
+                            NotificationsActivity.this,
+                            getString(R.string.notification_mark_all_read_failed),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                    countManager.fetchUnreadCount();
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
+                Toast.makeText(
+                        NotificationsActivity.this,
+                        getString(R.string.notification_mark_all_read_failed),
+                        Toast.LENGTH_SHORT
+                ).show();
+                countManager.fetchUnreadCount();
+            }
+        });
     }
 
     private void upsertNotification(Notification notification) {
@@ -402,7 +451,6 @@ public class NotificationsActivity extends AppCompatActivity {
     }
 
     private List<NotificationSection> buildSections(List<Notification> notifications) {
-        List<Notification> newItems = new ArrayList<>();
         List<Notification> todayItems = new ArrayList<>();
         List<Notification> weekItems = new ArrayList<>();
         List<Notification> earlierItems = new ArrayList<>();
@@ -412,9 +460,7 @@ public class NotificationsActivity extends AppCompatActivity {
             Date createdAt = parseInstant(notification.getCreatedAt());
             long age = createdAt == null ? Long.MAX_VALUE : Math.max(now - createdAt.getTime(), 0L);
 
-            if (!notification.isRead()) {
-                newItems.add(notification);
-            } else if (age < DAY_MS) {
+            if (age < DAY_MS) {
                 todayItems.add(notification);
             } else if (age < WEEK_MS) {
                 weekItems.add(notification);
@@ -424,22 +470,18 @@ public class NotificationsActivity extends AppCompatActivity {
         }
 
         List<NotificationSection> sections = new ArrayList<>();
-        appendSection(sections, getString(R.string.notification_section_new), true, false, newItems);
-        appendSection(sections, getString(R.string.notification_section_today), false, true, todayItems);
-        appendSection(sections, getString(R.string.notification_section_this_week), false, false, weekItems);
-        appendSection(sections, getString(R.string.notification_section_earlier), false, false, earlierItems);
+        appendSection(sections, getString(R.string.notification_section_today), todayItems);
+        appendSection(sections, getString(R.string.notification_section_this_week), weekItems);
+        appendSection(sections, getString(R.string.notification_section_earlier), earlierItems);
         return sections;
     }
 
     private void appendSection(List<NotificationSection> sections,
                                String title,
-                               boolean showDot,
-                               boolean grouped,
                                List<Notification> items) {
-        if (items.isEmpty()) {
-            return;
+        if (!items.isEmpty()) {
+            sections.add(new NotificationSection(title, new ArrayList<>(items)));
         }
-        sections.add(new NotificationSection(title, showDot, grouped, new ArrayList<>(items)));
     }
 
     private Date parseInstant(String createdAt) {
@@ -466,14 +508,10 @@ public class NotificationsActivity extends AppCompatActivity {
 
     private static class NotificationSection {
         final String title;
-        final boolean showAccentDot;
-        final boolean grouped;
         final List<Notification> items;
 
-        NotificationSection(String title, boolean showAccentDot, boolean grouped, List<Notification> items) {
+        NotificationSection(String title, List<Notification> items) {
             this.title = title;
-            this.showAccentDot = showAccentDot;
-            this.grouped = grouped;
             this.items = items;
         }
     }
@@ -523,47 +561,37 @@ public class NotificationsActivity extends AppCompatActivity {
                 sectionBinding.tvSectionTitle.setText(section.title);
                 sectionBinding.tvSectionTitle.setTextColor(ContextCompat.getColor(
                         sectionBinding.getRoot().getContext(),
-                        section.showAccentDot
-                                ? R.color.notification_section_title
-                                : R.color.notification_section_title_muted
+                        R.color.notification_section_title_muted
                 ));
-                sectionBinding.viewSectionDot.setVisibility(
-                        section.showAccentDot ? View.VISIBLE : View.GONE
-                );
-                sectionBinding.cardsContainer.setVisibility(section.grouped ? View.GONE : View.VISIBLE);
-                sectionBinding.cardGroupShell.setVisibility(section.grouped ? View.VISIBLE : View.GONE);
-
-                LinearLayout targetContainer = section.grouped
-                        ? sectionBinding.groupCardsContainer
-                        : sectionBinding.cardsContainer;
-                targetContainer.removeAllViews();
+                sectionBinding.viewSectionDot.setVisibility(View.GONE);
+                sectionBinding.cardGroupShell.setVisibility(View.GONE);
+                sectionBinding.cardsContainer.setVisibility(View.VISIBLE);
+                sectionBinding.cardsContainer.removeAllViews();
 
                 for (int i = 0; i < section.items.size(); i++) {
                     Notification item = section.items.get(i);
                     ViewNotificationCardBinding cardBinding = ViewNotificationCardBinding.inflate(
-                            LayoutInflater.from(targetContainer.getContext()),
-                            targetContainer,
+                            LayoutInflater.from(sectionBinding.cardsContainer.getContext()),
+                            sectionBinding.cardsContainer,
                             false
                     );
-                    bindCard(cardBinding, item, section.grouped);
+                    bindCard(cardBinding, item);
 
                     LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.WRAP_CONTENT
                     );
-                    params.bottomMargin = i == section.items.size() - 1
-                            ? 0
-                            : dp(section.grouped ? 4 : 20);
+                    params.bottomMargin = i == section.items.size() - 1 ? 0 : dp(16);
                     cardBinding.getRoot().setLayoutParams(params);
-                    targetContainer.addView(cardBinding.getRoot());
+                    sectionBinding.cardsContainer.addView(cardBinding.getRoot());
                 }
             }
 
-            private void bindCard(ViewNotificationCardBinding cardBinding,
-                                  Notification item,
-                                  boolean grouped) {
+            private void bindCard(ViewNotificationCardBinding cardBinding, Notification item) {
                 MaterialCardView card = cardBinding.cardRoot;
-                card.setCardElevation(grouped ? 0f : dp(6));
+                boolean unread = !item.isRead();
+                card.setCardElevation(unread ? dp(6) : dp(2));
+                card.setAlpha(unread ? 1f : 0.82f);
                 card.setCardBackgroundColor(ContextCompat.getColor(
                         cardBinding.getRoot().getContext(),
                         R.color.notification_card_surface
@@ -599,6 +627,8 @@ public class NotificationsActivity extends AppCompatActivity {
                 }
 
                 cardBinding.ivPlaceholderIcon.setImageResource(resolvePlaceholderIcon(item));
+                cardBinding.tvMessage.setAlpha(unread ? 1f : 0.78f);
+                cardBinding.tvTime.setAlpha(unread ? 1f : 0.72f);
                 cardBinding.btnFollow.setOnClickListener(v -> listener.onNotificationClick(item));
                 cardBinding.getRoot().setOnClickListener(v -> listener.onNotificationClick(item));
             }
@@ -760,16 +790,7 @@ public class NotificationsActivity extends AppCompatActivity {
         if (binding == null) {
             return;
         }
-        binding.bottomNav.setNotificationsBadgeVisible(hasUnreadNotifications());
-    }
-
-    private boolean hasUnreadNotifications() {
-        for (Notification notification : notificationList) {
-            if (notification != null && !notification.isRead()) {
-                return true;
-            }
-        }
-        return false;
+        binding.bottomNav.setNotificationsBadgeVisible(countManager.getUnreadCount() > 0);
     }
 
     private interface OnNotificationClickListener {
