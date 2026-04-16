@@ -115,7 +115,7 @@ public class ProfileQrDialogFragment extends DialogFragment {
         apiService.getShareProfile(userId).enqueue(new Callback<ProfileShareResponse>() {
             @Override
             public void onResponse(Call<ProfileShareResponse> call, Response<ProfileShareResponse> response) {
-                String qrContent = "instabond://profile?uid=" + userId;
+                String qrContent = "instabond://profile?userId=" + userId;
                 if (response.isSuccessful() && response.body() != null) {
                     String deepLink = response.body().getDeepLink();
                     if (deepLink != null && !deepLink.trim().isEmpty()) {
@@ -127,7 +127,7 @@ public class ProfileQrDialogFragment extends DialogFragment {
 
             @Override
             public void onFailure(Call<ProfileShareResponse> call, Throwable t) {
-                generateQrCode("instabond://profile?uid=" + userId, imageView);
+                generateQrCode("instabond://profile?userId=" + userId, imageView);
             }
         });
     }

@@ -32,10 +32,13 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -370,26 +373,32 @@ public class PostService {
 
     // Get all posts sorted by newest first
     public List<PostResponse> getFeed(String callerPrincipal, int page, int size) {
+        return getFeed(callerPrincipal, page, size, "following");
+    }
+
+    public List<PostResponse> getFeed(String callerPrincipal, int page, int size, String mode) {
+        return getFeed(callerPrincipal, page, size, mode, null);
+    }
+
+    public List<PostResponse> getFeed(String callerPrincipal, int page, int size, String mode, Long seed) {
         User caller = resolveUserFromPrincipal(callerPrincipal);
         int safePage = sanitizePage(page);
         int safeSize = sanitizeSize(size);
+        String normalizedMode = mode == null ? "following" : mode.trim().toLowerCase(Locale.ROOT);
 
-        // Find users the caller is following
-        Query followingQuery = new Query(new Criteria().andOperator(
-                idCriteria("requester_id", caller.getId()),
-                Criteria.where("status").is("accepted")));
+        if ("for_you".equals(normalizedMode)) {
+            return getForYouFeed(caller, safePage, safeSize, seed);
+        }
 
-        // Use relationships collection to get recipient_ids
+        return getFollowingFeed(caller, safePage, safeSize);
+    }
+
+    private List<PostResponse> getFollowingFeed(User caller, int safePage, int safeSize) {
+        Set<String> acceptedFollowing = getAcceptedFollowingIds(caller.getId());
+
         List<String> validAuthorIds = new ArrayList<>();
         validAuthorIds.add(caller.getId()); // Include their own posts
-
-        List<java.util.Map> rels = mongoTemplate.find(followingQuery, java.util.Map.class, "relationships");
-        for (java.util.Map map : rels) {
-            Object recId = map.get("recipient_id");
-            if (recId != null) {
-                validAuthorIds.add(recId.toString());
-            }
-        }
+        validAuthorIds.addAll(acceptedFollowing);
 
         // Build criteria for 'in' clause. Author ID could be stored as String or
         // ObjectId
@@ -411,6 +420,127 @@ public class PostService {
                     User author = resolveAuthorById(post.getAuthor_id());
                     return toPostResponse(post, author, caller);
                 }).toList();
+    }
+
+    private List<PostResponse> getForYouFeed(User caller, int safePage, int safeSize, Long seed) {
+        Set<String> acceptedFollowing = getAcceptedFollowingIds(caller.getId());
+        long effectiveSeed = resolveForYouSeed(caller, seed);
+
+        Query postQuery = new Query().with(Sort.by(Sort.Direction.DESC, "created_at"));
+        List<Post> allPosts = mongoTemplate.find(postQuery, Post.class);
+
+        List<Post> visiblePosts = allPosts.stream()
+                .filter(post -> isVisibleForForYou(caller, post))
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        if (visiblePosts.isEmpty()) {
+            return List.of();
+        }
+
+        List<Post> followingPosts = visiblePosts.stream()
+                .filter(post -> acceptedFollowing.contains(normalizeId(post.getAuthor_id())))
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        List<Post> discoverPosts = visiblePosts.stream()
+                .filter(post -> !acceptedFollowing.contains(normalizeId(post.getAuthor_id())))
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        followingPosts.sort(buildForYouComparator(effectiveSeed, caller.getId()));
+        discoverPosts.sort(buildForYouComparator(effectiveSeed ^ 0x9E3779B97F4A7C15L, caller.getId()));
+
+        // For You mix: ~30% following, ~70% discovery, with fallback.
+        int followingQuota = Math.max(1, (int) Math.floor(safeSize * 0.3));
+        int discoverQuota = Math.max(1, safeSize - followingQuota);
+
+        List<Post> mixed = new ArrayList<>(visiblePosts.size());
+        int followCursor = 0;
+        int discoverCursor = 0;
+
+        while (followCursor < followingPosts.size() || discoverCursor < discoverPosts.size()) {
+            int followPick = 0;
+            while (followPick < followingQuota && followCursor < followingPosts.size()) {
+                mixed.add(followingPosts.get(followCursor++));
+                followPick++;
+            }
+
+            int discoverPick = 0;
+            while (discoverPick < discoverQuota && discoverCursor < discoverPosts.size()) {
+                mixed.add(discoverPosts.get(discoverCursor++));
+                discoverPick++;
+            }
+
+            if (followCursor >= followingPosts.size() && discoverCursor >= discoverPosts.size()) {
+                break;
+            }
+        }
+
+        int fromIndex = safePage * safeSize;
+        if (fromIndex >= mixed.size()) {
+            return List.of();
+        }
+
+        int toIndex = Math.min(fromIndex + safeSize, mixed.size());
+        return mixed.subList(fromIndex, toIndex).stream()
+                .map(post -> {
+                    User author = resolveAuthorById(post.getAuthor_id());
+                    return toPostResponse(post, author, caller);
+                })
+                .toList();
+    }
+
+    private boolean isVisibleForForYou(User caller, Post post) {
+        String authorId = normalizeId(post.getAuthor_id());
+        if (authorId.isEmpty() || authorId.equals(caller.getId())) {
+            return false;
+        }
+
+        if (userService.isBlocked(caller.getId(), authorId)) {
+            return false;
+        }
+
+        User author = resolveAuthorById(authorId);
+        if (author == null) {
+            return false;
+        }
+
+        return !isPrivateAuthor(author) || hasAcceptedFollow(caller.getId(), authorId);
+    }
+
+    private long resolveForYouSeed(User caller, Long seed) {
+        if (seed != null && seed != 0L) {
+            return seed;
+        }
+
+        long callerHash = Math.abs((long) Objects.hashCode(caller.getId()));
+        long dayBucket = Instant.now().getEpochSecond() / 86_400L;
+        return callerHash ^ dayBucket;
+    }
+
+    private Comparator<Post> buildForYouComparator(long seed, String callerId) {
+        return Comparator.comparingLong((Post post) -> stableForYouRank(post, seed, callerId))
+                .thenComparing(Post::getCreated_at, Comparator.nullsLast(Comparator.reverseOrder()));
+    }
+
+    private long stableForYouRank(Post post, long seed, String callerId) {
+        String postId = normalizeId(post.getId());
+        String authorId = normalizeId(post.getAuthor_id());
+        long base = Objects.hash(postId, authorId, callerId, seed);
+        long mixed = base * 0x9E3779B97F4A7C15L;
+        return mixed ^ (mixed >>> 33);
+    }
+
+    private Set<String> getAcceptedFollowingIds(String requesterId) {
+        Query followingQuery = new Query(new Criteria().andOperator(
+                idCriteria("requester_id", requesterId),
+                Criteria.where("status").is("accepted")));
+
+        return mongoTemplate.find(followingQuery, java.util.Map.class, "relationships").stream()
+                .map(map -> map.get("recipient_id"))
+                .filter(java.util.Objects::nonNull)
+                .map(Object::toString)
+                .map(this::normalizeId)
+                .filter(id -> !id.isEmpty())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     // Get all posts by userId

@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -60,6 +61,8 @@ public class NewsfeedActivity extends AppCompatActivity {
     }
 
     private static final String EXTRA_REFRESH_FEED = "refresh_feed";
+    private static final String FEED_MODE_FOR_YOU = "for_you";
+    private static final String FEED_MODE_FOLLOWING = "following";
     private static final int PAGE_SIZE = 5;
     private static final int VISIBLE_THRESHOLD = 2;
 
@@ -83,6 +86,8 @@ public class NewsfeedActivity extends AppCompatActivity {
     private boolean isRequestInFlight;
     private boolean reachedEnd;
     private boolean friendSuggestionsDismissed;
+    private String currentFeedMode = FEED_MODE_FOR_YOU;
+    private long forYouSeed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -244,6 +249,9 @@ public class NewsfeedActivity extends AppCompatActivity {
         binding.btnCamera.setOnClickListener(v ->
                 startActivity(new Intent(this, CreatePostActivity.class)));
 
+        setupFeedModeChips();
+        updateFeedModeUi();
+
         binding.btnInbox.setOnClickListener(v -> startActivity(new Intent(this, InboxActivity.class)));
 
         loadCurrentUserProfile();
@@ -298,6 +306,13 @@ public class NewsfeedActivity extends AppCompatActivity {
         if (isRequestInFlight) {
             return;
         }
+
+        if (FEED_MODE_FOR_YOU.equals(currentFeedMode)) {
+            forYouSeed = System.currentTimeMillis();
+        } else {
+            forYouSeed = 0L;
+        }
+
         currentPage = 0;
         reachedEnd = false;
         loadedPostIds.clear();
@@ -320,7 +335,8 @@ public class NewsfeedActivity extends AppCompatActivity {
 
     private void loadPage(boolean fromRefresh) {
         isRequestInFlight = true;
-        apiService.getFeed(currentPage, PAGE_SIZE).enqueue(new Callback<JsonElement>() {
+        Long seedParam = FEED_MODE_FOR_YOU.equals(currentFeedMode) ? forYouSeed : null;
+        apiService.getFeed(currentPage, PAGE_SIZE, currentFeedMode, seedParam).enqueue(new Callback<JsonElement>() {
             @Override
             public void onResponse(Call<JsonElement> call, Response<JsonElement> response) {
                 isRequestInFlight = false;
@@ -367,6 +383,39 @@ public class NewsfeedActivity extends AppCompatActivity {
                         Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void setupFeedModeChips() {
+        binding.chipFeedForYou.setOnClickListener(v -> switchFeedMode(FEED_MODE_FOR_YOU));
+        binding.chipFeedFollowing.setOnClickListener(v -> switchFeedMode(FEED_MODE_FOLLOWING));
+    }
+
+    private void switchFeedMode(String mode) {
+        if (mode == null || mode.equals(currentFeedMode)) {
+            return;
+        }
+
+        currentFeedMode = mode;
+        updateFeedModeUi();
+        binding.swipeRefreshFeed.setRefreshing(true);
+        refreshFeed();
+    }
+
+    private void updateFeedModeUi() {
+        if (FEED_MODE_FOR_YOU.equals(currentFeedMode)) {
+            binding.chipFeedForYou.setBackgroundResource(R.drawable.search_filter_chip_active_bg);
+            binding.chipFeedForYou.setTextColor(ContextCompat.getColor(this, R.color.theme_on_primary));
+
+            binding.chipFeedFollowing.setBackgroundResource(R.drawable.search_filter_chip_inactive_bg);
+            binding.chipFeedFollowing.setTextColor(ContextCompat.getColor(this, R.color.theme_on_surface_muted));
+            return;
+        }
+
+        binding.chipFeedFollowing.setBackgroundResource(R.drawable.search_filter_chip_active_bg);
+        binding.chipFeedFollowing.setTextColor(ContextCompat.getColor(this, R.color.theme_on_primary));
+
+        binding.chipFeedForYou.setBackgroundResource(R.drawable.search_filter_chip_inactive_bg);
+        binding.chipFeedForYou.setTextColor(ContextCompat.getColor(this, R.color.theme_on_surface_muted));
     }
 
     private List<PostResponse> filterNewPosts(List<PostResponse> apiPosts) {

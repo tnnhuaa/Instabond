@@ -67,8 +67,6 @@ public class ProfileActivity extends AppCompatActivity {
     private boolean isFollowing;
     private boolean isOwnProfileView;
     private boolean followRequestInFlight;
-    private boolean shouldAttemptQuickFollow;
-    private String quickFollowTargetUserId;
     private ProfileGridAdapter gridAdapter;
 
     @Override
@@ -112,7 +110,7 @@ public class ProfileActivity extends AppCompatActivity {
                     if (result == null || result.getContents() == null || result.getContents().trim().isEmpty()) {
                         return;
                     }
-                    resolveProfileFromPayload(result.getContents().trim(), false);
+                    resolveProfileFromPayload(result.getContents().trim(), true);
                 });
 
         handleIntentNavigation(getIntent());
@@ -148,9 +146,6 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void handleIntentNavigation(Intent intent) {
-        shouldAttemptQuickFollow = false;
-        quickFollowTargetUserId = null;
-
         if (intent == null) {
             configureOwnProfileView();
             loadMyProfile();
@@ -162,8 +157,6 @@ public class ProfileActivity extends AppCompatActivity {
         if (data != null) {
             String deepLinkUserId = extractDirectUserId(data);
             if (deepLinkUserId != null) {
-                shouldAttemptQuickFollow = true;
-                quickFollowTargetUserId = deepLinkUserId;
                 intent.putExtra("targetUserId", deepLinkUserId);
             } else if (isProfilePayload(data)) {
                 isResolvingDeepLink = true;
@@ -176,8 +169,6 @@ public class ProfileActivity extends AppCompatActivity {
             String payloadFromExtras = extractExternalPayloadFromIntent(intent);
             if (payloadFromExtras != null && !payloadFromExtras.trim().isEmpty()) {
                 isResolvingDeepLink = true;
-                shouldAttemptQuickFollow = true;
-                quickFollowTargetUserId = null;
                 resolveProfileFromPayload(payloadFromExtras.trim(), true);
             }
         }
@@ -632,6 +623,24 @@ public class ProfileActivity extends AppCompatActivity {
         return data.toString();
     }
 
+    private boolean isExternalQrPayload(Uri data) {
+        if (data == null) {
+            return false;
+        }
+
+        String qrUid = data.getQueryParameter("qr_uid");
+        return qrUid != null && !qrUid.trim().isEmpty();
+    }
+
+    private boolean hasQrPayloadExtra(Intent intent) {
+        if (intent == null) {
+            return false;
+        }
+
+        String qrUid = intent.getStringExtra("qr_uid");
+        return qrUid != null && !qrUid.trim().isEmpty();
+    }
+
     private String extractExternalPayloadFromIntent(Intent intent) {
         if (intent == null) {
             return null;
@@ -657,7 +666,7 @@ public class ProfileActivity extends AppCompatActivity {
         return null;
     }
 
-    private void resolveProfileFromPayload(String payload, boolean shouldQuickFollowFromExternal) {
+    private void resolveProfileFromPayload(String payload, boolean shouldAutoFollow) {
         if (payload == null || payload.trim().isEmpty()) {
             Toast.makeText(ProfileActivity.this, "Không thể mở hồ sơ từ QR", Toast.LENGTH_SHORT).show();
             return;
@@ -687,11 +696,6 @@ public class ProfileActivity extends AppCompatActivity {
                 currentUserId = profile.getId();
                 isOwnProfileView = currentUserId != null && currentUserId.equals(sessionManager.getUserId());
 
-                if (shouldQuickFollowFromExternal) {
-                    shouldAttemptQuickFollow = true;
-                    quickFollowTargetUserId = currentUserId;
-                }
-
                 if (isOwnProfileView) {
                     configureOwnProfileView();
                 } else {
@@ -699,7 +703,7 @@ public class ProfileActivity extends AppCompatActivity {
                 }
 
                 bindProfile(profile);
-                maybeQuickFollowExternal(profile);
+                maybeAutoFollowFromQr(profile, shouldAutoFollow);
             }
 
             @Override
@@ -709,52 +713,21 @@ public class ProfileActivity extends AppCompatActivity {
         });
     }
 
-    private void maybeQuickFollowExternal(UserProfileResponse profile) {
-        if (!shouldAttemptQuickFollow || profile == null) {
+    private void maybeAutoFollowFromQr(UserProfileResponse profile, boolean shouldAutoFollow) {
+        if (!shouldAutoFollow || profile == null) {
             return;
         }
 
-        String targetId = profile.getId();
-        shouldAttemptQuickFollow = false;
-
-        if (targetId == null || targetId.trim().isEmpty()) {
-            quickFollowTargetUserId = null;
-            return;
-        }
-
-        targetId = targetId.trim();
-        if (quickFollowTargetUserId != null && !quickFollowTargetUserId.trim().isEmpty()
-                && !targetId.equals(quickFollowTargetUserId.trim())) {
-            quickFollowTargetUserId = null;
-            return;
-        }
-        quickFollowTargetUserId = null;
-
-        String myId = sessionManager.getUserId();
-        if (myId != null && targetId.equals(myId.trim())) {
+        if (isOwnProfileView || profile.getId() == null || profile.getId().trim().isEmpty()) {
             return;
         }
 
         String relStatus = profile.getRelationshipStatus();
-        if ("accepted".equals(relStatus) || "pending".equals(relStatus)) {
+        if ("accepted".equals(relStatus) || "pending".equals(relStatus) || followRequestInFlight) {
             return;
         }
 
-        final String followTargetId = targetId;
-        apiService.followUser(followTargetId).enqueue(new Callback<FollowUserResponse>() {
-            @Override
-            public void onResponse(Call<FollowUserResponse> call, Response<FollowUserResponse> response) {
-                if (response.isSuccessful()) {
-                    Toast.makeText(ProfileActivity.this, "Đã quick follow từ /link", Toast.LENGTH_SHORT).show();
-                    loadUserProfile(followTargetId);
-                }
-            }
-
-            @Override
-            public void onFailure(Call<FollowUserResponse> call, Throwable t) {
-                Toast.makeText(ProfileActivity.this, "Lỗi mạng khi quick follow", Toast.LENGTH_SHORT).show();
-            }
-        });
+        toggleFollow(profile.getId());
     }
 
     private void handleUnauthorized() {
