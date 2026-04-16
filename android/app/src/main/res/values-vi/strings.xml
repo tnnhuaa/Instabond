@@ -77,6 +77,7 @@
     <string name="cd_settings">Cài đặt</string>
     <string name="cd_profile_photo">Ảnh hồ sơ</string>
     <string name="cd_edit_avatar">Sửa ảnh đại diện</string>
+    <string name="cd_intimacy_badge">Huy hiệu cấp độ thân mật</string>
     <string name="search_placeholder_title">Khám phá sẽ sớm xuất hiện</string>
     <string name="search_placeholder_body">Màn hình Search đã được nối vào nav-bottom chung để bạn tiếp tục triển khai nội dung sau.</string>
 

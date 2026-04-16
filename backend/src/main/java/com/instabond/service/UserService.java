@@ -807,6 +807,8 @@ public class UserService {
 
     private ProfileResponse toProfileResponseWithStatus(User target, String callerPrincipal) {
         ProfileResponse response = toProfileResponse(target);
+        response.setFriendship_level("normal");
+        response.setIntimacy_score(0);
 
         if (callerPrincipal == null || callerPrincipal.isBlank()) {
             response.setRelationship_status("none");
@@ -830,11 +832,43 @@ public class UserService {
 
         if (relationship != null) {
             response.setRelationship_status(relationship.getStatus());
+            response.setFriendship_level(normalizeFriendshipLevel(relationship.getFriendship_level()));
+            response.setIntimacy_score(Math.max(0, relationship.getIntimacy_score()));
+
+            boolean isMutualFollow = "accepted".equalsIgnoreCase(relationship.getStatus())
+                    && hasAcceptedRelationship(target.getId(), caller.getId());
+            response.setIs_mutual_follow(isMutualFollow);
         } else {
             response.setRelationship_status("none");
+            response.setIs_mutual_follow(false);
         }
 
         return response;
+    }
+
+    private String normalizeFriendshipLevel(String rawLevel) {
+        if (rawLevel == null || rawLevel.isBlank()) {
+            return "normal";
+        }
+
+        String normalized = rawLevel.trim().toLowerCase(Locale.ROOT);
+        if ("close_friend".equals(normalized)) {
+            return "close friends";
+        }
+
+        if ("normal".equals(normalized)
+                || "close friends".equals(normalized)
+                || "besties".equals(normalized)
+                || "soulmates".equals(normalized)) {
+            return normalized;
+        }
+
+        return "normal";
+    }
+
+    private boolean hasAcceptedRelationship(String requesterId, String recipientId) {
+        Relationship reverse = mongoTemplate.findOne(relationshipQuery(requesterId, recipientId), Relationship.class);
+        return reverse != null && "accepted".equalsIgnoreCase(reverse.getStatus());
     }
 
     // Block User
