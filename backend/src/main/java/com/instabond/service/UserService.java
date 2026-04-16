@@ -130,6 +130,7 @@ public class UserService {
                 .avatar_url(user.getAvatar_url())
                 .bio(user.getBio())
                 .posts_count(profile.getPosts_count())
+                .face_embedding(user.getFaceEmbedding())
                 .followers_count(profile.getFollowers_count())
                 .following_count(profile.getFollowing_count())
                 .is_private(user.getSettings() != null && Boolean.TRUE.equals(user.getSettings().getIs_private()))

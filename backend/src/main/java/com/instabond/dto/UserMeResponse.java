@@ -39,6 +39,9 @@ public class UserMeResponse {
     @Schema(description = "Short bio / about me", example = "Coffee lover ☕")
     private String bio;
 
+    @Schema(description = "Face embedding vector", example = "[0.1, 0.2, 0.3, ...]")
+    private List<Double> face_embedding;
+
     @Schema(description = "Private account flag", example = "false")
     @JsonProperty("is_private")
     private boolean is_private;
