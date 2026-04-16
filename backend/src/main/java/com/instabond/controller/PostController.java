@@ -97,11 +97,15 @@ public class PostController {
     @GetMapping("/feed")
     public ResponseEntity<List<PostResponse>> getFeed(
             @AuthenticationPrincipal UserDetails userDetails,
+                        @Parameter(description = "Feed mode: following or for_you", example = "for_you")
+                        @RequestParam(defaultValue = "following") String mode,
+                        @Parameter(description = "Stable ordering seed for for_you mode", example = "1713177000000")
+                        @RequestParam(required = false) Long seed,
             @Parameter(description = "Zero-based page index", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page", example = "20")
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(postService.getFeed(getUserId(userDetails), page, size));
+                                return ResponseEntity.ok(postService.getFeed(getUserId(userDetails), page, size, mode, seed));
     }
 
     // Get a single post by its ID

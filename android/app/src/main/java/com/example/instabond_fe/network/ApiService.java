@@ -57,8 +57,10 @@ public interface ApiService {
     Call<UserProfileResponse> getMe();
 
     @GET("api/posts/feed")
-    Call<JsonElement> getFeed(@Query("page") int page,
-                              @Query("size") int size);
+        Call<JsonElement> getFeed(@Query("page") int page,
+                                                          @Query("size") int size,
+                                                                                                                  @Query("mode") String mode,
+                                                                                                                  @Query("seed") Long seed);
 
     @GET("api/posts/feed")
     Call<JsonElement> getFeed();
