@@ -35,6 +35,16 @@ public class UserProfileResponse {
 
     @SerializedName("relationship_status")
     private String relationshipStatus;
+
+    @SerializedName(value = "friendship_level", alternate = {"friendshipLevel"})
+    private String friendshipLevel;
+
+    @SerializedName(value = "intimacy_score", alternate = {"intimacyScore"})
+    private int intimacyScore;
+
+    @SerializedName(value = "is_mutual_follow", alternate = {"isMutualFollow"})
+    private boolean isMutualFollow;
+
     @SerializedName("settings")
     private Settings settings;
 
@@ -95,6 +105,18 @@ public class UserProfileResponse {
 
     public void setRelationshipStatus(String relationshipStatus) {
         this.relationshipStatus = relationshipStatus;
+    }
+
+    public String getFriendshipLevel() {
+        return friendshipLevel;
+    }
+
+    public int getIntimacyScore() {
+        return intimacyScore;
+    }
+
+    public boolean isMutualFollow() {
+        return isMutualFollow;
     }
 
     public String getAllowTagging() {
