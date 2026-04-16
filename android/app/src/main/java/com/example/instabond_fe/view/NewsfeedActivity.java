@@ -25,6 +25,7 @@ import com.example.instabond_fe.network.ApiListParser;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.ChatRepository;
+import com.example.instabond_fe.repository.NotificationCountManager;
 import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.google.gson.Gson;
@@ -88,6 +89,7 @@ public class NewsfeedActivity extends AppCompatActivity {
     private boolean friendSuggestionsDismissed;
     private String currentFeedMode = FEED_MODE_FOR_YOU;
     private long forYouSeed;
+    private NotificationCountManager notificationCountManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,6 +100,7 @@ public class NewsfeedActivity extends AppCompatActivity {
 
         apiService = ApiClient.getApiService(this);
         sessionManager = new SessionManager(this);
+        notificationCountManager = NotificationCountManager.getInstance(this);
         if (sessionManager.isLoggedIn()) {
             ChatRepository repository = ChatRepository.getInstance(this);
             repository.connectRealtime();
@@ -300,6 +303,8 @@ public class NewsfeedActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         loadStories();
+        // Fetch fresh unread notification count
+        notificationCountManager.fetchUnreadCount();
     }
 
     private void refreshFeed() {

@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivitySearchBinding;
 import com.example.instabond_fe.model.SearchHistoryDTO;
+import com.example.instabond_fe.repository.NotificationCountManager;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.viewmodel.SearchViewModel;
@@ -40,6 +41,7 @@ public class SearchActivity extends AppCompatActivity {
 
     private String currentSearchQuery = "";
     private String currentTab = "POST";
+    private NotificationCountManager notificationCountManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +51,7 @@ public class SearchActivity extends AppCompatActivity {
         getWindow().setStatusBarColor(Color.TRANSPARENT);
 
         searchViewModel = new ViewModelProvider(this).get(SearchViewModel.class);
+        notificationCountManager = NotificationCountManager.getInstance(this);
         binding.bottomNav.bind(this, InstaBottomNavView.Tab.SEARCH);
 
         bindActions();
@@ -58,6 +61,13 @@ public class SearchActivity extends AppCompatActivity {
         observeViewModel();
 
         resetToDefaultExploreState();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Fetch fresh unread notification count
+        notificationCountManager.fetchUnreadCount();
     }
 
     private void setupRecyclerViews() {

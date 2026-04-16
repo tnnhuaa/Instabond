@@ -16,5 +16,10 @@ public interface NotificationRepository extends MongoRepository<Notification, St
 
     @Query(value = "{ 'recipient_id': ?0 }", count = true)
     long countByRecipientId(String recipientId);
-}
 
+    @Query(value = "{ 'recipient_id': ?0, 'is_read': false }", count = true)
+    long countUnreadByRecipientId(String recipientId);
+
+    @Query(value = "{ 'recipient_id': ?0, 'is_read': false }")
+    List<Notification> findUnreadByRecipientId(String recipientId);
+}

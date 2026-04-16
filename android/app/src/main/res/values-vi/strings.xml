@@ -77,6 +77,7 @@
     <string name="cd_settings">Cài đặt</string>
     <string name="cd_profile_photo">Ảnh hồ sơ</string>
     <string name="cd_edit_avatar">Sửa ảnh đại diện</string>
+    <string name="cd_intimacy_badge">Huy hiệu cấp độ thân mật</string>
     <string name="search_placeholder_title">Khám phá sẽ sớm xuất hiện</string>
     <string name="search_placeholder_body">Màn hình Search đã được nối vào nav-bottom chung để bạn tiếp tục triển khai nội dung sau.</string>
 
@@ -271,6 +272,8 @@
     <string name="notification_chat_photo_suffix">đã gửi một ảnh</string>
     <string name="notification_chat_post_share_suffix">đã chia sẻ một bài viết</string>
     <string name="notification_chat_story_reply_suffix">đã trả lời tin của bạn</string>
+.    <string name="notification_mark_all_read">Đọc tất cả</string>
+    <string name="notification_mark_all_read_failed">Không thể đánh dấu đã đọc tất cả thông báo</string>
     <string name="profile_action_message">Nhắn tin</string>
     <string name="profile_action_edit">Chỉnh sửa hồ sơ</string>
     <string name="profile_action_share">Chia sẻ</string>

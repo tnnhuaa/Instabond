@@ -4,6 +4,8 @@ import com.instabond.entity.Notification;
 import com.instabond.service.NotificationService;
 import com.instabond.service.UserService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.http.ResponseEntity;
@@ -47,5 +49,33 @@ public class NotificationController {
         Notification updatedNotification = notificationService.markAsRead(id, recipientId);
 
         return ResponseEntity.ok(updatedNotification);
+    }
+
+    @PutMapping("/read-all")
+    public ResponseEntity<Void> markAllAsRead(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        String recipientId = userService.getUserIdByEmail(userDetails.getUsername());
+        notificationService.markAllAsRead(recipientId);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/count/unread")
+    public ResponseEntity<UnreadCountResponse> getUnreadCount(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        String recipientId = userService.getUserIdByEmail(userDetails.getUsername());
+        long unreadCount = notificationService.getUnreadNotificationCount(recipientId);
+
+        return ResponseEntity.ok(UnreadCountResponse.builder()
+                .unread_count(unreadCount)
+                .build());
+    }
+
+    @Getter
+    @Builder
+    public static class UnreadCountResponse {
+        private long unread_count;
     }
 }

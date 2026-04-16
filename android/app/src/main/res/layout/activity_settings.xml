@@ -91,16 +91,6 @@
 
                     </FrameLayout>
 
-                    <ImageButton
-                        android:id="@+id/btn_edit_avatar"
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:layout_gravity="bottom|end"
-                        android:background="@drawable/search_filter_chip_active_bg"
-                        android:contentDescription="@string/cd_edit_avatar"
-                        android:padding="7dp"
-                        android:src="@drawable/baseline_camera_alt_24" />
-
                 </FrameLayout>
 
                 <LinearLayout

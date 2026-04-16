@@ -23,6 +23,7 @@ import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiListParser;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.repository.NotificationCountManager;
 import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
@@ -35,6 +36,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -68,6 +70,7 @@ public class ProfileActivity extends AppCompatActivity {
     private boolean isOwnProfileView;
     private boolean followRequestInFlight;
     private ProfileGridAdapter gridAdapter;
+    private NotificationCountManager notificationCountManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,6 +81,7 @@ public class ProfileActivity extends AppCompatActivity {
 
         apiService = ApiClient.getApiService(this);
         sessionManager = new SessionManager(this);
+        notificationCountManager = NotificationCountManager.getInstance(this);
 
         gridAdapter = new ProfileGridAdapter();
         binding.rvProfileGrid.setAdapter(gridAdapter);
@@ -145,6 +149,13 @@ public class ProfileActivity extends AppCompatActivity {
         handleIntentNavigation(intent);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Fetch fresh unread notification count
+        notificationCountManager.fetchUnreadCount();
+    }
+
     private void handleIntentNavigation(Intent intent) {
         if (intent == null) {
             configureOwnProfileView();
@@ -193,6 +204,10 @@ public class ProfileActivity extends AppCompatActivity {
     private void configureOwnProfileView() {
         binding.bottomNav.bind(this, InstaBottomNavView.Tab.PROFILE);
         binding.bottomNav.setVisibility(View.VISIBLE);
+        binding.btnEditAvatar.setContentDescription(getString(R.string.cd_edit_avatar));
+        binding.btnEditAvatar.setBackgroundResource(R.drawable.search_filter_chip_active_bg);
+        binding.btnEditAvatar.setImageResource(R.drawable.baseline_camera_alt_24);
+        binding.btnEditAvatar.setEnabled(true);
         binding.btnEditAvatar.setVisibility(View.VISIBLE);
         binding.btnEditAvatar.setOnClickListener(v -> pickImage());
 
@@ -217,6 +232,8 @@ public class ProfileActivity extends AppCompatActivity {
         if (showSearchBottomNav) {
             binding.bottomNav.bind(this, InstaBottomNavView.Tab.SEARCH);
         }
+        binding.btnEditAvatar.setOnClickListener(null);
+        binding.btnEditAvatar.setEnabled(false);
         binding.btnEditAvatar.setVisibility(View.GONE);
 
         binding.btnSettings.setVisibility(View.VISIBLE);
@@ -358,6 +375,7 @@ public class ProfileActivity extends AppCompatActivity {
         binding.tvLikesCount.setText(formatCount(profile.getFollowingCount()));
 
         AvatarLoader.load(binding.ivAvatar, profile.getAvatarUrl());
+        applyIntimacyAvatarRing(profile);
 
         String relStatus = profile.getRelationshipStatus();
         boolean isPrivate = profile.isPrivate();
@@ -430,6 +448,90 @@ public class ProfileActivity extends AppCompatActivity {
             public void onFailure(Call<JsonElement> call, Throwable t) {
             }
         });
+    }
+
+    private void applyIntimacyAvatarRing(UserProfileResponse profile) {
+        int ringDrawable = R.drawable.profile_avatar_ring_normal;
+
+        if (profile != null && !isOwnProfileView) {
+            String scoreBasedLevel = levelFromIntimacyScore(profile.getIntimacyScore());
+            String declaredLevel = normalizeFriendshipLevel(profile.getFriendshipLevel());
+
+            String resolvedLevel = scoreBasedLevel;
+            if (!declaredLevel.isEmpty() && !"normal".equals(declaredLevel)) {
+                resolvedLevel = declaredLevel;
+            }
+
+            applyIntimacyBadge(resolvedLevel, profile.isMutualFollow());
+            return;
+        }
+
+        binding.layoutAvatarRing.setBackgroundResource(ringDrawable);
+        binding.btnEditAvatar.setEnabled(isOwnProfileView);
+        binding.btnEditAvatar.setVisibility(isOwnProfileView ? View.VISIBLE : View.GONE);
+    }
+
+    private void applyIntimacyBadge(String level, boolean isMutualFollow) {
+        int ringDrawable = R.drawable.profile_avatar_ring_normal;
+        int badgeBackground = R.drawable.search_filter_chip_active_bg;
+        int badgeIcon = R.drawable.baseline_camera_alt_24;
+        int badgeVisibility = isOwnProfileView ? View.VISIBLE : View.GONE;
+        String contentDescription = getString(R.string.cd_edit_avatar);
+
+        if (!isOwnProfileView && isMutualFollow) {
+            if ("soulmates".equals(level)) {
+                ringDrawable = R.drawable.profile_avatar_ring_soulmates;
+                badgeBackground = R.drawable.profile_intimacy_badge_soulmates;
+                badgeIcon = R.drawable.ic_intimacy_soulmates;
+                badgeVisibility = View.VISIBLE;
+                contentDescription = getString(R.string.cd_intimacy_badge);
+            } else if ("besties".equals(level)) {
+                ringDrawable = R.drawable.profile_avatar_ring_besties;
+                badgeBackground = R.drawable.profile_intimacy_badge_besties;
+                badgeIcon = R.drawable.ic_intimacy_besties;
+                badgeVisibility = View.VISIBLE;
+                contentDescription = getString(R.string.cd_intimacy_badge);
+            } else if ("close friends".equals(level)) {
+                ringDrawable = R.drawable.profile_avatar_ring_close_friends;
+                badgeBackground = R.drawable.profile_intimacy_badge_close_friends;
+                badgeIcon = R.drawable.ic_intimacy_close_friends;
+                badgeVisibility = View.VISIBLE;
+                contentDescription = getString(R.string.cd_intimacy_badge);
+            }
+        }
+
+        binding.layoutAvatarRing.setBackgroundResource(ringDrawable);
+        binding.btnEditAvatar.setBackgroundResource(badgeBackground);
+        binding.btnEditAvatar.setImageResource(badgeIcon);
+        binding.btnEditAvatar.setContentDescription(contentDescription);
+        binding.btnEditAvatar.setEnabled(isOwnProfileView);
+        binding.btnEditAvatar.setVisibility(badgeVisibility);
+    }
+
+    private String normalizeFriendshipLevel(String friendshipLevel) {
+        if (friendshipLevel == null || friendshipLevel.trim().isEmpty()) {
+            return "";
+        }
+
+        String normalized = friendshipLevel.trim().toLowerCase(Locale.ROOT);
+        if ("close_friend".equals(normalized) || "close-friend".equals(normalized)) {
+            return "close friends";
+        }
+
+        return normalized;
+    }
+
+    private String levelFromIntimacyScore(int intimacyScore) {
+        if (intimacyScore > 2000) {
+            return "soulmates";
+        }
+        if (intimacyScore > 500) {
+            return "besties";
+        }
+        if (intimacyScore > 100) {
+            return "close friends";
+        }
+        return "normal";
     }
 
     private void setPrimaryFollowButtonLoading(boolean loading) {
