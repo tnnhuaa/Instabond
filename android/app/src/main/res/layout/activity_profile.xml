@@ -121,22 +121,21 @@
                     android:orientation="horizontal">
 
                     <FrameLayout
+                        android:id="@+id/layout_avatar_host"
                         android:layout_width="110dp"
                         android:layout_height="110dp">
 
-                        <com.google.android.material.card.MaterialCardView
+                        <FrameLayout
+                            android:id="@+id/layout_avatar_ring"
                             android:layout_width="110dp"
                             android:layout_height="110dp"
-                            app:cardBackgroundColor="@color/theme_surface_elevated"
-                            app:cardCornerRadius="55dp"
-                            app:cardElevation="0dp"
-                            app:strokeColor="@color/login_bg_start"
-                            app:strokeWidth="3dp">
+                            android:background="@drawable/profile_avatar_ring_normal"
+                            android:padding="3dp">
 
                             <FrameLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
-                                android:padding="7dp">
+                                android:padding="4dp">
 
                                 <com.google.android.material.card.MaterialCardView
                                     android:layout_width="match_parent"
@@ -157,7 +156,7 @@
 
                             </FrameLayout>
 
-                        </com.google.android.material.card.MaterialCardView>
+                        </FrameLayout>
 
                         <ImageButton
                             android:id="@+id/btn_edit_avatar"

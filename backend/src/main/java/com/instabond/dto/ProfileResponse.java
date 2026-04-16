@@ -48,6 +48,12 @@ public class ProfileResponse {
     @Schema(description = "True if both users follow each other", example = "true")
     private boolean is_mutual_follow;
 
+    @Schema(description = "Friendship level from caller to this user (normal, close friends, besties, soulmates)", example = "besties")
+    private String friendship_level;
+
+    @Schema(description = "Intimacy score from caller to this user", example = "742")
+    private int intimacy_score;
+
     public void setRelationship_status(String relationship_status) {
         this.relationship_status = relationship_status;
     }
@@ -62,5 +68,21 @@ public class ProfileResponse {
 
     public boolean isIs_mutual_follow() {
         return is_mutual_follow;
+    }
+
+    public void setFriendship_level(String friendship_level) {
+        this.friendship_level = friendship_level;
+    }
+
+    public String getFriendship_level() {
+        return friendship_level;
+    }
+
+    public void setIntimacy_score(int intimacy_score) {
+        this.intimacy_score = intimacy_score;
+    }
+
+    public int getIntimacy_score() {
+        return intimacy_score;
     }
 }

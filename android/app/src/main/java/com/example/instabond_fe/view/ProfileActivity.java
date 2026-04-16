@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -367,6 +368,7 @@ public class ProfileActivity extends AppCompatActivity {
         binding.tvLikesCount.setText(formatCount(profile.getFollowingCount()));
 
         AvatarLoader.load(binding.ivAvatar, profile.getAvatarUrl());
+        applyIntimacyAvatarRing(profile);
 
         String relStatus = profile.getRelationshipStatus();
         boolean isPrivate = profile.isPrivate();
@@ -439,6 +441,52 @@ public class ProfileActivity extends AppCompatActivity {
             public void onFailure(Call<JsonElement> call, Throwable t) {
             }
         });
+    }
+
+    private void applyIntimacyAvatarRing(UserProfileResponse profile) {
+        int ringDrawable = R.drawable.profile_avatar_ring_normal;
+
+        if (profile != null && !isOwnProfileView) {
+            String scoreBasedLevel = levelFromIntimacyScore(profile.getIntimacyScore());
+            String declaredLevel = normalizeFriendshipLevel(profile.getFriendshipLevel());
+
+            String resolvedLevel = scoreBasedLevel;
+            if (!declaredLevel.isEmpty() && !"normal".equals(declaredLevel)) {
+                resolvedLevel = declaredLevel;
+            }
+
+            if (profile.isMutualFollow()) {
+                if ("soulmates".equals(resolvedLevel)) {
+                    ringDrawable = R.drawable.profile_avatar_ring_soulmates;
+                } else if ("besties".equals(resolvedLevel)) {
+                    ringDrawable = R.drawable.profile_avatar_ring_besties;
+                } else if ("close friends".equals(resolvedLevel)) {
+                    ringDrawable = R.drawable.profile_avatar_ring_close_friends;
+                }
+            }
+        }
+
+        binding.layoutAvatarRing.setBackgroundResource(ringDrawable);
+    }
+
+    private String normalizeFriendshipLevel(String friendshipLevel) {
+        if (friendshipLevel == null || friendshipLevel.trim().isEmpty()) {
+            return "";
+        }
+        return friendshipLevel.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String levelFromIntimacyScore(int intimacyScore) {
+        if (intimacyScore > 2000) {
+            return "soulmates";
+        }
+        if (intimacyScore > 500) {
+            return "besties";
+        }
+        if (intimacyScore > 100) {
+            return "close friends";
+        }
+        return "normal";
     }
 
     private void setPrimaryFollowButtonLoading(boolean loading) {
