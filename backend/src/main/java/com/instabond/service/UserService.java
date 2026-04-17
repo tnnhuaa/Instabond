@@ -69,7 +69,7 @@ public class UserService {
                 .getId();
     }
 
-    // Face detection
+    // Face registration
 
     public void registerFace(String email, List<MultipartFile> images) {
         if (images == null || images.size() != 3) {
@@ -115,6 +115,13 @@ public class UserService {
         userRepository.save(user);
     }
 
+    public void deleteFaceData(String email) {
+        User user = resolveUserFromPrincipal(email);
+        user.setRegistrationImageUrls(null);
+        user.setFaceEmbedding(null);
+        userRepository.save(user);
+    }
+
     // Used by GET /api/users/me
 
     public UserMeResponse getMe(String email) {
@@ -130,6 +137,7 @@ public class UserService {
                 .avatar_url(user.getAvatar_url())
                 .bio(user.getBio())
                 .posts_count(profile.getPosts_count())
+                .face_embedding(user.getFaceEmbedding())
                 .followers_count(profile.getFollowers_count())
                 .following_count(profile.getFollowing_count())
                 .is_private(user.getSettings() != null && Boolean.TRUE.equals(user.getSettings().getIs_private()))

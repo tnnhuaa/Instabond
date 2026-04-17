@@ -14,7 +14,7 @@ timm==1.0.26
 huggingface-hub==0.36.2
 tokenizers==0.21.4
 safetensors==0.7.0
-eniops==0.8.2
+einops==0.8.2
 
 # Shared utility/runtime deps used elsewhere in ai-service
 numpy>=2.0.0
