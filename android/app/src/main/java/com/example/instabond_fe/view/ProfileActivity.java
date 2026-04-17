@@ -450,16 +450,22 @@ public class ProfileActivity extends AppCompatActivity {
 
             if (!isFaceRegistered) {
                 binding.layoutFaceRegistrationPrompt.setVisibility(View.VISIBLE);
+                binding.layoutFaceRegistered.setVisibility(View.GONE); // Hide registered UI
                 binding.btnRegisterFace.setOnClickListener(v -> {
                     Intent intent = new Intent(this, FaceRegistrationActivity.class);
                     faceRegistrationLauncher.launch(intent);
                 });
             } else {
                 binding.layoutFaceRegistrationPrompt.setVisibility(View.GONE);
+                binding.layoutFaceRegistered.setVisibility(View.VISIBLE); // Show registered UI
+                setupDeleteFaceButton(); // Bind click listener
             }
         } else {
             if (binding.layoutFaceRegistrationPrompt != null) {
                 binding.layoutFaceRegistrationPrompt.setVisibility(View.GONE);
+            }
+            if (binding.layoutFaceRegistered != null) {
+                binding.layoutFaceRegistered.setVisibility(View.GONE);
             }
         }
     }
@@ -1112,5 +1118,64 @@ public class ProfileActivity extends AppCompatActivity {
         });
         
         dialog.show();
+    }
+
+    // --- Face Registration Deletion Logic ---
+
+    private void setupDeleteFaceButton() {
+        binding.btnDeleteFace.setOnClickListener(v -> showDeleteFaceConfirmation());
+    }
+
+    private void showDeleteFaceConfirmation() {
+        android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(this)
+                .setTitle(R.string.dialog_delete_face_title)
+                .setMessage(R.string.dialog_delete_face_message)
+                .setPositiveButton(R.string.dialog_delete_face_confirm, (dialogInterface, which) -> deleteFaceRegistration())
+                .setNegativeButton(R.string.dialog_delete_face_cancel, null)
+                .create();
+
+        dialog.setOnShowListener(d -> {
+            int primaryTextColor = ContextCompat.getColor(this, R.color.login_text_primary);
+            android.widget.Button negativeButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE);
+            android.widget.Button positiveButton = dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE);
+
+            if (negativeButton != null) negativeButton.setTextColor(primaryTextColor);
+            // Highlight the destructive action in red
+            if (positiveButton != null) positiveButton.setTextColor(Color.parseColor("#FF3B30"));
+        });
+
+        dialog.show();
+    }
+
+    private void deleteFaceRegistration() {
+        // Toggle UI to loading state
+        binding.btnDeleteFace.setVisibility(View.INVISIBLE);
+        binding.progressDeleteFace.setVisibility(View.VISIBLE);
+
+        apiService.deleteFaceRegistration().enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                // Revert UI from loading state
+                binding.progressDeleteFace.setVisibility(View.GONE);
+                binding.btnDeleteFace.setVisibility(View.VISIBLE);
+
+                if (response.isSuccessful()) {
+                    Toast.makeText(ProfileActivity.this, R.string.toast_delete_face_success, Toast.LENGTH_SHORT).show();
+
+                    // Reload profile
+                    loadMyProfile();
+                } else {
+                    Toast.makeText(ProfileActivity.this, R.string.toast_delete_face_failed, Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                // Revert UI from loading state
+                binding.progressDeleteFace.setVisibility(View.GONE);
+                binding.btnDeleteFace.setVisibility(View.VISIBLE);
+                Toast.makeText(ProfileActivity.this, getString(R.string.toast_delete_face_error, t.getMessage()), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }

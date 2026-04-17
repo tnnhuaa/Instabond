@@ -69,7 +69,7 @@ public class UserService {
                 .getId();
     }
 
-    // Face detection
+    // Face registration
 
     public void registerFace(String email, List<MultipartFile> images) {
         if (images == null || images.size() != 3) {
@@ -112,6 +112,13 @@ public class UserService {
         // Save to database
         user.setRegistrationImageUrls(uploadedUrls);
         user.setFaceEmbedding(finalEmbedding);
+        userRepository.save(user);
+    }
+
+    public void deleteFaceData(String email) {
+        User user = resolveUserFromPrincipal(email);
+        user.setRegistrationImageUrls(null);
+        user.setFaceEmbedding(null);
         userRepository.save(user);
     }
 

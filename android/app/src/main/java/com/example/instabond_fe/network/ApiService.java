@@ -294,7 +294,11 @@ public interface ApiService {
     @PATCH("api/users/me/password")
     Call<ResponseBody> changePassword(@Body ChangePasswordRequest request);
 
+    // Face Registration
     @Multipart
-    @POST("/api/users/register-face")
+    @POST("/api/users/face-registration")
     Call<ResponseBody> registerFace(@Part List<MultipartBody.Part> images);
+
+    @DELETE("api/users/face-registration")
+    Call<Void> deleteFaceRegistration();
 }

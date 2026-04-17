@@ -38,7 +38,7 @@ public class UserController {
 
     private final UserService userService;
 
-    // Face Detection
+    // Face Registration
 
     @Operation(
             summary = "Register face embedding",
@@ -49,13 +49,27 @@ public class UserController {
             @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
             @ApiResponse(responseCode = "403", description = "Access denied")
     })
-    @PostMapping(value = "/register-face", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/face-registration", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> registerFace(
             @AuthenticationPrincipal UserDetails userDetails,
             @Parameter(description = "Array of exactly 3 image files containing the user's face", required = true)
             @RequestParam("images") List<MultipartFile> images) {
 
         userService.registerFace(userDetails.getUsername(), images);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+            summary = "Delete face embedding",
+            description = "Deletes the registered face embedding (registration_image_urls & face_embedding) for the authenticated user, if it exists.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Face embedding deleted successfully"),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
+    })
+    @DeleteMapping("/face-registration")
+    public ResponseEntity<?> deleteFaceData(@AuthenticationPrincipal UserDetails userDetails) {
+        userService.deleteFaceData(userDetails.getUsername());
         return ResponseEntity.ok().build();
     }
 

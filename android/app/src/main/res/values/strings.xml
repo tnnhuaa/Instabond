@@ -460,4 +460,16 @@
     <string name="face_feedback_processing_upload">Processing and uploading...</string>
     <string name="face_register_failed_retry">Face registration failed, please try again</string>
     <string name="face_register_camera_permission_required">Camera permission is required for face registration</string>
+
+    <string name="profile_face_registered_status">Face ID registered</string>
+    <string name="profile_face_delete_action">Remove</string>
+
+    <string name="dialog_delete_face_title">Remove Face ID?</string>
+    <string name="dialog_delete_face_message">Are you sure you want to delete your facial data from the system? You will need to scan again to use this feature.</string>
+    <string name="dialog_delete_face_confirm">Remove</string>
+    <string name="dialog_delete_face_cancel">Cancel</string>
+
+    <string name="toast_delete_face_success">Face ID removed successfully!</string>
+    <string name="toast_delete_face_failed">Removal failed, please try again later.</string>
+    <string name="toast_delete_face_error">Error: %1$s</string>
 </resources>
