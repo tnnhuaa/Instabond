@@ -431,4 +431,33 @@
     <string name="tag_user_hint_press_image">Tap on the image to tag people</string>
     <string name="search_user_tag_hint_search_user">Search users...</string>
     <string name="search_user_tag_action_cancel">Cancel</string>
+
+    <!-- Face registration -->
+    <string name="face_register_title">Face Recognition Registration</string>
+    <string name="face_register_subtitle">Register Face to enhance account security and experience Instabond\'s automatic AI tagging features.</string>
+    <string name="face_register_start">Start Registration</string>
+    <string name="face_register_success">Face registration successful</string>
+    <string name="face_register_failed">Face registration failed</string>
+    <string name="face_guide_box">Align your face in the center of the frame</string>
+    <string name="feedback_1">Please look directly at the camera</string>
+
+    <string name="profile_face_register_subtitle_prompt">Set up Face ID to enhance account security and experience Instabond\'s automatic AI tagging features.</string>
+    <string name="profile_face_register_cta">Register now</string>
+
+    <string name="face_step_straight">1. Keep your face straight</string>
+    <string name="face_step_left">2. Slowly turn your face to the LEFT</string>
+    <string name="face_step_right">3. Slowly turn your face to the RIGHT</string>
+    <string name="face_step_done">Done! Processing...</string>
+
+    <string name="face_feedback_detection_error">Face detection error</string>
+    <string name="face_feedback_no_face">No face detected</string>
+    <string name="face_feedback_single_face_only">Please keep only one face in frame</string>
+    <string name="face_feedback_open_eyes">Please open your eyes wider</string>
+    <string name="face_feedback_move_closer">Please move closer</string>
+    <string name="face_feedback_center_face">Please move your face to the center of the frame</string>
+    <string name="face_feedback_good_now_step">Good! Now %1$s</string>
+    <string name="face_feedback_hold_still">Hold still...</string>
+    <string name="face_feedback_processing_upload">Processing and uploading...</string>
+    <string name="face_register_failed_retry">Face registration failed, please try again</string>
+    <string name="face_register_camera_permission_required">Camera permission is required for face registration</string>
 </resources>

@@ -2,6 +2,8 @@ package com.example.instabond_fe.model;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.util.List;
+
 public class UserProfileResponse {
     @SerializedName("id")
     private String id;
@@ -23,6 +25,9 @@ public class UserProfileResponse {
 
     @SerializedName("posts_count")
     private int postsCount;
+
+    @SerializedName("face_embedding")
+    private List<Double> faceEmbedding;
 
     @SerializedName("followers_count")
     private int followersCount;
@@ -89,6 +94,10 @@ public class UserProfileResponse {
 
     public int getPostsCount() {
         return postsCount;
+    }
+
+    public List<Double> getFaceEmbedding() {
+        return faceEmbedding;
     }
 
     public int getFollowersCount() {

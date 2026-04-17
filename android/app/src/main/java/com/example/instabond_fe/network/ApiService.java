@@ -291,6 +291,10 @@ public interface ApiService {
     @PATCH("api/users/me/allow-tagging")
     Call<UpdateAllowTaggingResponse> updateAllowTagging(@Query("value") String value);
 
-        @PATCH("api/users/me/password")
-        Call<ResponseBody> changePassword(@Body ChangePasswordRequest request);
+    @PATCH("api/users/me/password")
+    Call<ResponseBody> changePassword(@Body ChangePasswordRequest request);
+
+    @Multipart
+    @POST("/api/users/register-face")
+    Call<ResponseBody> registerFace(@Part List<MultipartBody.Part> images);
 }

@@ -423,4 +423,33 @@
     <string name="tag_user_hint_press_image">Nhấn vào ảnh để gắn thẻ người dùng</string>
     <string name="search_user_tag_hint_search_user">Tìm kiếm người dùng...</string>
     <string name="search_user_tag_action_cancel">Hủy</string>
+
+    <!-- Face registration -->
+    <string name="face_register_title">Đăng ký nhận diện khuôn mặt</string>
+    <string name="face_register_subtitle">Đăng ký khuôn mặt để tăng cường bảo mật tài khoản và trải nghiệm các tính năng AI tagging tự động của Instabond.</string>
+    <string name="face_register_start">Bắt đầu đăng ký</string>
+    <string name="face_register_success">Đăng ký nhận diện khuôn mặt thành công</string>
+    <string name="face_register_failed">Đăng ký nhận diện khuôn mặt thất bại</string>
+    <string name="face_guide_box">Căn chỉnh khuôn mặt vào giữa khung hình</string>
+    <string name="feedback_1">Vui lòng nhìn thẳng vào camera</string>
+
+    <string name="profile_face_register_subtitle_prompt">Thiết lập Face ID để tăng cường bảo mật tài khoản và trải nghiệm các tính năng AI tagging tự động của Instabond.</string>
+    <string name="profile_face_register_cta">Đăng ký ngay</string>
+
+    <string name="face_step_straight">1. Căn khuôn mặt nhìn thẳng</string>
+    <string name="face_step_left">2. Từ từ quay mặt sang TRÁI</string>
+    <string name="face_step_right">3. Từ từ quay mặt sang PHẢI</string>
+    <string name="face_step_done">Hoàn tất! Đang xử lý...</string>
+
+    <string name="face_feedback_detection_error">Lỗi nhận diện khuôn mặt</string>
+    <string name="face_feedback_no_face">Không tìm thấy khuôn mặt</string>
+    <string name="face_feedback_single_face_only">Vui lòng chỉ để 1 khuôn mặt trong khung hình</string>
+    <string name="face_feedback_open_eyes">Vui lòng mở to mắt</string>
+    <string name="face_feedback_move_closer">Vui lòng tiến lại gần hơn</string>
+    <string name="face_feedback_center_face">Vui lòng đưa khuôn mặt vào giữa khung hình</string>
+    <string name="face_feedback_good_now_step">Tốt! Giờ %1$s</string>
+    <string name="face_feedback_hold_still">Giữ yên...</string>
+    <string name="face_feedback_processing_upload">Đang xử lý và tải lên hệ thống...</string>
+    <string name="face_register_failed_retry">Đăng ký thất bại, vui lòng thử lại</string>
+    <string name="face_register_camera_permission_required">Cần cấp quyền camera để đăng ký khuôn mặt</string>
 </resources>

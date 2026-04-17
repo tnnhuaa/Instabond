@@ -60,6 +60,7 @@ public class ProfileActivity extends AppCompatActivity {
     private SessionManager sessionManager;
     private final Gson gson = new Gson();
     private ActivityResultLauncher<String> imagePickerLauncher;
+    private ActivityResultLauncher<Intent> faceRegistrationLauncher;
 
     private String currentUserId;
     private String currentAvatarUrl = "";
@@ -98,6 +99,23 @@ public class ProfileActivity extends AppCompatActivity {
             intent.putExtra("postId", selectedPost.getId());
             startActivity(intent);
         });
+
+        faceRegistrationLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() != RESULT_OK || result.getData() == null) {
+                        return;
+                    }
+
+                    boolean isFaceRegistered = result.getData().getBooleanExtra(
+                            FaceRegistrationActivity.EXTRA_FACE_REGISTERED,
+                            false
+                    );
+                    if (isFaceRegistered && isOwnProfileView) {
+                        loadMyProfile();
+                    }
+                }
+        );
 
         imagePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.GetContent(),
@@ -424,6 +442,25 @@ public class ProfileActivity extends AppCompatActivity {
 
             binding.tvFriendsCount.setOnClickListener(v -> Toast.makeText(this, "Bạn cần theo dõi để xem danh sách này", Toast.LENGTH_SHORT).show());
             binding.tvLikesCount.setOnClickListener(v -> Toast.makeText(this, "Bạn cần theo dõi để xem danh sách này", Toast.LENGTH_SHORT).show());
+        }
+
+        // Register face
+        if (isOwnProfileView) {
+            boolean isFaceRegistered = profile.getFaceEmbedding() != null;
+
+            if (!isFaceRegistered) {
+                binding.layoutFaceRegistrationPrompt.setVisibility(View.VISIBLE);
+                binding.btnRegisterFace.setOnClickListener(v -> {
+                    Intent intent = new Intent(this, FaceRegistrationActivity.class);
+                    faceRegistrationLauncher.launch(intent);
+                });
+            } else {
+                binding.layoutFaceRegistrationPrompt.setVisibility(View.GONE);
+            }
+        } else {
+            if (binding.layoutFaceRegistrationPrompt != null) {
+                binding.layoutFaceRegistrationPrompt.setVisibility(View.GONE);
+            }
         }
     }
 
