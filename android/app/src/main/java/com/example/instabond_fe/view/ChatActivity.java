@@ -26,6 +26,9 @@ import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.viewmodel.ChatViewModel;
 import com.example.instabond_fe.model.UserProfileResponse;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -53,8 +56,8 @@ public class ChatActivity extends AppCompatActivity {
     private ChatViewModel viewModel;
     private ChatMessageAdapter messageAdapter;
     private ApiService apiService;
-    private ActivityResultLauncher<String> pickImageLauncher;
-    private Uri pendingImageUri;
+    private ActivityResultLauncher<String> pickImagesLauncher;
+    private final List<Uri> pendingImageUris = new ArrayList<>();
     private boolean isImageUploading;
 
     private String conversationId;
@@ -181,13 +184,13 @@ public class ChatActivity extends AppCompatActivity {
                 return;
             }
 
-            if (text != null && !text.trim().isEmpty()) {
+            if (!text.trim().isEmpty()) {
                 viewModel.sendTextMessage(text);
                 binding.etMessage.setText("");
             }
 
-            if (pendingImageUri != null) {
-                viewModel.sendImageMessage(pendingImageUri);
+            if (!pendingImageUris.isEmpty()) {
+                viewModel.sendImageMessages(new ArrayList<>(pendingImageUris));
                 clearPendingImagePreview();
             }
         });
@@ -246,39 +249,99 @@ public class ChatActivity extends AppCompatActivity {
         updateSendButtonState(hasTypedText());
     }
     private void registerLaunchers() {
-        pickImageLauncher = registerForActivityResult(new ActivityResultContracts.GetContent(), this::onImagePicked);
+        pickImagesLauncher = registerForActivityResult(new ActivityResultContracts.GetMultipleContents(), this::onImagesPicked);
     }
 
     private void openImagePicker() {
-        if (pickImageLauncher == null) {
-            Toast.makeText(this, "Image picker is not available", Toast.LENGTH_SHORT).show();
+        if (pickImagesLauncher == null) {
+            Toast.makeText(this, R.string.chat_image_picker_unavailable, Toast.LENGTH_SHORT).show();
             return;
         }
-        pickImageLauncher.launch("image/*");
+        pickImagesLauncher.launch("image/*");
     }
 
-    private void onImagePicked(Uri uri) {
-        if (uri == null) {
+    private void onImagesPicked(List<Uri> uris) {
+        if (uris == null || uris.isEmpty()) {
             return;
         }
-        pendingImageUri = uri;
+
+        pendingImageUris.clear();
+        for (Uri uri : uris) {
+            if (uri != null) {
+                pendingImageUris.add(uri);
+            }
+        }
+
+        if (pendingImageUris.isEmpty()) {
+            return;
+        }
+
         renderImagePreview();
         updateSendButtonState(hasTypedText());
     }
 
     private void renderImagePreview() {
-        if (pendingImageUri == null) {
+        if (pendingImageUris.isEmpty()) {
             binding.layoutImagePreview.setVisibility(View.GONE);
-            binding.ivSelectedImagePreview.setImageDrawable(null);
+            clearPreviewSlot(binding.ivSelectedImagePreview1);
+            clearPreviewSlot(binding.ivSelectedImagePreview2);
+            clearPreviewSlot(binding.ivSelectedImagePreview3);
+            binding.tvSelectedImagePreviewMore.setVisibility(View.GONE);
+            binding.tvSelectedImagePreviewMore.setText("");
+            binding.tvSelectedImagePreviewLabel.setText(R.string.chat_image_selected);
             return;
         }
 
         binding.layoutImagePreview.setVisibility(View.VISIBLE);
-        binding.ivSelectedImagePreview.setImageURI(pendingImageUri);
+
+        int totalCount = pendingImageUris.size();
+        binding.tvSelectedImagePreviewLabel.setText(
+                getResources().getQuantityString(
+                        R.plurals.chat_images_selected_count,
+                        totalCount,
+                        totalCount
+                )
+        );
+
+        renderPreviewSlot(binding.slotSelectedImage1, binding.ivSelectedImagePreview1, 0);
+        renderPreviewSlot(binding.slotSelectedImage2, binding.ivSelectedImagePreview2, 1);
+        renderPreviewSlot(binding.slotSelectedImage3, binding.ivSelectedImagePreview3, 2);
+
+        if (totalCount > 3) {
+            binding.tvSelectedImagePreviewMore.setVisibility(View.VISIBLE);
+            binding.tvSelectedImagePreviewMore.setText(
+                    getString(R.string.chat_images_more_count, totalCount - 3)
+            );
+        } else {
+            binding.tvSelectedImagePreviewMore.setVisibility(View.GONE);
+            binding.tvSelectedImagePreviewMore.setText("");
+        }
+    }
+
+    private void renderPreviewSlot(View slotContainer, android.widget.ImageView previewView, int index) {
+        if (index >= pendingImageUris.size()) {
+            slotContainer.setVisibility(View.GONE);
+            clearPreviewSlot(previewView);
+            return;
+        }
+
+        slotContainer.setVisibility(View.VISIBLE);
+        Uri imageUri = pendingImageUris.get(index);
+        if (imageUri == null) {
+            clearPreviewSlot(previewView);
+            return;
+        }
+        previewView.setImageURI(imageUri);
+    }
+
+    private void clearPreviewSlot(android.widget.ImageView previewView) {
+        if (previewView != null) {
+            previewView.setImageDrawable(null);
+        }
     }
 
     private void clearPendingImagePreview() {
-        pendingImageUri = null;
+        pendingImageUris.clear();
         renderImagePreview();
         updateSendButtonState(hasTypedText());
     }
@@ -330,7 +393,7 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void updateSendButtonState(boolean hasText) {
-        boolean hasPendingImage = pendingImageUri != null;
+        boolean hasPendingImage = !pendingImageUris.isEmpty();
         boolean enabled = !isImageUploading && (hasText || hasPendingImage);
         binding.btnSend.setEnabled(enabled);
         binding.btnSend.setAlpha(enabled ? 1f : 0.55f);

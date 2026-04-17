@@ -368,6 +368,7 @@
     <string name="chat_missing_conversation">Missing conversation</string>
     <string name="chat_image_picker_unavailable">Image picker is not available</string>
     <string name="chat_image_selected">Image selected</string>
+    <string name="chat_upload_some_images_failed">Failed to upload %1$d image(s)</string>
     <string name="chat_story_reply_header">Reply to story</string>
     <string name="chat_story_reply_title">Story</string>
     <string name="chat_story_reply_title_named">%1$s\'s story</string>
@@ -402,6 +403,13 @@
     <string name="image_editor_select_text_first">Select a text sticker first</string>
     <string name="image_editor_text_dialog_supporting">Shape a short artistic caption that feels at home on the photo.</string>
     <string name="image_editor_text_required">Please enter some text</string>
+
+    <plurals name="chat_images_selected_count">
+        <item quantity="one">%1$d image selected</item>
+        <item quantity="other">%1$d images selected</item>
+    </plurals>
+
+    <string name="chat_images_more_count">+%1$d</string>
 
     <plurals name="story_view_viewers_count">
         <item quantity="one">%1$d viewer</item>

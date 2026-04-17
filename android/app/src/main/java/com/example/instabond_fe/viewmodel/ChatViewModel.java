@@ -143,17 +143,51 @@ public class ChatViewModel extends AndroidViewModel {
             errorLiveData.postValue("Image is not valid");
             return;
         }
+        List<Uri> images = new ArrayList<>();
+        images.add(imageUri);
+        sendImageMessages(images);
+    }
+
+    public void sendImageMessages(List<Uri> imageUris) {
+        if (imageUris == null || imageUris.isEmpty()) {
+            errorLiveData.postValue("Image is not valid");
+            return;
+        }
         if (activeConversationId == null || activeConversationId.trim().isEmpty()) {
             errorLiveData.postValue("Missing conversation");
             return;
         }
 
+        List<Uri> validUris = new ArrayList<>();
+        for (Uri uri : imageUris) {
+            if (uri != null) {
+                validUris.add(uri);
+            }
+        }
+
+        if (validUris.isEmpty()) {
+            errorLiveData.postValue("Image is not valid");
+            return;
+        }
+
         imageUploadingLiveData.postValue(true);
+        uploadImageSequentially(validUris, 0, 0);
+    }
+
+    private void uploadImageSequentially(List<Uri> imageUris, int index, int failedCount) {
+        if (index >= imageUris.size()) {
+            imageUploadingLiveData.postValue(false);
+            if (failedCount > 0) {
+                errorLiveData.postValue("Failed to upload " + failedCount + " image(s)");
+            }
+            return;
+        }
+
+        Uri imageUri = imageUris.get(index);
         try {
             File uploadFile = createTempFileFromUri(imageUri);
             if (uploadFile == null || !uploadFile.exists() || uploadFile.length() == 0L) {
-                imageUploadingLiveData.postValue(false);
-                errorLiveData.postValue("Image is not valid");
+                uploadImageSequentially(imageUris, index + 1, failedCount + 1);
                 return;
             }
 
@@ -165,23 +199,21 @@ public class ChatViewModel extends AndroidViewModel {
             chatRepository.uploadChatImage(activeConversationId, filePart, new ApiCallback<>() {
                 @Override
                 public void onSuccess(ChatMessageResponse data) {
-                    imageUploadingLiveData.postValue(false);
                     if (data != null) {
                         List<ChatMessageResponse> single = new ArrayList<>();
                         single.add(data);
                         mergeAndPublishMessages(single);
                     }
+                    uploadImageSequentially(imageUris, index + 1, failedCount);
                 }
 
                 @Override
                 public void onError(Throwable t) {
-                    imageUploadingLiveData.postValue(false);
-                    errorLiveData.postValue(t == null ? "Upload image failed" : t.getMessage());
+                    uploadImageSequentially(imageUris, index + 1, failedCount + 1);
                 }
             });
         } catch (IOException e) {
-            imageUploadingLiveData.postValue(false);
-            errorLiveData.postValue("Upload image failed");
+            uploadImageSequentially(imageUris, index + 1, failedCount + 1);
         }
     }
 
