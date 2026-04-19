@@ -7,7 +7,6 @@ import android.os.Bundle;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -72,6 +71,7 @@ public class NewsfeedActivity extends AppCompatActivity {
     private PostAdapter bottomPostsAdapter;
     private StoryFeedAdapter storyAdapter;
     private StorySectionAdapter storySectionAdapter;
+    private FeedModeHeaderAdapter feedModeHeaderAdapter;
     private FriendSuggestionSectionAdapter suggestionSectionAdapter;
     private ConcatAdapter feedAdapter;
     private ApiService apiService;
@@ -111,6 +111,8 @@ public class NewsfeedActivity extends AppCompatActivity {
         bottomPostsAdapter = new PostAdapter(new ArrayList<>());
         storyAdapter = new StoryFeedAdapter();
         storySectionAdapter = new StorySectionAdapter(storyAdapter);
+        feedModeHeaderAdapter = new FeedModeHeaderAdapter();
+        feedModeHeaderAdapter.setListener(this::switchFeedMode);
         suggestionSectionAdapter = new FriendSuggestionSectionAdapter(this, apiService);
         suggestionSectionAdapter.setOnDismissListener(() -> friendSuggestionsDismissed = true);
 
@@ -228,7 +230,12 @@ public class NewsfeedActivity extends AppCompatActivity {
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
 
         binding.rvFeed.setLayoutManager(layoutManager);
-        feedAdapter = new ConcatAdapter(storySectionAdapter, topPostsAdapter, suggestionSectionAdapter, bottomPostsAdapter);
+        feedAdapter = new ConcatAdapter(
+            storySectionAdapter,
+            feedModeHeaderAdapter,
+            topPostsAdapter,
+            suggestionSectionAdapter,
+            bottomPostsAdapter);
         binding.rvFeed.setAdapter(feedAdapter);
         binding.rvFeed.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
@@ -252,7 +259,6 @@ public class NewsfeedActivity extends AppCompatActivity {
         binding.btnCamera.setOnClickListener(v ->
                 startActivity(new Intent(this, CreatePostActivity.class)));
 
-        setupFeedModeChips();
         updateFeedModeUi();
 
         binding.btnInbox.setOnClickListener(v -> startActivity(new Intent(this, InboxActivity.class)));
@@ -390,11 +396,6 @@ public class NewsfeedActivity extends AppCompatActivity {
         });
     }
 
-    private void setupFeedModeChips() {
-        binding.chipFeedForYou.setOnClickListener(v -> switchFeedMode(FEED_MODE_FOR_YOU));
-        binding.chipFeedFollowing.setOnClickListener(v -> switchFeedMode(FEED_MODE_FOLLOWING));
-    }
-
     private void switchFeedMode(String mode) {
         if (mode == null || mode.equals(currentFeedMode)) {
             return;
@@ -407,20 +408,7 @@ public class NewsfeedActivity extends AppCompatActivity {
     }
 
     private void updateFeedModeUi() {
-        if (FEED_MODE_FOR_YOU.equals(currentFeedMode)) {
-            binding.chipFeedForYou.setBackgroundResource(R.drawable.search_filter_chip_active_bg);
-            binding.chipFeedForYou.setTextColor(ContextCompat.getColor(this, R.color.theme_on_primary));
-
-            binding.chipFeedFollowing.setBackgroundResource(R.drawable.search_filter_chip_inactive_bg);
-            binding.chipFeedFollowing.setTextColor(ContextCompat.getColor(this, R.color.theme_on_surface_muted));
-            return;
-        }
-
-        binding.chipFeedFollowing.setBackgroundResource(R.drawable.search_filter_chip_active_bg);
-        binding.chipFeedFollowing.setTextColor(ContextCompat.getColor(this, R.color.theme_on_primary));
-
-        binding.chipFeedForYou.setBackgroundResource(R.drawable.search_filter_chip_inactive_bg);
-        binding.chipFeedForYou.setTextColor(ContextCompat.getColor(this, R.color.theme_on_surface_muted));
+        feedModeHeaderAdapter.setCurrentMode(currentFeedMode);
     }
 
     private List<PostResponse> filterNewPosts(List<PostResponse> apiPosts) {
