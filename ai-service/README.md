@@ -3,6 +3,7 @@
 ## 📋 Yêu cầu hệ thống
 - Python 3.10+
 - Đã cài đặt pip
+- Recommended: 8GB+ RAM
 
 ## ⚙️ Cấu hình môi trường (file `.env`)
 ```env
@@ -42,7 +43,7 @@ pip install -r requirements.txt
 Để chạy server ở chế độ phát triển (Development), sử dụng lệnh:
 
 ```powershell
-uvicorn app.main:app --reload
+python -m app.main
 ```
 
 Server sẽ chạy tại: http://127.0.0.1:8000
