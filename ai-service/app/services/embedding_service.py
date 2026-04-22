@@ -22,11 +22,17 @@ async def download_and_preprocess_image(client: httpx.AsyncClient, url: str) -> 
     except Exception as e:
         raise ValueError(f"Error processing - {url}: {str(e)}")
 
-async def process_image_batch(image_urls: list):
+def _extract_batch_embeddings_sync(image_urls: list):
     embeddings = []
     
     for url in image_urls:
-        response = requests.get(url)
+        try:
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+        except requests.RequestException as e:
+            print(f"Failed to download image {url}: {e}")
+            continue
+
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
             tmp.write(response.content)
             tmp_path = tmp.name
@@ -34,15 +40,20 @@ async def process_image_batch(image_urls: list):
         try:
             results = DeepFace.represent(img_path=tmp_path, model_name='Facenet', enforce_detection=False)
             
-            if results and len(results) > 0 and results[0]['face_confidence'] > 0:
+            # Using .get() for safety in case 'face_confidence' key is missing
+            if results and len(results) > 0 and results[0].get('face_confidence', 0) > 0:
                 embeddings.append(results[0]["embedding"])
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
-                print(f"Temporary file deleted: {tmp_path}")
+
     if not embeddings:
         raise ValueError("No valid face embeddings found in the provided images.")
         
+    # Calculate the average embedding
     avg_embedding = np.mean(embeddings, axis=0).tolist()
     
     return {"average_embedding": avg_embedding}
+
+async def process_image_batch(image_urls: list):
+    return await asyncio.to_thread(_extract_batch_embeddings_sync, image_urls)
