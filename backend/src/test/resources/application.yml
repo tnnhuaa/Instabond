@@ -1,0 +1,45 @@
+spring:
+  mongodb:
+    uri: mongodb://localhost:27017/instabond_test_db
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      username: ""
+      password: ""
+      ssl:
+        enabled: false
+      timeout: 5s
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: dummy-email@gmail.com
+    password: dummy-password
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+cloudinary:
+  cloud-name: dummy-cloud
+  api-key: dummy-key
+  api-secret: dummy-secret
+
+jwt:
+  secret-key: secret-secret-secret-secret-secret-secret-secret-secret-secret-secret-secret
+
+app:
+  presence:
+    redis-enabled: false
+    ttl-minutes: 5
+    retry-backoff-seconds: 30
+
+ai:
+  service:
+    url: "http://localhost:8000"
