@@ -2,6 +2,7 @@ package com.instabond.listener;
 
 import com.instabond.entity.Relationship;
 import com.instabond.dto.UserInteractionDTO;
+import com.instabond.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -22,6 +23,7 @@ import java.time.temporal.ChronoUnit;
 public class InteractionEventListener {
 
     private final MongoTemplate mongoTemplate;
+    private final NotificationService notificationService;
 
     @EventListener
     public void handleUserInteraction(UserInteractionDTO event) {
@@ -51,13 +53,14 @@ public class InteractionEventListener {
             boolean isPositiveAction = points > 0;
             boolean isStreakEligible = isStreakEligible(event.getActionType());
             boolean shouldSyncStreak = isPositiveAction && isStreakEligible;
+            Integer newStreakCount = null;
 
             if (shouldSyncStreak) {
-                applyStreakLogic(relSender, senderId, now, zone, updateSender, updateReceiverStreak);
+                newStreakCount = applyStreakLogic(relSender, senderId, now, zone, updateSender, updateReceiverStreak);
             }
 
             // Friendship Level Logic
-            applyFriendshipLevelLogic(relSender.getFriendship_level(), newScore, updateSender);
+            String upgradedLevel = applyFriendshipLevelLogic(relSender.getFriendship_level(), newScore, updateSender);
 
             // Timestamp & Execute
             updateSender.set("updated_at", now);
@@ -68,6 +71,14 @@ public class InteractionEventListener {
                 updateReceiverStreak.set("updated_at", now);
                 updateReceiverStreak.set("last_interaction_at", now);
                 mongoTemplate.updateFirst(queryReceiver, updateReceiverStreak, Relationship.class);
+            }
+
+            if (newStreakCount != null && relSender.getId() != null && isStreakNotificationMilestone(newStreakCount)) {
+                notificationService.sendStreakNotification(senderId, receiverId, relSender.getId(), newStreakCount);
+            }
+
+            if (upgradedLevel != null && relSender.getId() != null) {
+                notificationService.sendFriendshipLevelUpNotification(senderId, receiverId, relSender.getId(), upgradedLevel);
             }
         }
     }
@@ -100,7 +111,7 @@ public class InteractionEventListener {
         ));
     }
 
-    private void applyFriendshipLevelLogic(String currentLevel, int newScore, Update updateSender) {
+    private String applyFriendshipLevelLogic(String currentLevel, int newScore, Update updateSender) {
         String newLevel = "normal"; // Default tier (0 - 100)
         if (newScore > 2000) {
             newLevel = "soulmates";
@@ -114,10 +125,42 @@ public class InteractionEventListener {
             updateSender.set("friendship_level", newLevel);
             log.info("[InteractionEventListener] Relationship upgraded/downgraded to: {}", newLevel);
         }
+
+        if (friendshipRank(newLevel) > friendshipRank(currentLevel)) {
+            return newLevel;
+        }
+
+        return null;
     }
 
-    private void applyStreakLogic(Relationship relSender, String senderId, Instant now, ZoneId zone,
-                                  Update updateSender, Update updateReceiverStreak) {
+    private int friendshipRank(String level) {
+        if (level == null || level.isBlank() || "normal".equalsIgnoreCase(level)) {
+            return 1;
+        }
+        if ("close friends".equalsIgnoreCase(level)) {
+            return 2;
+        }
+        if ("besties".equalsIgnoreCase(level)) {
+            return 3;
+        }
+        if ("soulmates".equalsIgnoreCase(level)) {
+            return 4;
+        }
+        return 1;
+    }
+
+    private boolean isStreakNotificationMilestone(int streakCount) {
+        return streakCount == 3
+                || streakCount == 25
+                || streakCount == 50
+                || streakCount == 100
+                || streakCount == 200
+                || streakCount == 300
+                || (streakCount > 300 && streakCount % 100 == 0);
+    }
+
+    private Integer applyStreakLogic(Relationship relSender, String senderId, Instant now, ZoneId zone,
+                                   Update updateSender, Update updateReceiverStreak) {
 
         // ---------------------------------------------------------
         // RESOLVE STREAK STATE
@@ -197,5 +240,12 @@ public class InteractionEventListener {
 
         updateReceiverStreak.set("streak.last_interaction_date", now)
                 .set("streak.last_sender_id", senderId);
+
+        if (shouldIncrement) {
+            int previousCount = relSender.getStreak() != null ? relSender.getStreak().getCount() : 0;
+            return previousCount + 1;
+        }
+
+        return null;
     }
 }
