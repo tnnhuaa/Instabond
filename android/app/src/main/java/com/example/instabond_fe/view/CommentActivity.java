@@ -94,6 +94,12 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
         handleFocusRequest();
     }
 
+    @Override
+    protected void onPause() {
+        PostAdapter.stopAudioPlayback();
+        super.onPause();
+    }
+
     private void handleFocusRequest() {
         if (getIntent().getBooleanExtra("focusComment", false)) {
             etComment.requestFocus();

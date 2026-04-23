@@ -313,6 +313,12 @@ public class NewsfeedActivity extends AppCompatActivity {
         notificationCountManager.fetchUnreadCount();
     }
 
+    @Override
+    protected void onPause() {
+        PostAdapter.stopAudioPlayback();
+        super.onPause();
+    }
+
     private void refreshFeed() {
         if (isRequestInFlight) {
             return;

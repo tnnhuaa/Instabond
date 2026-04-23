@@ -169,6 +169,12 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    protected void onPause() {
+        PostAdapter.stopAudioPlayback();
+        super.onPause();
+    }
+
     private void loadPosts(String userId, int startPosition) {
         apiService.getPostsByUserId(userId).enqueue(new Callback<JsonElement>() {
             @Override

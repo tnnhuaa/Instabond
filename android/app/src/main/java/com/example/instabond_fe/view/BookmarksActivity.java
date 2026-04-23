@@ -164,6 +164,12 @@ public class BookmarksActivity extends AppCompatActivity {
         loadBookmarkedPosts();
     }
 
+    @Override
+    protected void onPause() {
+        PostAdapter.stopAudioPlayback();
+        super.onPause();
+    }
+
     private void loadBookmarkedPosts() {
         apiService.getBookmarkedPosts().enqueue(new Callback<JsonElement>() {
             @Override
