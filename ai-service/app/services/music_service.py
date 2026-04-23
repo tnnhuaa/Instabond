@@ -22,56 +22,72 @@ _MUSIC_LIBRARY = [
     {
         "song_name": "Sunset Lover",
         "artist": "Petit Biscuit",
+        "preview_url": "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959426/Petit_Biscuit_-_Sunset_Lover_Music_Video_psnf6b.mp3",
         "keywords": ["sunset", "beach", "sea", "ocean", "shore", "golden hour"],
         "reason": "Fits warm outdoor scenes with sunset or seaside vibes.",
     },
     {
         "song_name": "Golden Hour",
         "artist": "JVKE",
+        "preview_url": "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959427/JVKE_-_golden_hour_official_music_video_liyfj6.mp3",
         "keywords": ["golden", "sunlight", "evening", "romantic", "couple", "portrait"],
         "reason": "Matches soft lighting and romantic portrait moments.",
     },
     {
         "song_name": "Sunflower",
         "artist": "Post Malone, Swae Lee",
+        "preview_url": "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959426/Post_Malone_Swae_Lee_-_Sunflower_Spider-Man__Into_the_Spider-Verse_c6b4di.mp3",
         "keywords": ["flower", "garden", "park", "outdoor", "bright", "happy"],
         "reason": "Works well for bright, playful outdoor imagery.",
     },
     {
         "song_name": "Night Changes",
         "artist": "One Direction",
+        "preview_url": "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959428/One_Direction_-_Night_Changes_xbfzdr.mp3",
         "keywords": ["night", "city", "street", "lights", "urban", "car"],
         "reason": "Pairs nicely with city-night and street-light scenes.",
     },
     {
         "song_name": "Midnight City",
         "artist": "M83",
+        "preview_url": "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959427/M83_Midnight_City_Official_video_zi20yk.mp3",
         "keywords": ["skyline", "building", "cityscape", "downtown", "neon", "night"],
         "reason": "Strong fit for energetic urban and skyline visuals.",
     },
     {
         "song_name": "Until I Found You",
         "artist": "Stephen Sanchez",
+        "preview_url": "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959427/Stephen_Sanchez_-_Until_I_Found_You_Official_Video_lhfljn.mp3",
         "keywords": ["wedding", "dress", "love", "smile", "together", "celebration"],
         "reason": "Complements intimate couple and celebration scenes.",
     },
     {
         "song_name": "Ocean Eyes",
         "artist": "Billie Eilish",
+        "preview_url": "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959427/Billie_Eilish_-_ocean_eyes_Official_Music_Video_kbaohv.mp3",
         "keywords": ["blue", "calm", "dreamy", "water", "reflection", "soft"],
         "reason": "Matches calm, dreamy imagery and cool tones.",
     },
     {
         "song_name": "Adventure of a Lifetime",
         "artist": "Coldplay",
+        "preview_url": "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959429/Coldplay_-_Adventure_Of_A_Lifetime_Official_Video_wrrj5v.mp3",
         "keywords": ["travel", "mountain", "hiking", "adventure", "road", "landscape"],
         "reason": "Fits travel, adventure, and expansive landscape shots.",
     },
     {
         "song_name": "Good Days",
         "artist": "SZA",
+        "preview_url": "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959429/SZA_-_Good_Days_Audio_uu6zhv.mp3",
         "keywords": ["relaxing", "home", "window", "selfie", "cozy", "morning"],
         "reason": "Works for casual, cozy, and reflective everyday moments.",
+    },
+    {
+        "song_name": "Blinding Lights",
+        "artist": "The Weeknd",
+        "preview_url": "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959428/The_Weeknd_-_Blinding_Lights_Official_Video_exokxh.mp3",
+        "keywords": ["night drive", "retro", "city", "neon", "fast", "lights"],
+        "reason": "Fits energetic night scenes with bright neon city vibes.",
     },
 ]
 
@@ -79,16 +95,19 @@ _FALLBACK_SUGGESTIONS = [
     {
         "song_name": "Golden Hour",
         "artist": "JVKE",
+        "preview_url": "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959427/JVKE_-_golden_hour_official_music_video_liyfj6.mp3",
         "reason": "General-purpose pick for aesthetic photo posts.",
     },
     {
         "song_name": "Good Days",
         "artist": "SZA",
+        "preview_url": "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959429/SZA_-_Good_Days_Audio_uu6zhv.mp3",
         "reason": "General-purpose pick for chill lifestyle content.",
     },
     {
         "song_name": "Adventure of a Lifetime",
         "artist": "Coldplay",
+        "preview_url": "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959429/Coldplay_-_Adventure_Of_A_Lifetime_Official_Video_wrrj5v.mp3",
         "reason": "General-purpose pick for energetic visual storytelling.",
     },
 ]
@@ -262,7 +281,7 @@ def _build_music_suggestions(scene_description: str):
                 {
                     "song_name": item["song_name"],
                     "artist": item["artist"],
-                    "preview_url": None,
+                    "preview_url": item.get("preview_url"),
                     "reason": f"{item['reason']} Matched keywords: {', '.join(matched_keywords)}.",
                 },
             )
@@ -273,7 +292,7 @@ def _build_music_suggestions(scene_description: str):
             {
                 "song_name": item["song_name"],
                 "artist": item["artist"],
-                "preview_url": None,
+                "preview_url": item.get("preview_url"),
                 "reason": item["reason"],
             }
             for item in _FALLBACK_SUGGESTIONS

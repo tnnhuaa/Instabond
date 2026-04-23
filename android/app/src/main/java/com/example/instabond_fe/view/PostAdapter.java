@@ -1,5 +1,7 @@
 package com.example.instabond_fe.view;
 
+import android.media.AudioAttributes;
+import android.media.MediaPlayer;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.text.SpannableStringBuilder;
@@ -26,8 +28,14 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.lang.ref.WeakReference;
 
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder> {
+    private static final String AUDIO_MUTED_ICON = "\uD83D\uDD07";
+    private static final String AUDIO_PLAYING_ICON = "\uD83D\uDD08";
+    private static MediaPlayer activePlayer;
+    private static String activePostId;
+    private static WeakReference<PostAdapter> activeAdapterRef;
 
     public interface OnPostInteractionListener {
         void onLikeClicked(Post post, int position);
@@ -61,6 +69,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         if (newPosts != null) {
             posts.addAll(newPosts);
         }
+        releaseAudioIfMissingFromAdapter();
         notifyDataSetChanged();
     }
 
@@ -108,8 +117,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                 : context.getString(R.string.feed_view_all_comments, numberFormat.format(post.getCommentsCount())));
         holder.tvTimeAgo.setText(buildFeedTimeLabel(context, post.getCreatedAt(), position));
         holder.tvCaption.setText(buildCaption(post));
-        holder.tvImageCount.setVisibility(position == 0 ? View.VISIBLE : View.GONE);
-        holder.tvImageCount.setText("1/3");
 
         int accentColor = ContextCompat.getColor(holder.itemView.getContext(), R.color.login_bg_start);
         int defaultColor = ContextCompat.getColor(holder.itemView.getContext(), R.color.feed_icon_dark);
@@ -145,7 +152,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             holder.flPostImage.setVisibility(View.GONE);
             Glide.with(holder.itemView).clear(holder.ivPostImage);
             holder.ivPostImage.setImageDrawable(null);
-            holder.tvImageCount.setVisibility(View.GONE);
+            holder.tvAudioToggle.setVisibility(View.GONE);
             return;
         }
 
@@ -155,11 +162,26 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                 .placeholder(R.drawable.avatar_circle_bg)
                 .error(R.drawable.avatar_circle_bg)
                 .into(holder.ivPostImage);
+
+        bindAudioToggle(holder, post);
     }
 
     @Override
     public int getItemCount() {
         return posts.size();
+    }
+
+    public static void stopAudioPlayback() {
+        stopActiveAudio();
+    }
+
+    @Override
+    public void onDetachedFromRecyclerView(@NonNull RecyclerView recyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView);
+        PostAdapter activeAdapter = activeAdapterRef != null ? activeAdapterRef.get() : null;
+        if (activeAdapter == this) {
+            stopActiveAudio();
+        }
     }
 
     private CharSequence buildCaption(Post post) {
@@ -211,6 +233,135 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         return value == null ? "" : value.trim();
     }
 
+    private void bindAudioToggle(PostViewHolder holder, Post post) {
+        if (!post.isHasMusicBadge() || valueOrEmpty(post.getMusicPreviewUrl()).isEmpty()) {
+            holder.tvAudioToggle.setVisibility(View.GONE);
+            holder.tvAudioToggle.setOnClickListener(null);
+            return;
+        }
+
+        holder.tvAudioToggle.setVisibility(View.VISIBLE);
+        boolean isPlaying = isPostPlaying(post);
+        holder.tvAudioToggle.setText(isPlaying ? AUDIO_PLAYING_ICON : AUDIO_MUTED_ICON);
+        holder.tvAudioToggle.setContentDescription(isPlaying ? "Mute preview audio" : "Play preview audio");
+        holder.tvAudioToggle.setOnClickListener(v -> toggleAudio(post));
+    }
+
+    private void toggleAudio(Post post) {
+        if (post == null || valueOrEmpty(post.getMusicPreviewUrl()).isEmpty()) {
+            return;
+        }
+
+        if (isPostPlaying(post)) {
+            stopActiveAudio();
+            return;
+        }
+
+        startAudio(post);
+    }
+
+    private void startAudio(Post post) {
+        String newPostId = post.getId();
+        String previewUrl = valueOrEmpty(post.getMusicPreviewUrl());
+        if (newPostId.isEmpty() || previewUrl.isEmpty()) {
+            return;
+        }
+
+        String previousPostId = activePostId;
+        PostAdapter previousAdapter = activeAdapterRef != null ? activeAdapterRef.get() : null;
+        stopPlayerOnly();
+        activePostId = newPostId;
+        activeAdapterRef = new WeakReference<>(this);
+
+        MediaPlayer player = new MediaPlayer();
+        activePlayer = player;
+        player.setAudioAttributes(new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build());
+
+        try {
+            player.setDataSource(previewUrl);
+            player.setOnPreparedListener(mp -> mp.start());
+            player.setOnCompletionListener(mp -> stopActiveAudio());
+            player.setOnErrorListener((mp, what, extra) -> {
+                stopActiveAudio();
+                return true;
+            });
+            player.prepareAsync();
+        } catch (Exception exception) {
+            stopActiveAudio();
+            return;
+        }
+
+        notifyAudioStateChanged(previousAdapter, previousPostId);
+        notifyAudioStateChanged(this, newPostId);
+    }
+
+    private static void stopActiveAudio() {
+        PostAdapter previousAdapter = activeAdapterRef != null ? activeAdapterRef.get() : null;
+        String previousPostId = activePostId;
+        stopPlayerOnly();
+        activePostId = null;
+        activeAdapterRef = null;
+        notifyAudioStateChanged(previousAdapter, previousPostId);
+    }
+
+    private static void stopPlayerOnly() {
+        if (activePlayer == null) {
+            return;
+        }
+
+        try {
+            if (activePlayer.isPlaying()) {
+                activePlayer.stop();
+            }
+        } catch (IllegalStateException ignored) {
+        }
+
+        activePlayer.reset();
+        activePlayer.release();
+        activePlayer = null;
+    }
+
+    private boolean isPostPlaying(Post post) {
+        return post != null
+                && activePlayer != null
+                && activePostId != null
+                && activePostId.equals(post.getId());
+    }
+
+    private void releaseAudioIfMissingFromAdapter() {
+        if (activePostId == null) {
+            return;
+        }
+
+        for (Post post : posts) {
+            if (post != null && activePostId.equals(post.getId())) {
+                return;
+            }
+        }
+
+        PostAdapter activeAdapter = activeAdapterRef != null ? activeAdapterRef.get() : null;
+        if (activeAdapter == this) {
+            stopActiveAudio();
+        }
+    }
+
+    private static void notifyAudioStateChanged(PostAdapter adapter, String postId) {
+        if (adapter == null || postId == null || postId.trim().isEmpty()) {
+            return;
+        }
+
+        for (int index = 0; index < adapter.posts.size(); index++) {
+            Post post = adapter.posts.get(index);
+            if (post != null && postId.equals(post.getId())) {
+                adapter.notifyItemChanged(index);
+                break;
+            }
+        }
+    }
+
     static class PostViewHolder extends RecyclerView.ViewHolder {
         ImageView ivAvatar;
         ImageView ivPostImage;
@@ -221,7 +372,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         TextView tvCaption;
         TextView tvViewComments;
         TextView tvTimeAgo;
-        TextView tvImageCount;
+        TextView tvAudioToggle;
         View flPostImage;
         ImageButton btnLike;
         ImageButton btnComment;
@@ -239,7 +390,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             tvCaption = itemView.findViewById(R.id.tv_caption);
             tvViewComments = itemView.findViewById(R.id.tv_view_comments);
             tvTimeAgo = itemView.findViewById(R.id.tv_time_ago);
-            tvImageCount = itemView.findViewById(R.id.tv_image_count);
+            tvAudioToggle = itemView.findViewById(R.id.tv_audio_toggle);
             flPostImage = itemView.findViewById(R.id.fl_post_image);
             btnLike = itemView.findViewById(R.id.btn_like);
             btnComment = itemView.findViewById(R.id.btn_comment);

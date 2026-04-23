@@ -92,6 +92,13 @@ public class PostResponse {
         return valueOrEmpty(musicSuggestion.getArtist());
     }
 
+    public String getMusicPreviewUrl() {
+        if (musicSuggestion == null) {
+            return "";
+        }
+        return valueOrEmpty(musicSuggestion.getPreviewUrl());
+    }
+
     public Stats getStats() {
         return stats;
     }
