@@ -22,10 +22,12 @@
             android:id="@+id/btn_camera"
             android:layout_width="48dp"
             android:layout_height="48dp"
+            android:adjustViewBounds="true"
             android:background="@android:color/transparent"
             android:contentDescription="@string/nav_create"
             android:padding="8dp"
-            android:src="@drawable/instabond_logo"
+            android:scaleType="fitCenter"
+            android:src="@drawable/instabond_app_icon"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />

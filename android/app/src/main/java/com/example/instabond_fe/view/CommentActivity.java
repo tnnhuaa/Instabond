@@ -94,6 +94,12 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
         handleFocusRequest();
     }
 
+    @Override
+    protected void onPause() {
+        PostAdapter.stopAudioPlayback();
+        super.onPause();
+    }
+
     private void handleFocusRequest() {
         if (getIntent().getBooleanExtra("focusComment", false)) {
             etComment.requestFocus();
@@ -379,6 +385,7 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
         int likes = response.getStats() != null ? response.getStats().getLikes() : 0;
         int comments = response.getStats() != null ? response.getStats().getComments() : 0;
         int shares = response.getStats() != null ? response.getStats().getShares() : 0;
+        String musicPreviewUrl = response.getMusicPreviewUrl();
 
         Post uiPost = new Post(
                 valueOrEmpty(response.getId()),
@@ -393,8 +400,10 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
                 imageUrl,
                 response.getLocationName(),
                 response.getMusicDisplayText(),
-                response.hasMusicSuggestion(),
-                response.isLiked()
+                musicPreviewUrl,
+                !musicPreviewUrl.isEmpty(),
+                response.isLiked(),
+                false
         );
 
         if (response.getTaggedUsers() != null) {

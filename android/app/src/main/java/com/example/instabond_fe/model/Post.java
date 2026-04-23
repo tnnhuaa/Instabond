@@ -16,6 +16,7 @@ public class Post {
     private final String imageUrl;
     private final String location;
     private final String musicSummary;
+    private final String musicPreviewUrl;
     private final boolean hasMusicBadge;
     private List<SuggestedTag> taggedUsers = new ArrayList<>();
     private boolean tagsVisible = false;
@@ -24,26 +25,31 @@ public class Post {
 
     public Post(String id, String authorId, String username, String caption, int likesCount, int commentsCount, int sharesCount,
                 String avatarUrl, String imageUrl, boolean hasMusicBadge, boolean isLiked) {
-        this(id, authorId, username, caption, null, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, null, null, hasMusicBadge, isLiked);
+        this(id, authorId, username, caption, null, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, null, null, null, hasMusicBadge, isLiked, false);
     }
 
     public Post(String id, String authorId, String username, String caption, String createdAt, int likesCount, int commentsCount, int sharesCount,
                 String avatarUrl, String imageUrl, boolean hasMusicBadge, boolean isLiked) {
-        this(id, authorId, username, caption, createdAt, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, null, null, hasMusicBadge, isLiked, false);
+        this(id, authorId, username, caption, createdAt, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, null, null, null, hasMusicBadge, isLiked, false);
     }
 
     public Post(String id, String authorId, String username, String caption, String createdAt, int likesCount, int commentsCount, int sharesCount,
                 String avatarUrl, String imageUrl, String location, String musicSummary, boolean hasMusicBadge, boolean isLiked) {
-        this(id, authorId, username, caption, createdAt, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, location, musicSummary, hasMusicBadge, isLiked, false);
+        this(id, authorId, username, caption, createdAt, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, location, musicSummary, null, hasMusicBadge, isLiked, false);
     }
 
     public Post(String id, String authorId, String username, String caption, String createdAt, int likesCount, int commentsCount, int sharesCount,
                 String avatarUrl, String imageUrl, boolean hasMusicBadge, boolean isLiked, boolean isBookmarked) {
-        this(id, authorId, username, caption, createdAt, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, null, null, hasMusicBadge, isLiked, isBookmarked);
+        this(id, authorId, username, caption, createdAt, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, null, null, null, hasMusicBadge, isLiked, isBookmarked);
     }
 
     public Post(String id, String authorId, String username, String caption, String createdAt, int likesCount, int commentsCount, int sharesCount,
                 String avatarUrl, String imageUrl, String location, String musicSummary, boolean hasMusicBadge, boolean isLiked, boolean isBookmarked) {
+        this(id, authorId, username, caption, createdAt, likesCount, commentsCount, sharesCount, avatarUrl, imageUrl, location, musicSummary, null, hasMusicBadge, isLiked, isBookmarked);
+    }
+
+    public Post(String id, String authorId, String username, String caption, String createdAt, int likesCount, int commentsCount, int sharesCount,
+                String avatarUrl, String imageUrl, String location, String musicSummary, String musicPreviewUrl, boolean hasMusicBadge, boolean isLiked, boolean isBookmarked) {
         this.id = id;
         this.authorId = authorId;
         this.username = username;
@@ -56,6 +62,7 @@ public class Post {
         this.imageUrl = imageUrl;
         this.location = location;
         this.musicSummary = musicSummary;
+        this.musicPreviewUrl = musicPreviewUrl;
         this.hasMusicBadge = hasMusicBadge;
         this.isLiked = isLiked;
         this.isBookmarked = isBookmarked;
@@ -107,6 +114,10 @@ public class Post {
 
     public String getMusicSummary() {
         return musicSummary;
+    }
+
+    public String getMusicPreviewUrl() {
+        return musicPreviewUrl;
     }
 
     public boolean isHasMusicBadge() {

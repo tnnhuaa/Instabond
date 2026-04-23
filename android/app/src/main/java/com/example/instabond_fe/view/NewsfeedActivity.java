@@ -313,6 +313,12 @@ public class NewsfeedActivity extends AppCompatActivity {
         notificationCountManager.fetchUnreadCount();
     }
 
+    @Override
+    protected void onPause() {
+        PostAdapter.stopAudioPlayback();
+        super.onPause();
+    }
+
     private void refreshFeed() {
         if (isRequestInFlight) {
             return;
@@ -471,6 +477,9 @@ public class NewsfeedActivity extends AppCompatActivity {
                 shares = postResponse.getStats().getShares();
             }
 
+            String musicPreviewUrl = postResponse.getMusicPreviewUrl();
+            boolean hasPlayableMusic = !musicPreviewUrl.isEmpty();
+
             Post uiPost = new Post(
                     postId,
                     authorId,
@@ -484,7 +493,8 @@ public class NewsfeedActivity extends AppCompatActivity {
                     imageUrl,
                     postResponse.getLocationName(),
                     postResponse.getMusicDisplayText(),
-                    postResponse.hasMusicSuggestion(),
+                    musicPreviewUrl,
+                    hasPlayableMusic,
                     postResponse.isLiked(),
                     postResponse.isBookmarked()
             );

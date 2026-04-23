@@ -331,6 +331,11 @@ public class NotificationsActivity extends AppCompatActivity {
                 intent.putExtra(ProfileActivity.EXTRA_PROFILE_NAV_CONTEXT, ProfileActivity.NAV_CONTEXT_SEARCH);
                 startActivity(intent);
             }
+        } else if ("STREAK".equals(type) || "INTIMACY_LEVEL_UP".equals(type)) {
+            Intent intent = new Intent(this, ProfileActivity.class);
+            intent.putExtra("targetUserId", notification.getSenderId());
+            intent.putExtra(ProfileActivity.EXTRA_PROFILE_NAV_CONTEXT, ProfileActivity.NAV_CONTEXT_SEARCH);
+            startActivity(intent);
         }
     }
 
@@ -761,6 +766,12 @@ public class NotificationsActivity extends AppCompatActivity {
 
                 if ("FOLLOW".equals(type)) {
                     return R.drawable.ic_user_plus;
+                }
+                if ("STREAK".equals(type)) {
+                    return R.drawable.ic_flame;
+                }
+                if ("INTIMACY_LEVEL_UP".equals(type)) {
+                    return R.drawable.ic_intimacy_besties;
                 }
                 if (content.contains("tagged")) {
                     return R.drawable.ic_tag;

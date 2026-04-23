@@ -3,21 +3,29 @@ package com.example.instabond_fe.view;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.ImageDecoder;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityCreateStoryBinding;
+import com.example.instabond_fe.databinding.DialogImageEditorTextBinding;
 import com.example.instabond_fe.model.StoryResponse;
 import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
@@ -40,6 +48,12 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class CreateStoryActivity extends AppCompatActivity {
+    private enum OverlaySelection {
+        NONE,
+        TEXT,
+        ICON
+    }
+
     @Override
     protected void attachBaseContext(android.content.Context newBase) {
         super.attachBaseContext(LocaleManager.setLocale(newBase));
@@ -48,6 +62,21 @@ public class CreateStoryActivity extends AppCompatActivity {
     public static final String EXTRA_REFRESH_STORIES = "refresh_stories";
 
     private static final int MAX_SOURCE_EDGE = 1600;
+    private static final int[] STORY_EDITOR_COLORS = {
+            Color.WHITE,
+            0xFFE1306C,
+            0xFFF9A826,
+            0xFF80D8FF,
+            0xFFCB80FE
+    };
+    private static final int[] STORY_ICON_RES_IDS = {
+            R.drawable.ic_heart_filled,
+            R.drawable.ic_star,
+            R.drawable.ic_music,
+            R.drawable.ic_story_sparkles,
+            R.drawable.ic_flame,
+            R.drawable.ic_location_pin
+    };
 
     private ActivityCreateStoryBinding binding;
     private ApiService apiService;
@@ -58,6 +87,9 @@ public class CreateStoryActivity extends AppCompatActivity {
 
     private Uri selectedImageUri;
     private Bitmap selectedBitmap;
+    private OverlaySelection selectedOverlay = OverlaySelection.NONE;
+    private int textOverlayColorIndex;
+    private int iconOverlayColorIndex;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +102,7 @@ public class CreateStoryActivity extends AppCompatActivity {
 
         registerLaunchers();
         setupToolbar();
+        setupOverlayEditor();
         setupActions();
         loadCurrentUser();
         renderPreview();
@@ -81,6 +114,16 @@ public class CreateStoryActivity extends AppCompatActivity {
         binding.btnStorySettings.setOnClickListener(v ->
                 Toast.makeText(this, R.string.story_create_tools_soon, Toast.LENGTH_SHORT).show()
         );
+    }
+
+    private void setupOverlayEditor() {
+        binding.tvStoryTextOverlay.setOnTouchListener(buildOverlayTouchListener(OverlaySelection.TEXT));
+        binding.ivStoryIconOverlay.setOnTouchListener(buildOverlayTouchListener(OverlaySelection.ICON));
+        binding.tvStoryTextOverlay.setOnClickListener(v -> selectOverlay(OverlaySelection.TEXT));
+        binding.ivStoryIconOverlay.setOnClickListener(v -> selectOverlay(OverlaySelection.ICON));
+        applyTextOverlayColor();
+        applyIconOverlayColor();
+        refreshOverlaySelectionState();
     }
 
     private void setupActions() {
@@ -96,11 +139,253 @@ public class CreateStoryActivity extends AppCompatActivity {
         binding.btnCaptureStoryPhoto.setOnClickListener(v -> takePhotoLauncher.launch(null));
         binding.btnReplaceStoryPhoto.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
         binding.btnStoryToolFlash.setOnClickListener(toolsSoonClick);
-        binding.btnStoryToolText.setOnClickListener(toolsSoonClick);
-        binding.btnStoryToolComment.setOnClickListener(toolsSoonClick);
-        binding.btnStoryToolMusic.setOnClickListener(toolsSoonClick);
-        binding.btnStoryToolEffects.setOnClickListener(toolsSoonClick);
-        binding.btnStoryToolMore.setOnClickListener(toolsSoonClick);
+        binding.btnStoryToolText.setOnClickListener(v -> showTextOverlayDialog());
+        binding.btnStoryToolComment.setOnClickListener(v -> showIconPickerDialog());
+        binding.btnStoryToolEffects.setOnClickListener(v -> cycleSelectedOverlayColor());
+        binding.btnStoryToolMore.setOnClickListener(v -> resetStoryDecorations());
+    }
+
+    private View.OnTouchListener buildOverlayTouchListener(OverlaySelection overlaySelection) {
+        return new View.OnTouchListener() {
+            private float startRawX;
+            private float startRawY;
+            private float startX;
+            private float startY;
+            private boolean dragging;
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (v.getVisibility() != View.VISIBLE) {
+                    return false;
+                }
+
+                switch (event.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN:
+                        selectOverlay(overlaySelection);
+                        startRawX = event.getRawX();
+                        startRawY = event.getRawY();
+                        startX = v.getX();
+                        startY = v.getY();
+                        dragging = false;
+                        return true;
+                    case MotionEvent.ACTION_MOVE:
+                        dragging = true;
+                        moveOverlayWithinStage(
+                                v,
+                                startX + (event.getRawX() - startRawX),
+                                startY + (event.getRawY() - startRawY)
+                        );
+                        return true;
+                    case MotionEvent.ACTION_UP:
+                        if (!dragging) {
+                            v.performClick();
+                        }
+                        return true;
+                    case MotionEvent.ACTION_CANCEL:
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+        };
+    }
+
+    private void moveOverlayWithinStage(View overlay, float targetX, float targetY) {
+        int stageWidth = binding.storyOverlayStage.getWidth();
+        int stageHeight = binding.storyOverlayStage.getHeight();
+        if (stageWidth <= 0 || stageHeight <= 0) {
+            overlay.setX(targetX);
+            overlay.setY(targetY);
+            return;
+        }
+
+        float clampedX = Math.max(0f, Math.min(targetX, stageWidth - overlay.getWidth()));
+        float clampedY = Math.max(0f, Math.min(targetY, stageHeight - overlay.getHeight()));
+        overlay.setX(clampedX);
+        overlay.setY(clampedY);
+    }
+
+    private void selectOverlay(OverlaySelection overlaySelection) {
+        if (overlaySelection == OverlaySelection.TEXT
+                && binding.tvStoryTextOverlay.getVisibility() != View.VISIBLE) {
+            overlaySelection = OverlaySelection.NONE;
+        } else if (overlaySelection == OverlaySelection.ICON
+                && binding.ivStoryIconOverlay.getVisibility() != View.VISIBLE) {
+            overlaySelection = OverlaySelection.NONE;
+        }
+
+        selectedOverlay = overlaySelection;
+        refreshOverlaySelectionState();
+    }
+
+    private void refreshOverlaySelectionState() {
+        binding.tvStoryTextOverlay.setBackground(
+                selectedOverlay == OverlaySelection.TEXT ? buildSelectionBackground() : null
+        );
+        binding.ivStoryIconOverlay.setBackground(
+                selectedOverlay == OverlaySelection.ICON ? buildSelectionBackground() : null
+        );
+    }
+
+    private Drawable buildSelectionBackground() {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setShape(GradientDrawable.RECTANGLE);
+        drawable.setColor(0x1AFFFFFF);
+        drawable.setCornerRadius(dp(18));
+        drawable.setStroke(dp(1), 0xCCFFFFFF);
+        return drawable;
+    }
+
+    private void showTextOverlayDialog() {
+        if (!hasSelectedImage()) {
+            Toast.makeText(this, R.string.story_create_editor_pick_photo_first, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        boolean editingExisting = binding.tvStoryTextOverlay.getVisibility() == View.VISIBLE;
+        DialogImageEditorTextBinding dialogBinding =
+                DialogImageEditorTextBinding.inflate(getLayoutInflater());
+        dialogBinding.tvDialogTitle.setText(
+                editingExisting
+                        ? R.string.story_create_editor_text_title_edit
+                        : R.string.story_create_editor_text_title_add
+        );
+        dialogBinding.etTextContent.setHint(R.string.story_create_editor_text_hint);
+        dialogBinding.etTextContent.setText(editingExisting ? binding.tvStoryTextOverlay.getText() : "");
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogBinding.getRoot())
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        dialogBinding.btnCancelTextDialog.setOnClickListener(v -> dialog.dismiss());
+        dialogBinding.btnApplyTextDialog.setOnClickListener(v -> {
+            CharSequence value = dialogBinding.etTextContent.getText();
+            String text = value == null ? "" : value.toString().trim();
+            if (text.isEmpty()) {
+                dialogBinding.inputLayoutText.setError(getString(R.string.image_editor_text_required));
+                return;
+            }
+
+            dialogBinding.inputLayoutText.setError(null);
+            binding.tvStoryTextOverlay.setText(text);
+            binding.tvStoryTextOverlay.setVisibility(View.VISIBLE);
+            applyTextOverlayColor();
+            selectOverlay(OverlaySelection.TEXT);
+            if (!editingExisting) {
+                centerOverlay(binding.tvStoryTextOverlay, 0.5f, 0.3f);
+                Toast.makeText(this, R.string.story_create_editor_drag_hint, Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, R.string.story_create_editor_text_updated, Toast.LENGTH_SHORT).show();
+            }
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    private void showIconPickerDialog() {
+        if (!hasSelectedImage()) {
+            Toast.makeText(this, R.string.story_create_editor_pick_photo_first, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        CharSequence[] labels = {
+                getString(R.string.story_create_editor_icon_heart),
+                getString(R.string.story_create_editor_icon_star),
+                getString(R.string.story_create_editor_icon_music),
+                getString(R.string.story_create_editor_icon_sparkle),
+                getString(R.string.story_create_editor_icon_flame),
+                getString(R.string.story_create_editor_icon_pin)
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.story_create_editor_icon_title)
+                .setItems(labels, (dialog, which) -> {
+                    binding.ivStoryIconOverlay.setImageResource(STORY_ICON_RES_IDS[which]);
+                    binding.ivStoryIconOverlay.setVisibility(View.VISIBLE);
+                    applyIconOverlayColor();
+                    selectOverlay(OverlaySelection.ICON);
+                    if (binding.ivStoryIconOverlay.getX() == 0f && binding.ivStoryIconOverlay.getY() == 0f) {
+                        centerOverlay(binding.ivStoryIconOverlay, 0.5f, 0.5f);
+                    }
+                    Toast.makeText(this, R.string.story_create_editor_drag_hint, Toast.LENGTH_SHORT).show();
+                })
+                .show();
+    }
+
+    private void cycleSelectedOverlayColor() {
+        if (!hasSelectedImage()) {
+            Toast.makeText(this, R.string.story_create_editor_pick_photo_first, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (selectedOverlay == OverlaySelection.TEXT
+                && binding.tvStoryTextOverlay.getVisibility() == View.VISIBLE) {
+            textOverlayColorIndex = (textOverlayColorIndex + 1) % STORY_EDITOR_COLORS.length;
+            applyTextOverlayColor();
+            Toast.makeText(this, R.string.story_create_editor_color_changed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (selectedOverlay == OverlaySelection.ICON
+                && binding.ivStoryIconOverlay.getVisibility() == View.VISIBLE) {
+            iconOverlayColorIndex = (iconOverlayColorIndex + 1) % STORY_EDITOR_COLORS.length;
+            applyIconOverlayColor();
+            Toast.makeText(this, R.string.story_create_editor_color_changed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Toast.makeText(this, R.string.story_create_editor_color_pick_first, Toast.LENGTH_SHORT).show();
+    }
+
+    private void resetStoryDecorations() {
+        boolean hasText = binding.tvStoryTextOverlay.getVisibility() == View.VISIBLE;
+        boolean hasIcon = binding.ivStoryIconOverlay.getVisibility() == View.VISIBLE;
+        if (!hasText && !hasIcon) {
+            Toast.makeText(this, R.string.story_create_editor_remove_nothing, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        clearStoryOverlays();
+        Toast.makeText(this, R.string.story_create_editor_removed, Toast.LENGTH_SHORT).show();
+    }
+
+    private void applyTextOverlayColor() {
+        int color = STORY_EDITOR_COLORS[textOverlayColorIndex];
+        binding.tvStoryTextOverlay.setTextColor(color);
+    }
+
+    private void applyIconOverlayColor() {
+        int color = STORY_EDITOR_COLORS[iconOverlayColorIndex];
+        binding.ivStoryIconOverlay.setColorFilter(color);
+    }
+
+    private void centerOverlay(View overlay, float centerXFraction, float centerYFraction) {
+        overlay.post(() -> moveOverlayWithinStage(
+                overlay,
+                (binding.storyOverlayStage.getWidth() * centerXFraction) - (overlay.getWidth() / 2f),
+                (binding.storyOverlayStage.getHeight() * centerYFraction) - (overlay.getHeight() / 2f)
+        ));
+    }
+
+    private void clearStoryOverlays() {
+        binding.tvStoryTextOverlay.setVisibility(View.GONE);
+        binding.tvStoryTextOverlay.setText(null);
+        binding.tvStoryTextOverlay.setX(0f);
+        binding.tvStoryTextOverlay.setY(0f);
+        binding.ivStoryIconOverlay.setVisibility(View.GONE);
+        binding.ivStoryIconOverlay.setImageDrawable(null);
+        binding.ivStoryIconOverlay.setX(0f);
+        binding.ivStoryIconOverlay.setY(0f);
+        textOverlayColorIndex = 0;
+        iconOverlayColorIndex = 0;
+        applyTextOverlayColor();
+        applyIconOverlayColor();
+        selectOverlay(OverlaySelection.NONE);
     }
 
     private void registerLaunchers() {
@@ -111,6 +396,7 @@ public class CreateStoryActivity extends AppCompatActivity {
             selectedImageUri = uri;
             try {
                 selectedBitmap = decodeBitmap(uri);
+                clearStoryOverlays();
                 renderPreview();
             } catch (IOException e) {
                 Toast.makeText(this, R.string.story_create_image_error, Toast.LENGTH_SHORT).show();
@@ -123,6 +409,7 @@ public class CreateStoryActivity extends AppCompatActivity {
             }
             selectedBitmap = limitBitmapSize(bitmap, MAX_SOURCE_EDGE);
             selectedImageUri = saveBitmapToCacheUri(selectedBitmap);
+            clearStoryOverlays();
             renderPreview();
         });
     }
@@ -160,11 +447,13 @@ public class CreateStoryActivity extends AppCompatActivity {
         binding.btnReplaceStoryPhoto.setAlpha(hasImage ? 1f : 0.5f);
         binding.storyCameraControls.setVisibility(hasImage ? View.GONE : View.VISIBLE);
         binding.storyShareFooter.setVisibility(hasImage ? View.VISIBLE : View.GONE);
+        binding.storyOverlayStage.setVisibility(hasImage ? View.VISIBLE : View.GONE);
         binding.previewCard.setClickable(hasImage);
         binding.previewCard.setFocusable(hasImage);
         binding.storyPreviewBottomScrim.setAlpha(hasImage ? 0.9f : 0.65f);
 
         if (!hasImage) {
+            selectOverlay(OverlaySelection.NONE);
             binding.ivStoryPreview.setImageDrawable(null);
             binding.ivStoryPreview.setBackgroundResource(R.drawable.story_create_camera_preview_bg);
             return;
@@ -237,18 +526,73 @@ public class CreateStoryActivity extends AppCompatActivity {
     }
 
     private File createUploadFile() throws IOException {
-        if (selectedBitmap != null) {
-            File tempFile = new File(getCacheDir(), "story_" + System.currentTimeMillis() + ".jpg");
-            try (FileOutputStream out = new FileOutputStream(tempFile)) {
-                selectedBitmap.compress(Bitmap.CompressFormat.JPEG, 92, out);
-                out.flush();
-            }
-            return tempFile;
+        Bitmap storyBitmap = buildStoryBitmapForUpload();
+        if (storyBitmap == null) {
+            return selectedImageUri != null ? createTempFileFromUri(selectedImageUri) : null;
         }
-        if (selectedImageUri != null) {
-            return createTempFileFromUri(selectedImageUri);
+
+        File tempFile = new File(getCacheDir(), "story_" + System.currentTimeMillis() + ".jpg");
+        try (FileOutputStream out = new FileOutputStream(tempFile)) {
+            storyBitmap.compress(Bitmap.CompressFormat.JPEG, 92, out);
+            out.flush();
         }
-        return null;
+        return tempFile;
+    }
+
+    private Bitmap buildStoryBitmapForUpload() throws IOException {
+        Bitmap baseBitmap = selectedBitmap;
+        if (baseBitmap == null && selectedImageUri != null) {
+            baseBitmap = decodeBitmap(selectedImageUri);
+            selectedBitmap = baseBitmap;
+        }
+        if (baseBitmap == null) {
+            return null;
+        }
+
+        Bitmap outputBitmap = Bitmap.createBitmap(
+                baseBitmap.getWidth(),
+                baseBitmap.getHeight(),
+                Bitmap.Config.ARGB_8888
+        );
+        Canvas canvas = new Canvas(outputBitmap);
+        canvas.drawBitmap(baseBitmap, 0f, 0f, null);
+
+        if (binding.tvStoryTextOverlay.getVisibility() == View.VISIBLE) {
+            renderOverlayViewToCanvas(canvas, binding.tvStoryTextOverlay, baseBitmap);
+        }
+        if (binding.ivStoryIconOverlay.getVisibility() == View.VISIBLE) {
+            renderOverlayViewToCanvas(canvas, binding.ivStoryIconOverlay, baseBitmap);
+        }
+
+        return outputBitmap;
+    }
+
+    private void renderOverlayViewToCanvas(Canvas canvas, View overlayView, Bitmap baseBitmap) {
+        if (overlayView.getWidth() <= 0 || overlayView.getHeight() <= 0 || baseBitmap == null) {
+            return;
+        }
+
+        int previewWidth = binding.ivStoryPreview.getWidth();
+        int previewHeight = binding.ivStoryPreview.getHeight();
+        if (previewWidth <= 0 || previewHeight <= 0) {
+            return;
+        }
+
+        float scale = Math.max(
+                previewWidth / (float) baseBitmap.getWidth(),
+                previewHeight / (float) baseBitmap.getHeight()
+        );
+        float offsetX = (previewWidth - (baseBitmap.getWidth() * scale)) / 2f;
+        float offsetY = (previewHeight - (baseBitmap.getHeight() * scale)) / 2f;
+        Drawable originalBackground = overlayView.getBackground();
+
+        overlayView.setBackground(null);
+        canvas.save();
+        canvas.translate((overlayView.getX() - offsetX) / scale, (overlayView.getY() - offsetY) / scale);
+        canvas.scale(1f / scale, 1f / scale);
+        overlayView.draw(canvas);
+        canvas.restore();
+        overlayView.setBackground(originalBackground);
     }
 
     private File createTempFileFromUri(Uri uri) throws IOException {
@@ -347,12 +691,17 @@ public class CreateStoryActivity extends AppCompatActivity {
         binding.btnStoryToolFlash.setEnabled(!loading);
         binding.btnStoryToolText.setEnabled(!loading);
         binding.btnStoryToolComment.setEnabled(!loading);
-        binding.btnStoryToolMusic.setEnabled(!loading);
         binding.btnStoryToolEffects.setEnabled(!loading);
         binding.btnStoryToolMore.setEnabled(!loading);
+        binding.tvStoryTextOverlay.setEnabled(!loading);
+        binding.ivStoryIconOverlay.setEnabled(!loading);
         binding.btnShareStory.setText(loading
                 ? getString(R.string.story_create_posting)
                 : getString(R.string.story_create_post_action));
+    }
+
+    private int dp(int value) {
+        return Math.round(getResources().getDisplayMetrics().density * value);
     }
 
     private void openFeedWithRefresh() {

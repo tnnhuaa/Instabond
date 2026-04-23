@@ -169,6 +169,12 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    protected void onPause() {
+        PostAdapter.stopAudioPlayback();
+        super.onPause();
+    }
+
     private void loadPosts(String userId, int startPosition) {
         apiService.getPostsByUserId(userId).enqueue(new Callback<JsonElement>() {
             @Override
@@ -210,7 +216,8 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
                 image = r.getMedia().get(0).getUrl();
             }
 
-            boolean hasMusic = r.hasMusicSuggestion();
+            String musicPreviewUrl = r.getMusicPreviewUrl();
+            boolean hasMusic = !musicPreviewUrl.isEmpty();
             boolean isLiked = r.isLiked();
 
             Post p = new Post(
@@ -220,6 +227,7 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
                     avatar, image,
                     r.getLocationName(),
                     r.getMusicDisplayText(),
+                    musicPreviewUrl,
                     hasMusic, isLiked, r.isBookmarked()
             );
 

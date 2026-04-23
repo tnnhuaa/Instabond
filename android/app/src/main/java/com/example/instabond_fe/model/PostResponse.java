@@ -99,6 +99,13 @@ public class PostResponse {
         return taggedUsers;
     }
 
+    public String getMusicPreviewUrl() {
+        if (musicSuggestion == null) {
+            return "";
+        }
+        return valueOrEmpty(musicSuggestion.getPreviewUrl());
+    }
+
     public Stats getStats() {
         return stats;
     }
