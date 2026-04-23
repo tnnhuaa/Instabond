@@ -1101,6 +1101,8 @@ public class PostService {
                     .isPresent();
         }
 
+        List<TaggedUserDTO> taggedUserDTOs = mapTaggedUsers(post.getTagged_users());
+
         return PostResponse.builder()
                 .id(post.getId())
                 .author(authorInfo)
@@ -1108,7 +1110,7 @@ public class PostService {
                 .location(post.getLocation())
                 .media(post.getMedia())
                 .music_suggestion(post.getMusic_suggestion())
-                .tagged_users(post.getTagged_users())
+                .tagged_users(taggedUserDTOs)
                 .stats(post.getStats())
                 .created_at(post.getCreated_at())
                 .isLiked(isLiked)
@@ -1164,5 +1166,43 @@ public class PostService {
             return DEFAULT_SIZE;
         }
         return Math.min(size, MAX_SIZE);
+    }
+
+    private List<TaggedUserDTO> mapTaggedUsers(List<Post.TaggedUser> taggedUsers) {
+        if (taggedUsers == null || taggedUsers.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        Set<String> userIds = taggedUsers.stream()
+                .map(Post.TaggedUser::getUser_id)
+                .filter(id -> id != null && !id.isBlank())
+                .collect(Collectors.toSet());
+
+        Map<String, User> userMap = new java.util.HashMap<>();
+        if (!userIds.isEmpty()) {
+            userRepository.findAllById(userIds).forEach(user -> userMap.put(user.getId(), user));
+        }
+
+        return taggedUsers.stream()
+                .map(tu -> {
+                    User user = userMap.get(tu.getUser_id());
+                    if (user == null) {
+                        return null;
+                    }
+
+                    Boolean isPrivate = user.getSettings() != null && Boolean.TRUE.equals(user.getSettings().getIs_private());
+
+                    return TaggedUserDTO.builder()
+                            .id(user.getId())
+                            .username(user.getUsername())
+                            .full_name(user.getFull_name())
+                            .avatar_url(user.getAvatar_url())
+                            .is_private(isPrivate)
+                            .confidence(tu.getConfidence())
+                            .position(tu.getPosition())
+                            .build();
+                })
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toList());
     }
 }

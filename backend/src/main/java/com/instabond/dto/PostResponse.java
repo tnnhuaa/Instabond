@@ -1,6 +1,9 @@
 package com.instabond.dto;
 
 import com.instabond.entity.Post;
+
+import com.instabond.dto.TaggedUserDTO;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -42,7 +45,7 @@ public class PostResponse {
     private Post.MusicSuggestion music_suggestion;
 
     @Schema(description = "List of users tagged in this post")
-    private List<Post.TaggedUser> tagged_users;
+    private List<TaggedUserDTO> tagged_users;
 
     @Schema(description = "Engagement stats: likes, comments, shares")
     private Post.Stats stats;
