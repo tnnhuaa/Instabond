@@ -471,7 +471,7 @@ public class NewsfeedActivity extends AppCompatActivity {
                 shares = postResponse.getStats().getShares();
             }
 
-            result.add(new Post(
+            Post uiPost = new Post(
                     postId,
                     authorId,
                     username,
@@ -487,7 +487,13 @@ public class NewsfeedActivity extends AppCompatActivity {
                     postResponse.hasMusicSuggestion(),
                     postResponse.isLiked(),
                     postResponse.isBookmarked()
-            ));
+            );
+
+            if (postResponse.getTaggedUsers() != null) {
+                uiPost.setTaggedUsers(postResponse.getTaggedUsers());
+            }
+
+            result.add(uiPost);
         }
         return result;
     }

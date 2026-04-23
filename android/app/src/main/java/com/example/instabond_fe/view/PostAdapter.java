@@ -1,13 +1,17 @@
 package com.example.instabond_fe.view;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.StyleSpan;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -19,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.Post;
+import com.example.instabond_fe.model.SuggestedTag;
 import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.utils.TimeUtils;
 
@@ -91,6 +96,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         return new PostViewHolder(view);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     public void onBindViewHolder(@NonNull PostViewHolder holder, int position) {
         Post post = posts.get(position);
@@ -155,6 +161,95 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                 .placeholder(R.drawable.avatar_circle_bg)
                 .error(R.drawable.avatar_circle_bg)
                 .into(holder.ivPostImage);
+
+        // Render current tag state
+        renderBadges(holder.flPostImage, post.getTaggedUsers(), post.isTagsVisible(), context);
+
+        // Setup GestureDetector for Double Tap & Single Tap
+        GestureDetector gestureDetector = new GestureDetector(context, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onSingleTapConfirmed(MotionEvent e) {
+                // Toggle tag visibility
+                post.setTagsVisible(!post.isTagsVisible());
+                renderBadges(holder.flPostImage, post.getTaggedUsers(), post.isTagsVisible(), context);
+                return true;
+            }
+
+            @Override
+            public boolean onDoubleTap(MotionEvent e) {
+                // Like action trigger
+                if (!post.isLiked() && listener != null) {
+                    listener.onLikeClicked(post, position);
+                }
+                return true;
+            }
+
+            @Override
+            public boolean onDown(MotionEvent e) {
+                return true; // Needed to intercept touch stream
+            }
+        });
+
+        holder.flPostImage.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            return true;
+        });
+    }
+
+    private void renderBadges(FrameLayout container, List<SuggestedTag> tags, boolean isVisible, Context context) {
+        // Clear old badges safely
+        for (int i = container.getChildCount() - 1; i >= 0; i--) {
+            View child = container.getChildAt(i);
+            if ("USER_TAG_BADGE".equals(child.getTag())) {
+                container.removeViewAt(i);
+            }
+        }
+
+        if (!isVisible || tags == null || tags.isEmpty()) {
+            return;
+        }
+
+        LayoutInflater inflater = LayoutInflater.from(context);
+        for (SuggestedTag user : tags) {
+            if (user.getPosition() == null) continue;
+
+            TextView badge = (TextView) inflater.inflate(R.layout.item_tag_user_badge, container, false);
+            badge.setText(user.getUsername());
+            badge.setTag("USER_TAG_BADGE");
+
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+
+            badge.setVisibility(View.INVISIBLE);
+            container.addView(badge, params);
+
+            badge.post(() -> {
+                int containerWidth = container.getWidth();
+                int containerHeight = container.getHeight();
+
+                float tapX = (float) (user.getPosition().getX() * containerWidth);
+                float tapY = (float) (user.getPosition().getY() * containerHeight);
+
+                badge.setX(tapX - (badge.getWidth() / 2f));
+                badge.setY(tapY - (badge.getHeight() / 2f));
+
+                // Check bounds to prevent badge from going outside the image
+                if (badge.getX() < 0) badge.setX(0);
+                if (badge.getX() + badge.getWidth() > containerWidth) {
+                    badge.setX(containerWidth - badge.getWidth());
+                }
+                if (badge.getY() < 0) badge.setY(0);
+                if (badge.getY() + badge.getHeight() > containerHeight) {
+                    badge.setY(containerHeight - badge.getHeight());
+                }
+                badge.setVisibility(View.VISIBLE);
+            });
+
+            // Optional: Click on badge to open profile
+            badge.setOnClickListener(v -> {
+                // Implement if you want click-to-profile from badge
+            });
+        }
     }
 
     @Override
@@ -222,7 +317,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         TextView tvViewComments;
         TextView tvTimeAgo;
         TextView tvImageCount;
-        View flPostImage;
+        FrameLayout flPostImage; // Updated to FrameLayout
         ImageButton btnLike;
         ImageButton btnComment;
         ImageButton btnShare;
@@ -240,7 +335,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             tvViewComments = itemView.findViewById(R.id.tv_view_comments);
             tvTimeAgo = itemView.findViewById(R.id.tv_time_ago);
             tvImageCount = itemView.findViewById(R.id.tv_image_count);
-            flPostImage = itemView.findViewById(R.id.fl_post_image);
+            flPostImage = itemView.findViewById(R.id.fl_post_image); // Casts to FrameLayout
             btnLike = itemView.findViewById(R.id.btn_like);
             btnComment = itemView.findViewById(R.id.btn_comment);
             btnShare = itemView.findViewById(R.id.btn_share);

@@ -380,7 +380,7 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
         int comments = response.getStats() != null ? response.getStats().getComments() : 0;
         int shares = response.getStats() != null ? response.getStats().getShares() : 0;
 
-        return new Post(
+        Post uiPost = new Post(
                 valueOrEmpty(response.getId()),
                 authorId,
                 username,
@@ -396,6 +396,12 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
                 response.hasMusicSuggestion(),
                 response.isLiked()
         );
+
+        if (response.getTaggedUsers() != null) {
+            uiPost.setTaggedUsers(response.getTaggedUsers());
+        }
+
+        return uiPost;
     }
 
     private void togglePostLike(Post post, int position) {
