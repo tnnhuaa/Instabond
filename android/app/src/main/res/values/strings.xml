@@ -380,6 +380,7 @@
     <string name="inbox_preview_you">You: %1$s</string>
     <string name="chat_online_now">ONLINE NOW</string>
     <string name="chat_offline_now">OFFLINE</string>
+    <string name="cd_chat_streak">Conversation streak</string>
     <string name="chat_today">TODAY</string>
     <string name="chat_type_message">Type a message...</string>
     <string name="chat_reconnecting">Reconnecting...</string>
