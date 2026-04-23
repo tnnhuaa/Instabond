@@ -41,18 +41,7 @@ import java.util.Set;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.example.instabond_fe.model.FollowUserResponse;
-import com.example.instabond_fe.model.Conversation;
-import com.example.instabond_fe.model.ChatMessageRequest;
-import com.example.instabond_fe.model.ChatMessageResponse;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.LayoutInflater;
-import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.Button;
-import com.bumptech.glide.Glide;
 
 public class NewsfeedActivity extends AppCompatActivity {
     @Override
@@ -101,6 +90,7 @@ public class NewsfeedActivity extends AppCompatActivity {
         apiService = ApiClient.getApiService(this);
         sessionManager = new SessionManager(this);
         notificationCountManager = NotificationCountManager.getInstance(this);
+
         if (sessionManager.isLoggedIn()) {
             ChatRepository repository = ChatRepository.getInstance(this);
             repository.connectRealtime();
@@ -127,6 +117,7 @@ public class NewsfeedActivity extends AppCompatActivity {
                 openStoryViewer(item);
             }
         });
+
         PostAdapter.OnPostInteractionListener postInteractionListener = new PostAdapter.OnPostInteractionListener() {
             @Override
             public void onLikeClicked(Post post, int position) {
@@ -139,7 +130,6 @@ public class NewsfeedActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(Call<PostResponse> call, Response<PostResponse> response) {
                         if (!response.isSuccessful()) {
-                            // Revert on failure
                             post.setLiked(isCurrentlyLiked);
                             post.setLikesCount(post.getLikesCount() + (isCurrentlyLiked ? 1 : -1));
                             notifyPostChanged(post);
@@ -184,7 +174,6 @@ public class NewsfeedActivity extends AppCompatActivity {
                     @Override
                     public void onFailure(Call<PostResponse> call, Throwable t) {}
                 });
-
                 com.example.instabond_fe.utils.ShareUtils.showShareBottomSheet(NewsfeedActivity.this, post, apiService, sessionManager.getUserId());
             }
 
@@ -197,7 +186,6 @@ public class NewsfeedActivity extends AppCompatActivity {
 
             @Override
             public void onBookmarkClicked(Post post, int position) {
-                // Handle bookmark action
                 boolean isCurrentlyBookmarked = post.isBookmarked();
                 post.setBookmarked(!isCurrentlyBookmarked);
                 notifyPostChanged(post);
@@ -206,7 +194,6 @@ public class NewsfeedActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(Call<PostResponse> call, Response<PostResponse> response) {
                         if (!response.isSuccessful()) {
-                            // Revert on failure
                             post.setBookmarked(isCurrentlyBookmarked);
                             notifyPostChanged(post);
                         }
@@ -225,17 +212,18 @@ public class NewsfeedActivity extends AppCompatActivity {
                 }
             }
         };
+
         topPostsAdapter.setListener(postInteractionListener);
         bottomPostsAdapter.setListener(postInteractionListener);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
 
         binding.rvFeed.setLayoutManager(layoutManager);
         feedAdapter = new ConcatAdapter(
-            storySectionAdapter,
-            feedModeHeaderAdapter,
-            topPostsAdapter,
-            suggestionSectionAdapter,
-            bottomPostsAdapter);
+                storySectionAdapter,
+                feedModeHeaderAdapter,
+                topPostsAdapter,
+                suggestionSectionAdapter,
+                bottomPostsAdapter);
         binding.rvFeed.setAdapter(feedAdapter);
         binding.rvFeed.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
@@ -256,8 +244,7 @@ public class NewsfeedActivity extends AppCompatActivity {
         binding.swipeRefreshFeed.setColorSchemeResources(R.color.login_bg_start, R.color.login_bg_mid);
 
         binding.bottomNav.bind(this, InstaBottomNavView.Tab.HOME);
-        binding.btnCamera.setOnClickListener(v ->
-                startActivity(new Intent(this, CreatePostActivity.class)));
+        binding.btnCamera.setOnClickListener(v -> startActivity(new Intent(this, CreatePostActivity.class)));
 
         updateFeedModeUi();
 
@@ -309,7 +296,6 @@ public class NewsfeedActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         loadStories();
-        // Fetch fresh unread notification count
         notificationCountManager.fetchUnreadCount();
     }
 
@@ -324,12 +310,7 @@ public class NewsfeedActivity extends AppCompatActivity {
             return;
         }
 
-        if (FEED_MODE_FOR_YOU.equals(currentFeedMode)) {
-            forYouSeed = System.currentTimeMillis();
-        } else {
-            forYouSeed = 0L;
-        }
-
+        forYouSeed = FEED_MODE_FOR_YOU.equals(currentFeedMode) ? System.currentTimeMillis() : 0L;
         currentPage = 0;
         reachedEnd = false;
         loadedPostIds.clear();
@@ -357,9 +338,7 @@ public class NewsfeedActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<JsonElement> call, Response<JsonElement> response) {
                 isRequestInFlight = false;
-                if (fromRefresh) {
-                    binding.swipeRefreshFeed.setRefreshing(false);
-                }
+                if (fromRefresh) binding.swipeRefreshFeed.setRefreshing(false);
 
                 if (response.code() == 401) {
                     handleUnauthorized();
@@ -367,8 +346,7 @@ public class NewsfeedActivity extends AppCompatActivity {
                 }
 
                 if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(NewsfeedActivity.this,
-                            "Khong tai duoc Newsfeed", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(NewsfeedActivity.this, "Failed to load Newsfeed", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
@@ -392,21 +370,14 @@ public class NewsfeedActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<JsonElement> call, Throwable t) {
                 isRequestInFlight = false;
-                if (fromRefresh) {
-                    binding.swipeRefreshFeed.setRefreshing(false);
-                }
-                Toast.makeText(NewsfeedActivity.this,
-                        "Loi ket noi: " + t.getMessage(),
-                        Toast.LENGTH_SHORT).show();
+                if (fromRefresh) binding.swipeRefreshFeed.setRefreshing(false);
+                Toast.makeText(NewsfeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void switchFeedMode(String mode) {
-        if (mode == null || mode.equals(currentFeedMode)) {
-            return;
-        }
-
+        if (mode == null || mode.equals(currentFeedMode)) return;
         currentFeedMode = mode;
         updateFeedModeUi();
         binding.swipeRefreshFeed.setRefreshing(true);
@@ -421,76 +392,48 @@ public class NewsfeedActivity extends AppCompatActivity {
         List<PostResponse> result = new ArrayList<>();
         for (PostResponse post : apiPosts) {
             String key = buildPostKey(post);
-            if (loadedPostIds.add(key)) {
-                result.add(post);
-            }
+            if (loadedPostIds.add(key)) result.add(post);
         }
         return result;
     }
 
     private String buildPostKey(PostResponse post) {
-        if (post.getId() != null && !post.getId().trim().isEmpty()) {
-            return post.getId();
-        }
-        String username = post.getAuthor() == null ? "" : String.valueOf(post.getAuthor().getUsername());
-        String caption = String.valueOf(post.getCaption());
-        String mediaUrl = "";
-        if (post.getMedia() != null && !post.getMedia().isEmpty() && post.getMedia().get(0) != null) {
-            mediaUrl = String.valueOf(post.getMedia().get(0).getUrl());
-        }
+        if (post.getId() != null && !post.getId().trim().isEmpty()) return post.getId();
+        String username = post.getAuthor() == null ? "" : post.getAuthor().getUsername();
+        String caption = post.getCaption() == null ? "" : post.getCaption();
+        String mediaUrl = (post.getMedia() != null && !post.getMedia().isEmpty()) ? post.getMedia().get(0).getUrl() : "";
         return username + "|" + caption + "|" + mediaUrl;
     }
 
     private List<Post> mapToUiPosts(List<PostResponse> apiPosts) {
         List<Post> result = new ArrayList<>();
         for (PostResponse postResponse : apiPosts) {
-            String username = "unknown";
-            String avatarUrl = "";
-            String postId = postResponse.getId();
-            String authorId = "";
+            String username = "unknown", avatarUrl = "", authorId = "", postId = postResponse.getId();
 
             if (postResponse.getAuthor() != null) {
-                if (postResponse.getAuthor().getId() != null) {
-                    authorId = postResponse.getAuthor().getId();
-                }
-                if (postResponse.getAuthor().getUsername() != null) {
-                    username = postResponse.getAuthor().getUsername();
-                }
-                if (postResponse.getAuthor().getAvatarUrl() != null) {
-                    avatarUrl = normalizeUrl(postResponse.getAuthor().getAvatarUrl());
-                }
+                authorId = postResponse.getAuthor().getId() != null ? postResponse.getAuthor().getId() : "";
+                username = postResponse.getAuthor().getUsername() != null ? postResponse.getAuthor().getUsername() : "unknown";
+                avatarUrl = normalizeUrl(postResponse.getAuthor().getAvatarUrl());
             }
 
-            String imageUrl = "";
-            if (postResponse.getMedia() != null && !postResponse.getMedia().isEmpty()
-                    && postResponse.getMedia().get(0) != null
-                    && postResponse.getMedia().get(0).getUrl() != null) {
-                imageUrl = normalizeUrl(postResponse.getMedia().get(0).getUrl());
-            }
+            String imageUrl = (postResponse.getMedia() != null && !postResponse.getMedia().isEmpty())
+                    ? normalizeUrl(postResponse.getMedia().get(0).getUrl()) : "";
 
-            int likes = 0;
-            int comments = 0;
-            int shares = 0;
+            int likes = 0, comments = 0, shares = 0;
             if (postResponse.getStats() != null) {
                 likes = postResponse.getStats().getLikes();
                 comments = postResponse.getStats().getComments();
                 shares = postResponse.getStats().getShares();
             }
 
-            String musicPreviewUrl = postResponse.getMusicPreviewUrl();
-            boolean hasPlayableMusic = !musicPreviewUrl.isEmpty();
+            String musicPreviewUrl = postResponse.getMusicPreviewUrl() != null ? postResponse.getMusicPreviewUrl() : "";
+            boolean hasPlayableMusic = !musicPreviewUrl.trim().isEmpty();
 
             Post uiPost = new Post(
-                    postId,
-                    authorId,
-                    username,
+                    postId, authorId, username,
                     postResponse.getCaption() == null ? "" : postResponse.getCaption(),
                     postResponse.getCreatedAt(),
-                    likes,
-                    comments,
-                    shares,
-                    avatarUrl,
-                    imageUrl,
+                    likes, comments, shares, avatarUrl, imageUrl,
                     postResponse.getLocationName(),
                     postResponse.getMusicDisplayText(),
                     musicPreviewUrl,
@@ -515,56 +458,36 @@ public class NewsfeedActivity extends AppCompatActivity {
 
     private void applyFeedPostsForRefresh(List<Post> mappedPosts) {
         int insertionIndex = resolveSuggestionInsertIndex(mappedPosts.size());
-        List<Post> topPosts = new ArrayList<>(mappedPosts.subList(0, insertionIndex));
-        List<Post> bottomPosts = new ArrayList<>(mappedPosts.subList(insertionIndex, mappedPosts.size()));
-        topPostsAdapter.setPosts(topPosts);
-        bottomPostsAdapter.setPosts(bottomPosts);
+        topPostsAdapter.setPosts(new ArrayList<>(mappedPosts.subList(0, insertionIndex)));
+        bottomPostsAdapter.setPosts(new ArrayList<>(mappedPosts.subList(insertionIndex, mappedPosts.size())));
     }
 
     private int resolveSuggestionInsertIndex(int postCount) {
-        if (postCount <= 1) {
-            return postCount;
-        }
-        return 1 + random.nextInt(postCount - 1);
+        return postCount <= 1 ? postCount : 1 + random.nextInt(postCount - 1);
     }
 
     private String normalizeUrl(String rawUrl) {
-        if (rawUrl == null || rawUrl.trim().isEmpty()) {
-            return "";
-        }
-
+        if (rawUrl == null || rawUrl.trim().isEmpty()) return "";
         Uri uri = Uri.parse(rawUrl);
-        if (uri.getScheme() != null) {
-            return rawUrl;
-        }
+        if (uri.getScheme() != null) return rawUrl;
 
         String baseUrl = ApiClient.getBaseUrl();
-        if (rawUrl.startsWith("/")) {
-            if (baseUrl.endsWith("/")) {
-                return baseUrl.substring(0, baseUrl.length() - 1) + rawUrl;
-            }
-            return baseUrl + rawUrl;
-        }
-
-        if (baseUrl.endsWith("/")) {
-            return baseUrl + rawUrl;
-        }
-        return baseUrl + "/" + rawUrl;
+        String prefix = rawUrl.startsWith("/") ? "" : "/";
+        if (baseUrl.endsWith("/")) baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        return baseUrl + prefix + rawUrl;
     }
 
     private void loadCurrentUserProfile() {
         apiService.getMe().enqueue(new Callback<UserProfileResponse>() {
             @Override
-            public void onResponse(@NonNull Call<UserProfileResponse> call,
-                                   @NonNull Response<UserProfileResponse> response) {
-                if (!response.isSuccessful() || response.body() == null) {
+            public void onResponse(@NonNull Call<UserProfileResponse> call, @NonNull Response<UserProfileResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    currentUserProfile = response.body();
+                    loadStories();
+                } else {
                     renderStories(List.of());
-                    return;
                 }
-                currentUserProfile = response.body();
-                loadStories();
             }
-
             @Override
             public void onFailure(@NonNull Call<UserProfileResponse> call, @NonNull Throwable t) {
                 renderStories(List.of());
@@ -575,15 +498,9 @@ public class NewsfeedActivity extends AppCompatActivity {
     private void loadStories() {
         apiService.getStoriesFeed().enqueue(new Callback<List<StoryResponse>>() {
             @Override
-            public void onResponse(@NonNull Call<List<StoryResponse>> call,
-                                   @NonNull Response<List<StoryResponse>> response) {
-                if (!response.isSuccessful() || response.body() == null) {
-                    renderStories(List.of());
-                    return;
-                }
-                renderStories(response.body());
+            public void onResponse(@NonNull Call<List<StoryResponse>> call, @NonNull Response<List<StoryResponse>> response) {
+                renderStories(response.isSuccessful() ? response.body() : List.of());
             }
-
             @Override
             public void onFailure(@NonNull Call<List<StoryResponse>> call, @NonNull Throwable t) {
                 renderStories(List.of());
@@ -594,39 +511,26 @@ public class NewsfeedActivity extends AppCompatActivity {
     private void renderStories(List<StoryResponse> stories) {
         storyFeedItems.clear();
         storiesByAuthor.clear();
-
         String currentUserId = sessionManager.getUserId();
         StoryItem ownStoryPreview = null;
         LinkedHashMap<String, StoryItem> followerStoryPreviews = new LinkedHashMap<>();
+
         if (stories != null) {
             for (StoryResponse response : stories) {
-                if (response == null || response.getAuthor() == null) {
-                    continue;
-                }
-                StoryItem storyItem = new StoryItem(
-                        response.getId(),
-                        response.getAuthor().getId(),
-                        response.getAuthor().getUsername(),
-                        normalizeUrl(response.getAuthor().getAvatarUrl()),
-                        normalizeUrl(response.getMediaUrl()),
-                        response.getCreatedAt(),
-                        false,
-                        response.isViewedByMe(),
-                        response.isLikedByMe(),
-                        response.getViewerCount());
-                String authorId = storyItem.getAuthorId() == null ? "" : storyItem.getAuthorId();
-                storiesByAuthor.computeIfAbsent(authorId, ignored -> new ArrayList<>()).add(storyItem);
+                if (response == null || response.getAuthor() == null) continue;
+                StoryItem item = new StoryItem(
+                        response.getId(), response.getAuthor().getId(), response.getAuthor().getUsername(),
+                        normalizeUrl(response.getAuthor().getAvatarUrl()), normalizeUrl(response.getMediaUrl()),
+                        response.getCreatedAt(), false, response.isViewedByMe(), response.isLikedByMe(), response.getViewerCount());
 
-                if (currentUserId != null && currentUserId.equals(authorId)) {
-                    if (ownStoryPreview == null) {
-                        ownStoryPreview = storyItem;
-                    }
+                storiesByAuthor.computeIfAbsent(item.getAuthorId(), k -> new ArrayList<>()).add(item);
+                if (currentUserId != null && currentUserId.equals(item.getAuthorId())) {
+                    if (ownStoryPreview == null) ownStoryPreview = item;
                     continue;
                 }
-                followerStoryPreviews.putIfAbsent(authorId, storyItem);
+                followerStoryPreviews.putIfAbsent(item.getAuthorId(), item);
             }
         }
-
         storyFeedItems.add(buildCreateCard(ownStoryPreview));
         storyFeedItems.addAll(followerStoryPreviews.values());
         storySectionAdapter.submitItems(storyFeedItems);
@@ -634,57 +538,40 @@ public class NewsfeedActivity extends AppCompatActivity {
 
     private StoryItem buildCreateCard(StoryItem ownStoryPreview) {
         String currentUserId = sessionManager.getUserId();
-        String username = getString(R.string.feed_story_your_story);
-        String avatarUrl = "";
-        if (currentUserProfile != null) {
-            if (currentUserProfile.getUsername() != null && !currentUserProfile.getUsername().trim().isEmpty()) {
-                username = currentUserProfile.getUsername();
-            }
-            avatarUrl = normalizeUrl(currentUserProfile.getAvatarUrl());
-        }
+        String username = (currentUserProfile != null && currentUserProfile.getUsername() != null) ? currentUserProfile.getUsername() : getString(R.string.feed_story_your_story);
+        String avatarUrl = currentUserProfile != null ? normalizeUrl(currentUserProfile.getAvatarUrl()) : "";
         return new StoryItem(
                 ownStoryPreview != null ? ownStoryPreview.getId() : "create-story",
-                currentUserId,
-                username,
-                avatarUrl,
+                currentUserId, username, avatarUrl,
                 ownStoryPreview != null ? ownStoryPreview.getMediaUrl() : "",
                 ownStoryPreview != null ? ownStoryPreview.getCreatedAt() : "",
-                true,
-                ownStoryPreview != null && ownStoryPreview.isViewedByMe(),
+                true, ownStoryPreview != null && ownStoryPreview.isViewedByMe(),
                 ownStoryPreview != null && ownStoryPreview.isLikedByMe(),
                 ownStoryPreview != null ? ownStoryPreview.getViewerCount() : 0
         );
     }
 
     private void openStoryViewer(StoryItem selectedStory) {
-        String authorId = selectedStory.getAuthorId() == null ? "" : selectedStory.getAuthorId();
-        ArrayList<StoryItem> viewableStories = new ArrayList<>();
-        List<StoryItem> authorStories = storiesByAuthor.get(authorId);
-        if (authorStories != null) {
-            viewableStories.addAll(authorStories);
-        }
-        if (viewableStories.isEmpty()) {
-            return;
-        }
+        List<StoryItem> authorStories = storiesByAuthor.get(selectedStory.getAuthorId());
+        if (authorStories == null || authorStories.isEmpty()) return;
 
         int storyIndex = 0;
-        for (int index = 0; index < viewableStories.size(); index++) {
-            StoryItem item = viewableStories.get(index);
-            if (selectedStory.getId() != null && selectedStory.getId().equals(item.getId())) {
-                storyIndex = index;
+        for (int i = 0; i < authorStories.size(); i++) {
+            if (selectedStory.getId().equals(authorStories.get(i).getId())) {
+                storyIndex = i;
                 break;
             }
         }
 
         Intent intent = new Intent(this, StoryViewerActivity.class);
-        intent.putExtra(StoryViewerActivity.EXTRA_STORIES, viewableStories);
+        intent.putExtra(StoryViewerActivity.EXTRA_STORIES, new ArrayList<>(authorStories));
         intent.putExtra(StoryViewerActivity.EXTRA_STORY_INDEX, storyIndex);
         startActivity(intent);
     }
 
     private void handleUnauthorized() {
         sessionManager.clearSession();
-        Toast.makeText(this, "Phien dang nhap da het han", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Session expired", Toast.LENGTH_SHORT).show();
         Intent intent = new Intent(this, SignInActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
