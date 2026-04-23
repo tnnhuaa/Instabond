@@ -31,6 +31,8 @@ public class ConversationDTO {
         private String username;
         private String email;
         private String avatar_url;
+        private Integer streak_count;
+        private Boolean has_fired_streak;
     }
 
     @Schema(description = "Latest message preview")

@@ -39,6 +39,45 @@
             android:layout_gravity="bottom"
             android:background="@drawable/story_viewer_bottom_scrim" />
 
+        <FrameLayout
+            android:id="@+id/story_overlay_stage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/tv_story_text_overlay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:gravity="center"
+                android:maxWidth="240dp"
+                android:paddingStart="14dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="10dp"
+                android:shadowColor="#7A000000"
+                android:shadowDx="0"
+                android:shadowDy="2"
+                android:shadowRadius="8"
+                android:textColor="@android:color/white"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="Golden hour" />
+
+            <ImageView
+                android:id="@+id/iv_story_icon_overlay"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:background="@android:color/transparent"
+                android:padding="12dp"
+                android:scaleType="centerInside"
+                android:visibility="gone"
+                app:tint="@android:color/white"
+                tools:src="@drawable/ic_heart_filled" />
+
+        </FrameLayout>
+
     </FrameLayout>
 
     <LinearLayout
@@ -115,17 +154,7 @@
             android:background="@drawable/story_create_tool_button_bg"
             android:contentDescription="@string/cd_story_tool_comment"
             android:padding="13dp"
-            android:src="@drawable/ic_story_comment" />
-
-        <ImageButton
-            android:id="@+id/btn_story_tool_music"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/story_create_tool_button_bg"
-            android:contentDescription="@string/cd_music"
-            android:padding="12dp"
-            android:src="@drawable/ic_music" />
+            android:src="@drawable/ic_story_sticker" />
 
         <ImageButton
             android:id="@+id/btn_story_tool_effects"
@@ -135,7 +164,7 @@
             android:background="@drawable/story_create_tool_button_bg"
             android:contentDescription="@string/cd_story_tool_effects"
             android:padding="12dp"
-            android:src="@drawable/ic_story_sparkles" />
+            android:src="@drawable/ic_story_change_color" />
 
         <ImageButton
             android:id="@+id/btn_story_tool_more"
@@ -143,9 +172,9 @@
             android:layout_height="48dp"
             android:layout_marginTop="16dp"
             android:background="@drawable/story_create_tool_button_bg"
-            android:contentDescription="@string/cd_more_options"
+            android:contentDescription="@string/cd_story_tool_reset"
             android:padding="12dp"
-            android:src="@drawable/ic_more_horizontal" />
+            android:src="@drawable/ic_story_reset" />
 
     </LinearLayout>
 

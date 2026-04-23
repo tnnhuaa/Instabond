@@ -26,6 +26,9 @@ public interface RelationshipRepository extends MongoRepository<Relationship, St
     @Query("{ 'requester_id': ?0, 'recipient_id': ?1 }")
     Optional<Relationship> findByRequesterIdAndRecipientId(String requesterId, String recipientId);
 
+    @Query("{ 'requester_id': ?0, 'recipient_id': { $in: ?1 } }")
+    List<Relationship> findByRequesterIdAndRecipientIdIn(String requesterId, List<String> recipientIds);
+
     @Query("{ 'requester_id': ?0, 'status': ?1, 'type': ?2 }")
     List<Relationship> findByRequesterIdAndStatusAndType(String requesterId, String status, String type);
 }

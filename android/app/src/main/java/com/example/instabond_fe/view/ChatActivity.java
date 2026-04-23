@@ -13,11 +13,13 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityChatBinding;
+import com.example.instabond_fe.model.Conversation;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.repository.WebSocketManager;
@@ -66,6 +68,9 @@ public class ChatActivity extends AppCompatActivity {
     private String partnerEmail;
     private String partnerAvatar;
     private boolean partnerOnline;
+    private int partnerStreakCount;
+    private boolean partnerHasFiredStreak;
+    private final Runnable refreshPartnerConversationMetaRunnable = this::fetchPartnerConversationMeta;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,6 +96,7 @@ public class ChatActivity extends AppCompatActivity {
         renderImagePreview();
         updateSendButtonState(hasTypedText());
         hydratePartnerProfileIfNeeded();
+        fetchPartnerConversationMeta();
 
         viewModel.startChat(conversationId, partnerId, partnerEmail, partnerOnline);
         
@@ -122,6 +128,7 @@ public class ChatActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        binding.topBar.removeCallbacks(refreshPartnerConversationMetaRunnable);
         viewModel.stopChat();
         WebSocketManager.getInstance(this).setActiveConversationId(null);
         super.onDestroy();
@@ -133,6 +140,7 @@ public class ChatActivity extends AppCompatActivity {
             if (messages != null && !messages.isEmpty()) {
                 binding.rvMessages.scrollToPosition(messages.size() - 1);
             }
+            schedulePartnerConversationMetaRefresh();
         }));
 
         viewModel.getConnectionLiveData().observe(this, connected -> runOnUiThread(() ->
@@ -390,6 +398,78 @@ public class ChatActivity extends AppCompatActivity {
         binding.tvPartnerStatus.setText(isOnline ? R.string.chat_online_now : R.string.chat_offline_now);
         binding.tvPartnerStatus.setTextColor(getColor(isOnline ? R.color.login_bg_start : R.color.login_text_secondary));
         binding.viewPartnerOnline.setVisibility(isOnline ? View.VISIBLE : View.GONE);
+        renderPartnerStreak();
+    }
+
+    private void renderPartnerStreak() {
+        if (binding.layoutChatStreak == null) {
+            return;
+        }
+
+        boolean hasActiveStreak = partnerHasFiredStreak && partnerStreakCount > 0;
+        binding.layoutChatStreak.setVisibility(View.VISIBLE);
+        binding.tvChatStreakCount.setVisibility(hasActiveStreak ? View.VISIBLE : View.GONE);
+        binding.tvChatStreakCount.setText(String.valueOf(Math.max(0, partnerStreakCount)));
+        binding.tvChatStreakCount.setTextColor(ContextCompat.getColor(
+                this,
+                hasActiveStreak ? android.R.color.white : R.color.login_text_secondary
+        ));
+        binding.ivChatStreakFlame.setColorFilter(ContextCompat.getColor(
+                this,
+                hasActiveStreak ? R.color.login_bg_start : android.R.color.white
+        ));
+        binding.ivChatStreakFlame.setAlpha(hasActiveStreak ? 1f : 0.82f);
+    }
+
+    private void schedulePartnerConversationMetaRefresh() {
+        if (binding == null || isBlank(partnerId)) {
+            return;
+        }
+        binding.topBar.removeCallbacks(refreshPartnerConversationMetaRunnable);
+        binding.topBar.postDelayed(refreshPartnerConversationMetaRunnable, 500L);
+    }
+
+    private void fetchPartnerConversationMeta() {
+        if (apiService == null || isBlank(partnerId)) {
+            return;
+        }
+
+        apiService.getOrCreateDirectConversation(partnerId).enqueue(new Callback<Conversation>() {
+            @Override
+            public void onResponse(Call<Conversation> call, Response<Conversation> response) {
+                if (!response.isSuccessful() || response.body() == null || response.body().getParticipants() == null) {
+                    renderPartnerHeader(partnerOnline);
+                    return;
+                }
+
+                Conversation conversation = response.body();
+                for (Conversation.Participant participant : conversation.getParticipants()) {
+                    if (participant == null || participant.getId() == null || !participant.getId().equals(partnerId)) {
+                        continue;
+                    }
+                    if (!isBlank(participant.getUsername())) {
+                        partnerName = participant.getUsername();
+                        WebSocketManager.getInstance(ChatActivity.this).cacheUser(partnerId, partnerName);
+                    }
+                    if (!isBlank(participant.getAvatarUrl())) {
+                        partnerAvatar = participant.getAvatarUrl();
+                        renderPartnerAvatar();
+                    }
+                    if (!isBlank(participant.getEmail())) {
+                        partnerEmail = participant.getEmail();
+                    }
+                    partnerStreakCount = Math.max(0, participant.getStreakCount());
+                    partnerHasFiredStreak = participant.isHasFiredStreak();
+                    break;
+                }
+                renderPartnerHeader(partnerOnline);
+            }
+
+            @Override
+            public void onFailure(Call<Conversation> call, Throwable t) {
+                renderPartnerHeader(partnerOnline);
+            }
+        });
     }
 
     private void updateSendButtonState(boolean hasText) {

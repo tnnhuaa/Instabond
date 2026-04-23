@@ -3,9 +3,11 @@ package com.instabond.service;
 import com.instabond.dto.ConversationDTO;
 import com.instabond.dto.ConversationPageResponse;
 import com.instabond.entity.Conversation;
+import com.instabond.entity.Relationship;
 import com.instabond.entity.User;
 import com.instabond.exception.ResourceNotFoundException;
 import com.instabond.repository.ConversationRepository;
+import com.instabond.repository.RelationshipRepository;
 import com.instabond.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -25,6 +27,7 @@ public class ConversationService {
     private static final int MAX_LIMIT = 50;
 
     private final ConversationRepository conversationRepository;
+    private final RelationshipRepository relationshipRepository;
     private final UserRepository userRepository;
 
     public Conversation getOrCreateDirectConversation(String currentUserId, String partnerId) {
@@ -51,7 +54,8 @@ public class ConversationService {
             userRepository.findAllById(conversation.getParticipants())
                     .forEach(user -> userMap.put(user.getId(), user));
         }
-        return toConversationDTO(conversation, userMap);
+        Map<String, Relationship.Streak> streakMap = buildStreakMap(currentUserId, Set.of(partnerId));
+        return toConversationDTO(conversation, userMap, currentUserId, streakMap);
     }
 
     public List<String> getParticipantEmail(String conversationId) {
@@ -100,9 +104,14 @@ public class ConversationService {
                 .stream()
                 .collect(Collectors.toMap(User::getId, u -> u));
 
+        Set<String> partnerIds = participantIds.stream()
+                .filter(id -> id != null && !id.equals(userId))
+                .collect(Collectors.toSet());
+        Map<String, Relationship.Streak> streakMap = buildStreakMap(userId, partnerIds);
+
         // Mapping Conversation to ConversationDTO with participant usernames
         List<ConversationDTO> dtoData = data.stream()
-                .map(conv -> toConversationDTO(conv, userMap))
+                .map(conv -> toConversationDTO(conv, userMap, userId, streakMap))
                 .toList();
 
         return ConversationPageResponse.builder()
@@ -113,7 +122,12 @@ public class ConversationService {
                 .build();
     }
 
-    private ConversationDTO toConversationDTO(Conversation conversation, Map<String, User> userMap) {
+    private ConversationDTO toConversationDTO(
+            Conversation conversation,
+            Map<String, User> userMap,
+            String currentUserId,
+            Map<String, Relationship.Streak> streakMap
+    ) {
         if (conversation == null) {
             return null;
         }
@@ -139,6 +153,11 @@ public class ConversationService {
                         dto.setUsername(u != null && u.getUsername() != null ? u.getUsername() : "Unknown User");
                         dto.setEmail(u != null ? u.getEmail() : "");
                         dto.setAvatar_url(u != null ? u.getAvatar_url() : "");
+                        if (currentUserId != null && !currentUserId.equals(pId)) {
+                            Relationship.Streak streak = streakMap.get(pId);
+                            dto.setStreak_count(streak != null ? streak.getCount() : 0);
+                            dto.setHas_fired_streak(streak != null && streak.isHas_fired_streak());
+                        }
                         return dto;
                     })
                     .collect(Collectors.toList());
@@ -152,6 +171,31 @@ public class ConversationService {
                 .theme(conversation.getTheme())
                 .updated_at(conversation.getUpdated_at())
                 .build();
+    }
+
+    private Map<String, Relationship.Streak> buildStreakMap(String requesterId, Set<String> recipientIds) {
+        if (requesterId == null || recipientIds == null || recipientIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<String> cleanedRecipientIds = recipientIds.stream()
+                .filter(Objects::nonNull)
+                .filter(id -> !id.equals(requesterId))
+                .distinct()
+                .toList();
+
+        if (cleanedRecipientIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return relationshipRepository.findByRequesterIdAndRecipientIdIn(requesterId, cleanedRecipientIds)
+                .stream()
+                .filter(relationship -> relationship.getRecipient_id() != null)
+                .collect(Collectors.toMap(
+                        Relationship::getRecipient_id,
+                        Relationship::getStreak,
+                        (left, right) -> left
+                ));
     }
 
     private int normalizeLimit(int limit) {
