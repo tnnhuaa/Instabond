@@ -1049,16 +1049,16 @@ public class CreatePostActivity extends AppCompatActivity {
 
     private List<MusicSuggestion> getManualMusicCatalog() {
         List<MusicSuggestion> suggestions = new ArrayList<>();
-        suggestions.add(new MusicSuggestion("Golden Hour", "JVKE", null, null, false));
-        suggestions.add(new MusicSuggestion("Sunset Lover", "Petit Biscuit", null, null, false));
-        suggestions.add(new MusicSuggestion("Sunflower", "Post Malone, Swae Lee", null, null, false));
-        suggestions.add(new MusicSuggestion("Night Changes", "One Direction", null, null, false));
-        suggestions.add(new MusicSuggestion("Midnight City", "M83", null, null, false));
-        suggestions.add(new MusicSuggestion("Until I Found You", "Stephen Sanchez", null, null, false));
-        suggestions.add(new MusicSuggestion("Ocean Eyes", "Billie Eilish", null, null, false));
-        suggestions.add(new MusicSuggestion("Adventure of a Lifetime", "Coldplay", null, null, false));
-        suggestions.add(new MusicSuggestion("Good Days", "SZA", null, null, false));
-        suggestions.add(new MusicSuggestion("Blinding Lights", "The Weeknd", null, null, false));
+        suggestions.add(new MusicSuggestion("Golden Hour", "JVKE", "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959427/JVKE_-_golden_hour_official_music_video_liyfj6.mp3", null, false));
+        suggestions.add(new MusicSuggestion("Sunset Lover", "Petit Biscuit", "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959426/Petit_Biscuit_-_Sunset_Lover_Music_Video_psnf6b.mp3", null, false));
+        suggestions.add(new MusicSuggestion("Sunflower", "Post Malone, Swae Lee", "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959426/Post_Malone_Swae_Lee_-_Sunflower_Spider-Man__Into_the_Spider-Verse_c6b4di.mp3", null, false));
+        suggestions.add(new MusicSuggestion("Night Changes", "One Direction", "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959428/One_Direction_-_Night_Changes_xbfzdr.mp3", null, false));
+        suggestions.add(new MusicSuggestion("Midnight City", "M83", "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959427/M83_Midnight_City_Official_video_zi20yk.mp3", null, false));
+        suggestions.add(new MusicSuggestion("Until I Found You", "Stephen Sanchez", "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959427/Stephen_Sanchez_-_Until_I_Found_You_Official_Video_lhfljn.mp3", null, false));
+        suggestions.add(new MusicSuggestion("Ocean Eyes", "Billie Eilish", "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959427/Billie_Eilish_-_ocean_eyes_Official_Music_Video_kbaohv.mp3", null, false));
+        suggestions.add(new MusicSuggestion("Adventure of a Lifetime", "Coldplay", "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959429/Coldplay_-_Adventure_Of_A_Lifetime_Official_Video_wrrj5v.mp3", null, false));
+        suggestions.add(new MusicSuggestion("Good Days", "SZA", "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959429/SZA_-_Good_Days_Audio_uu6zhv.mp3", null, false));
+        suggestions.add(new MusicSuggestion("Blinding Lights", "The Weeknd", "https://res.cloudinary.com/dlmpl2oi1/video/upload/v1776959428/The_Weeknd_-_Blinding_Lights_Official_Video_exokxh.mp3", null, false));
         return suggestions;
     }
 

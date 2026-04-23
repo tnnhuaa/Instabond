@@ -471,6 +471,9 @@ public class NewsfeedActivity extends AppCompatActivity {
                 shares = postResponse.getStats().getShares();
             }
 
+            String musicPreviewUrl = postResponse.getMusicPreviewUrl();
+            boolean hasPlayableMusic = !musicPreviewUrl.isEmpty();
+
             result.add(new Post(
                     postId,
                     authorId,
@@ -484,7 +487,8 @@ public class NewsfeedActivity extends AppCompatActivity {
                     imageUrl,
                     postResponse.getLocationName(),
                     postResponse.getMusicDisplayText(),
-                    postResponse.hasMusicSuggestion(),
+                    musicPreviewUrl,
+                    hasPlayableMusic,
                     postResponse.isLiked(),
                     postResponse.isBookmarked()
             ));
