@@ -313,14 +313,18 @@ public class NotificationService {
         return savedNotification;
     }
 
-    public Notification sendStreakNotification(String senderId, String recipientId, String relationshipId, int streakCount) {
+    public Notification sendStreakNotification(String senderId, String otherUserId, String relationshipId, int streakCount) {
         User sender = userRepository.findById(senderId).orElse(null);
         String senderName = sender != null ? sender.getUsername() : "Someone";
 
-        Notification savedNotification = notificationRepository.save(
+        User other = userRepository.findById(otherUserId).orElse(null);
+        String otherName = other != null ? other.getUsername() : "Someone";
+
+        // Document 1: For otherUserId (recipient)
+        Notification notificationForOther = notificationRepository.save(
                 Notification.builder()
                         .sender_id(senderId)
-                        .recipient_id(recipientId)
+                        .recipient_id(otherUserId)
                         .type("STREAK")
                         .content(senderName + " and you reached a " + streakCount + "-day streak")
                         .is_read(false)
@@ -337,20 +341,48 @@ public class NotificationService {
                         .build()
         );
 
-        sendNotificationViaWebSocket(savedNotification, recipientId);
-        return savedNotification;
+        // Document 2: For senderId (sender)
+        Notification notificationForSender = notificationRepository.save(
+                Notification.builder()
+                        .sender_id(senderId)
+                        .recipient_id(senderId)
+                        .type("STREAK")
+                        .content(otherName + " and you reached a " + streakCount + "-day streak")
+                        .is_read(false)
+                        .metadata(Notification.Metadata.builder()
+                                .relationship_id(relationshipId)
+                                .new_level(String.valueOf(streakCount))
+                                .sender_image_url(
+                                        userRepository.findById(otherUserId)
+                                                .map(User::getAvatar_url)
+                                                .orElse("")
+                                )
+                                .build())
+                        .created_at(Instant.now())
+                        .build()
+        );
+
+        // Send WebSocket event to BOTH users
+        sendNotificationViaWebSocket(notificationForOther, otherUserId);
+        sendNotificationViaWebSocket(notificationForSender, senderId);
+
+        return notificationForOther;
     }
 
-    public Notification sendFriendshipLevelUpNotification(String senderId, String recipientId, String relationshipId, String newLevel) {
+    public Notification sendFriendshipLevelUpNotification(String senderId, String otherUserId, String relationshipId, String newLevel) {
         User sender = userRepository.findById(senderId).orElse(null);
         String senderName = sender != null ? sender.getUsername() : "Someone";
 
-        Notification savedNotification = notificationRepository.save(
+        User other = userRepository.findById(otherUserId).orElse(null);
+        String otherName = other != null ? other.getUsername() : "Someone";
+
+        // Document 1: For otherUserId (recipient)
+        Notification notificationForOther = notificationRepository.save(
                 Notification.builder()
                         .sender_id(senderId)
-                        .recipient_id(recipientId)
+                        .recipient_id(otherUserId)
                         .type("INTIMACY_LEVEL_UP")
-                        .content("You and " + senderName + " reached Level " + newLevel + "!")
+                        .content(senderName + " and you reached Level " + newLevel + "!")
                         .is_read(false)
                         .metadata(Notification.Metadata.builder()
                                 .relationship_id(relationshipId)
@@ -365,8 +397,32 @@ public class NotificationService {
                         .build()
         );
 
-        sendNotificationViaWebSocket(savedNotification, recipientId);
-        return savedNotification;
+        // Document 2: For senderId (sender)
+        Notification notificationForSender = notificationRepository.save(
+                Notification.builder()
+                        .sender_id(senderId)
+                        .recipient_id(senderId)
+                        .type("INTIMACY_LEVEL_UP")
+                        .content(otherName + " and you reached Level " + newLevel + "!")
+                        .is_read(false)
+                        .metadata(Notification.Metadata.builder()
+                                .relationship_id(relationshipId)
+                                .new_level(newLevel)
+                                .sender_image_url(
+                                        userRepository.findById(otherUserId)
+                                                .map(User::getAvatar_url)
+                                                .orElse("")
+                                )
+                                .build())
+                        .created_at(Instant.now())
+                        .build()
+        );
+
+        // Send WebSocket event to BOTH users
+        sendNotificationViaWebSocket(notificationForOther, otherUserId);
+        sendNotificationViaWebSocket(notificationForSender, senderId);
+
+        return notificationForOther;
     }
 
     private void sendNotificationViaWebSocket(Notification notification, String recipientId) {
