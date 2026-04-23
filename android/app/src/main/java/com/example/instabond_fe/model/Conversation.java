@@ -40,15 +40,25 @@ public class Conversation {
         @SerializedName(value = "is_online", alternate = {"isOnline", "online"})
         private boolean isOnline;
 
+        @SerializedName(value = "streak_count", alternate = {"streakCount"})
+        private int streakCount;
+
+        @SerializedName(value = "has_fired_streak", alternate = {"hasFiredStreak"})
+        private boolean hasFiredStreak;
+
         public String getUsername() { return username; }
         public String getAvatarUrl() { return avatarUrl; }
         public String getId() { return id; }
         public String getEmail() { return email; }
         public boolean isOnline() { return isOnline; }
+        public int getStreakCount() { return streakCount; }
+        public boolean isHasFiredStreak() { return hasFiredStreak; }
         public void setUsername(String username) { this.username = username; }
         public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
         public void setEmail(String email) { this.email = email; }
         public void setOnline(boolean online) { isOnline = online; }
+        public void setStreakCount(int streakCount) { this.streakCount = streakCount; }
+        public void setHasFiredStreak(boolean hasFiredStreak) { this.hasFiredStreak = hasFiredStreak; }
     }
 
     public Conversation() {

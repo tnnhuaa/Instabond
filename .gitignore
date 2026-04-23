@@ -22,3 +22,9 @@ Thumbs.db
 .idea/
 .vscode/
 *.log
+
+# --- FILE TẠM / TOOLING CỤC BỘ ---
+node_modules/
+stitch_downloads/
+package.json
+package-lock.json
