@@ -13,6 +13,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -25,6 +26,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import com.canhub.cropper.CropImageView;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityImageEditorBinding;
 import com.example.instabond_fe.databinding.DialogImageEditorTextBinding;
@@ -63,19 +65,6 @@ public class ImageEditorActivity extends AppCompatActivity {
         TEXT
     }
 
-    private enum CropRatio {
-        ORIGINAL(0f),
-        SQUARE(1f),
-        PORTRAIT(4f / 5f),
-        LANDSCAPE(16f / 9f);
-
-        final float ratio;
-
-        CropRatio(float ratio) {
-            this.ratio = ratio;
-        }
-    }
-
     private enum ResizePreset {
         ORIGINAL(0),
         MEDIUM(1080),
@@ -94,10 +83,8 @@ public class ImageEditorActivity extends AppCompatActivity {
     private Bitmap sourceBitmap;
     private Bitmap previewBitmap;
 
-    private ToolMode toolMode = ToolMode.DRAW;
-    private CropRatio cropRatio = CropRatio.PORTRAIT;
+    private ToolMode toolMode = ToolMode.CROP;
     private ResizePreset resizePreset = ResizePreset.ORIGINAL;
-    private int rotationDegrees;
     private int brightnessValue;
     private float contrastValue = 1f;
 
@@ -134,7 +121,9 @@ public class ImageEditorActivity extends AppCompatActivity {
         setupEditorState();
         setupToolControls();
         updatePreviewBitmap();
-        switchMode(ToolMode.DRAW);
+
+        binding.cropImageView.setImageBitmap(sourceBitmap);
+        switchMode(ToolMode.CROP);
     }
 
     private void setupToolbar() {
@@ -143,7 +132,6 @@ public class ImageEditorActivity extends AppCompatActivity {
     }
 
     private void setupEditorState() {
-        binding.chipEditorCropPortrait.setChecked(true);
         binding.chipEditorResizeOriginal.setChecked(true);
         binding.seekBrightness.setProgress(60);
         binding.seekContrast.setProgress(50);
@@ -151,7 +139,6 @@ public class ImageEditorActivity extends AppCompatActivity {
         binding.seekTextSize.setProgress(22);
         binding.chipTextStyleBold.setChecked(true);
 
-        binding.viewCropOverlay.setCropRatio(cropRatio.ratio);
         binding.viewDrawingOverlay.setBrushColor(drawColor);
         binding.viewDrawingOverlay.setBrushWidthPx(brushWidthPx);
         binding.viewTextOverlay.setEditingEnabled(false);
@@ -167,20 +154,8 @@ public class ImageEditorActivity extends AppCompatActivity {
         binding.tabDraw.setOnClickListener(v -> switchMode(ToolMode.DRAW));
         binding.tabText.setOnClickListener(v -> switchMode(ToolMode.TEXT));
 
-        binding.chipGroupEditorCrop.setOnCheckedStateChangeListener((group, checkedIds) -> {
-            int checkedId = group.getCheckedChipId();
-            if (checkedId == binding.chipEditorCropSquare.getId()) {
-                cropRatio = CropRatio.SQUARE;
-            } else if (checkedId == binding.chipEditorCropPortrait.getId()) {
-                cropRatio = CropRatio.PORTRAIT;
-            } else if (checkedId == binding.chipEditorCropLandscape.getId()) {
-                cropRatio = CropRatio.LANDSCAPE;
-            } else {
-                cropRatio = CropRatio.ORIGINAL;
-            }
-            binding.viewCropOverlay.setCropRatio(cropRatio.ratio);
-            updatePreviewBitmap();
-        });
+        binding.btnRotateLeftEditor.setOnClickListener(v -> binding.cropImageView.rotateImage(-90));
+        binding.btnRotateRightEditor.setOnClickListener(v -> binding.cropImageView.rotateImage(90));
 
         binding.chipGroupEditorResize.setOnCheckedStateChangeListener((group, checkedIds) -> {
             int checkedId = group.getCheckedChipId();
@@ -191,16 +166,6 @@ public class ImageEditorActivity extends AppCompatActivity {
             } else {
                 resizePreset = ResizePreset.ORIGINAL;
             }
-            updatePreviewBitmap();
-        });
-
-        binding.btnRotateLeftEditor.setOnClickListener(v -> {
-            rotationDegrees = normalizedRotation(rotationDegrees - 90);
-            updatePreviewBitmap();
-        });
-
-        binding.btnRotateRightEditor.setOnClickListener(v -> {
-            rotationDegrees = normalizedRotation(rotationDegrees + 90);
             updatePreviewBitmap();
         });
 
@@ -281,14 +246,33 @@ public class ImageEditorActivity extends AppCompatActivity {
     }
 
     private void switchMode(ToolMode mode) {
-        toolMode = mode;
-        binding.layoutCropTools.setVisibility(mode == ToolMode.CROP ? android.view.View.VISIBLE : android.view.View.GONE);
-        binding.layoutResizeTools.setVisibility(mode == ToolMode.RESIZE ? android.view.View.VISIBLE : android.view.View.GONE);
-        binding.layoutAdjustTools.setVisibility(mode == ToolMode.ADJUST ? android.view.View.VISIBLE : android.view.View.GONE);
-        binding.layoutDrawTools.setVisibility(mode == ToolMode.DRAW ? android.view.View.VISIBLE : android.view.View.GONE);
-        binding.layoutTextTools.setVisibility(mode == ToolMode.TEXT ? android.view.View.VISIBLE : android.view.View.GONE);
+        if (toolMode == ToolMode.CROP && mode != ToolMode.CROP) {
+            Bitmap cropped = binding.cropImageView.getCroppedImage();
+            if (cropped != null) {
+                sourceBitmap = cropped;
+                updatePreviewBitmap();
+            }
+        }
 
-        binding.viewCropOverlay.setVisibility(mode == ToolMode.CROP ? android.view.View.VISIBLE : android.view.View.GONE);
+        toolMode = mode;
+        binding.layoutCropTools.setVisibility(mode == ToolMode.CROP ? View.VISIBLE : View.GONE);
+        binding.layoutResizeTools.setVisibility(mode == ToolMode.RESIZE ? View.VISIBLE : View.GONE);
+        binding.layoutAdjustTools.setVisibility(mode == ToolMode.ADJUST ? View.VISIBLE : View.GONE);
+        binding.layoutDrawTools.setVisibility(mode == ToolMode.DRAW ? View.VISIBLE : View.GONE);
+        binding.layoutTextTools.setVisibility(mode == ToolMode.TEXT ? View.VISIBLE : View.GONE);
+
+        if (mode == ToolMode.CROP) {
+            binding.cropImageView.setVisibility(View.VISIBLE);
+            binding.ivEditorPreview.setVisibility(View.GONE);
+            binding.viewDrawingOverlay.setVisibility(View.GONE);
+            binding.viewTextOverlay.setVisibility(View.GONE);
+        } else {
+            binding.cropImageView.setVisibility(View.GONE);
+            binding.ivEditorPreview.setVisibility(View.VISIBLE);
+            binding.viewDrawingOverlay.setVisibility(View.VISIBLE);
+            binding.viewTextOverlay.setVisibility(View.VISIBLE);
+        }
+
         binding.viewDrawingOverlay.setDrawingEnabled(mode == ToolMode.DRAW);
         binding.viewTextOverlay.setEditingEnabled(mode == ToolMode.TEXT);
 
@@ -314,9 +298,7 @@ public class ImageEditorActivity extends AppCompatActivity {
     }
 
     private Bitmap buildBaseBitmap() {
-        Bitmap rotated = rotateBitmap(sourceBitmap, rotationDegrees);
-        Bitmap cropped = cropBitmapToRatio(rotated, cropRatio);
-        Bitmap adjusted = applyBrightnessContrast(cropped, brightnessValue, contrastValue);
+        Bitmap adjusted = applyBrightnessContrast(sourceBitmap, brightnessValue, contrastValue);
         return resizeBitmap(adjusted, resizePreset);
     }
 
@@ -347,39 +329,13 @@ public class ImageEditorActivity extends AppCompatActivity {
         return result;
     }
 
-    private Bitmap cropBitmapToRatio(Bitmap source, CropRatio ratio) {
-        if (ratio == CropRatio.ORIGINAL) {
-            return copyBitmap(source);
-        }
-
-        int width = source.getWidth();
-        int height = source.getHeight();
-        float targetRatio = ratio.ratio;
-        int cropWidth = width;
-        int cropHeight = height;
-
-        if ((float) width / height > targetRatio) {
-            cropWidth = Math.round(height * targetRatio);
-        } else {
-            cropHeight = Math.round(width / targetRatio);
-        }
-
-        int left = Math.max(0, (width - cropWidth) / 2);
-        int top = Math.max(0, (height - cropHeight) / 2);
-        return Bitmap.createBitmap(source, left, top, cropWidth, cropHeight);
-    }
-
     private Bitmap resizeBitmap(Bitmap source, ResizePreset preset) {
-        if (preset == ResizePreset.ORIGINAL) {
-            return copyBitmap(source);
-        }
+        if (preset == ResizePreset.ORIGINAL) return copyBitmap(source);
 
         int width = source.getWidth();
         int height = source.getHeight();
         int longestEdge = Math.max(width, height);
-        if (longestEdge <= preset.longestEdge) {
-            return copyBitmap(source);
-        }
+        if (longestEdge <= preset.longestEdge) return copyBitmap(source);
 
         float scale = preset.longestEdge / (float) longestEdge;
         return Bitmap.createScaledBitmap(
@@ -388,17 +344,6 @@ public class ImageEditorActivity extends AppCompatActivity {
                 Math.max(1, Math.round(height * scale)),
                 true
         );
-    }
-
-    private Bitmap rotateBitmap(Bitmap source, int rotation) {
-        int normalized = normalizedRotation(rotation);
-        if (normalized == 0) {
-            return copyBitmap(source);
-        }
-
-        Matrix matrix = new Matrix();
-        matrix.postRotate(normalized);
-        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
     }
 
     private Bitmap copyBitmap(Bitmap source) {
@@ -428,9 +373,7 @@ public class ImageEditorActivity extends AppCompatActivity {
         int width = bitmap.getWidth();
         int height = bitmap.getHeight();
         int longest = Math.max(width, height);
-        if (longest <= maxEdge) {
-            return copyBitmap(bitmap);
-        }
+        if (longest <= maxEdge) return copyBitmap(bitmap);
 
         float scale = maxEdge / (float) longest;
         return Bitmap.createScaledBitmap(
@@ -484,6 +427,13 @@ public class ImageEditorActivity extends AppCompatActivity {
     }
 
     private void deliverEditedImage() {
+        if (toolMode == ToolMode.CROP) {
+            Bitmap cropped = binding.cropImageView.getCroppedImage();
+            if (cropped != null) {
+                sourceBitmap = cropped;
+            }
+        }
+
         try {
             Bitmap output = buildFinalBitmap();
             File file = new File(getCacheDir(), "edited_" + System.currentTimeMillis() + ".jpg");
@@ -508,18 +458,11 @@ public class ImageEditorActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-            }
+            public void onStartTrackingTouch(SeekBar seekBar) {}
 
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-            }
+            public void onStopTrackingTouch(SeekBar seekBar) {}
         };
-    }
-
-    private int normalizedRotation(int rotation) {
-        int normalized = rotation % 360;
-        return normalized < 0 ? normalized + 360 : normalized;
     }
 
     private int dp(int value) {

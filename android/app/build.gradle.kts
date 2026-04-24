@@ -92,5 +92,8 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:$camerax_version")
     implementation("androidx.camera:camera-view:$camerax_version")
 
+    // 6. Image Cropper
+    implementation("com.vanniktech:android-image-cropper:4.5.0")
+
     implementation("com.google.mlkit:face-detection:16.1.5")
 }
