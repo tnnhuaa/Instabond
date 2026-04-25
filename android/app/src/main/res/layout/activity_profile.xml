@@ -43,7 +43,7 @@
 
             <TextView
                 android:id="@+id/tv_title"
-                android:layout_width="253dp"
+                android:layout_width="226dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:fontFamily="sans-serif-black"
