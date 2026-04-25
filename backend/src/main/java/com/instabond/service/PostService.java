@@ -30,16 +30,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -397,58 +388,89 @@ public class PostService {
         Set<String> acceptedFollowing = getAcceptedFollowingIds(caller.getId());
 
         List<String> validAuthorIds = new ArrayList<>();
-        validAuthorIds.add(caller.getId()); // Include their own posts
+        validAuthorIds.add(caller.getId());
         validAuthorIds.addAll(acceptedFollowing);
 
-        // Build criteria for 'in' clause. Author ID could be stored as String or
-        // ObjectId
         List<Object> inClauseArgs = new ArrayList<>();
         for (String aid : validAuthorIds) {
             inClauseArgs.add(aid);
             try {
                 inClauseArgs.add(new ObjectId(aid));
-            } catch (Exception ignored) {
-            }
+            } catch (Exception ignored) {}
         }
 
         Query postQuery = new Query(Criteria.where("author_id").in(inClauseArgs))
                 .with(Sort.by(Sort.Direction.DESC, "created_at"))
                 .with(org.springframework.data.domain.PageRequest.of(safePage, safeSize));
 
-        return mongoTemplate.find(postQuery, Post.class).stream()
-                .map(post -> {
-                    User author = resolveAuthorById(post.getAuthor_id());
-                    return toPostResponse(post, author, caller);
-                }).toList();
+        List<Post> posts = mongoTemplate.find(postQuery, Post.class);
+        return toPostResponses(posts, caller);
     }
 
     private List<PostResponse> getForYouFeed(User caller, int safePage, int safeSize, Long seed) {
         Set<String> acceptedFollowing = getAcceptedFollowingIds(caller.getId());
         long effectiveSeed = resolveForYouSeed(caller, seed);
 
-        Query postQuery = new Query().with(Sort.by(Sort.Direction.DESC, "created_at"));
+        // Fetch up to 500 posts
+        Query postQuery = new Query()
+                .with(Sort.by(Sort.Direction.DESC, "created_at"))
+                .limit(500);
+
         List<Post> allPosts = mongoTemplate.find(postQuery, Post.class);
 
+        if (allPosts.isEmpty()) {
+            return List.of();
+        }
+
+        // --- BATCHING VISIBILITY CHECK ---
+        Set<String> uniqueAuthorIds = allPosts.stream()
+                .map(post -> normalizeId(post.getAuthor_id()))
+                .filter(id -> !id.isEmpty() && !id.equals(caller.getId()))
+                .collect(Collectors.toSet());
+
+        Map<String, User> authorsMap = userRepository.findAllById(uniqueAuthorIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        Set<String> visibleAuthorIds = new HashSet<>();
+        for (String authorId : uniqueAuthorIds) {
+            User author = authorsMap.get(authorId);
+            if (author == null) continue;
+
+            if (userService.isBlocked(caller.getId(), authorId)) {
+                continue;
+            }
+
+            boolean isPrivate = author.getSettings() != null && Boolean.TRUE.equals(author.getSettings().getIs_private());
+            if (isPrivate && !acceptedFollowing.contains(authorId)) {
+                continue;
+            }
+
+            visibleAuthorIds.add(authorId);
+        }
+
         List<Post> visiblePosts = allPosts.stream()
-                .filter(post -> isVisibleForForYou(caller, post))
+                .filter(post -> visibleAuthorIds.contains(normalizeId(post.getAuthor_id())))
                 .collect(Collectors.toCollection(ArrayList::new));
+        // --------------------
 
         if (visiblePosts.isEmpty()) {
             return List.of();
         }
 
-        List<Post> followingPosts = visiblePosts.stream()
-                .filter(post -> acceptedFollowing.contains(normalizeId(post.getAuthor_id())))
-                .collect(Collectors.toCollection(ArrayList::new));
+        List<Post> followingPosts = new ArrayList<>();
+        List<Post> discoverPosts = new ArrayList<>();
 
-        List<Post> discoverPosts = visiblePosts.stream()
-                .filter(post -> !acceptedFollowing.contains(normalizeId(post.getAuthor_id())))
-                .collect(Collectors.toCollection(ArrayList::new));
+        for (Post post : visiblePosts) {
+            if (acceptedFollowing.contains(normalizeId(post.getAuthor_id()))) {
+                followingPosts.add(post);
+            } else {
+                discoverPosts.add(post);
+            }
+        }
 
         followingPosts.sort(buildForYouComparator(effectiveSeed, caller.getId()));
         discoverPosts.sort(buildForYouComparator(effectiveSeed ^ 0x9E3779B97F4A7C15L, caller.getId()));
 
-        // For You mix: ~30% following, ~70% discovery, with fallback.
         int followingQuota = Math.max(1, (int) Math.floor(safeSize * 0.3));
         int discoverQuota = Math.max(1, safeSize - followingQuota);
 
@@ -480,12 +502,9 @@ public class PostService {
         }
 
         int toIndex = Math.min(fromIndex + safeSize, mixed.size());
-        return mixed.subList(fromIndex, toIndex).stream()
-                .map(post -> {
-                    User author = resolveAuthorById(post.getAuthor_id());
-                    return toPostResponse(post, author, caller);
-                })
-                .toList();
+        List<Post> paginatedPosts = mixed.subList(fromIndex, toIndex);
+
+        return toPostResponses(paginatedPosts, caller);
     }
 
     private boolean isVisibleForForYou(User caller, Post post) {
@@ -553,9 +572,9 @@ public class PostService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
         User caller = resolveUserFromPrincipal(callerPrincipal);
         assertCanViewAuthorContent(author, callerPrincipal);
-        return findPostsByAuthorId(author.getId(), page, size).stream()
-                .map(post -> toPostResponse(post, author, caller))
-                .toList();
+
+        List<Post> posts = findPostsByAuthorId(author.getId(), page, size);
+        return toPostResponses(posts, caller);
     }
 
     // Get all posts by username
@@ -568,9 +587,9 @@ public class PostService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
         User caller = resolveUserFromPrincipal(callerPrincipal);
         assertCanViewAuthorContent(author, callerPrincipal);
-        return findPostsByAuthorId(author.getId(), page, size).stream()
-                .map(post -> toPostResponse(post, author, caller))
-                .toList();
+
+        List<Post> posts = findPostsByAuthorId(author.getId(), page, size);
+        return toPostResponses(posts, caller);
     }
 
     // Get all posts by email
@@ -583,9 +602,9 @@ public class PostService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
         User caller = resolveUserFromPrincipal(callerPrincipal);
         assertCanViewAuthorContent(author, callerPrincipal);
-        return findPostsByAuthorId(author.getId(), page, size).stream()
-                .map(post -> toPostResponse(post, author, caller))
-                .toList();
+
+        List<Post> posts = findPostsByAuthorId(author.getId(), page, size);
+        return toPostResponses(posts, caller);
     }
 
     // Update post fields (only the author is allowed)
@@ -794,28 +813,41 @@ public class PostService {
         query.with(org.springframework.data.domain.PageRequest.of(sanitizePage(page), sanitizeSize(size)));
 
         List<Interaction> bookmarks = mongoTemplate.find(query, Interaction.class);
-
-        List<PostResponse> responses = new ArrayList<>();
-        for (Interaction bookmark : bookmarks) {
-            Post post = postRepository.findById(bookmark.getTarget_id()).orElse(null);
-            if (post == null) {
-                continue;
-            }
-
-            User author = resolveAuthorById(post.getAuthor_id());
-            if (author == null) {
-                continue;
-            }
-
-            if (userService.isBlocked(caller.getId(), author.getId())) {
-                interactionRepository.deleteById(bookmark.getId());
-                continue;
-            }
-
-            responses.add(toPostResponse(post, author, caller));
+        if (bookmarks.isEmpty()) {
+            return List.of();
         }
 
-        return responses;
+        List<String> postIds = bookmarks.stream().map(Interaction::getTarget_id).toList();
+        List<Post> posts = postRepository.findByIdIn(postIds);
+
+        // Pre-fetch authors to check blocks
+        Set<String> authorIds = posts.stream().map(Post::getAuthor_id).collect(Collectors.toSet());
+        Map<String, User> authorsMap = userRepository.findAllById(authorIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        List<Post> visiblePosts = new ArrayList<>();
+        for (Post post : posts) {
+            User author = authorsMap.get(normalizeId(post.getAuthor_id()));
+            if (author == null) continue;
+
+            if (userService.isBlocked(caller.getId(), author.getId())) {
+                bookmarks.stream()
+                        .filter(b -> b.getTarget_id().equals(post.getId()))
+                        .findFirst()
+                        .ifPresent(b -> interactionRepository.deleteById(b.getId()));
+                continue;
+            }
+            visiblePosts.add(post);
+        }
+
+        // Maintain bookmark sorted order
+        Map<String, Post> postMap = visiblePosts.stream().collect(Collectors.toMap(Post::getId, p -> p));
+        List<Post> sortedVisiblePosts = postIds.stream()
+                .map(postMap::get)
+                .filter(Objects::nonNull)
+                .toList();
+
+        return toPostResponses(sortedVisiblePosts, caller);
     }
 
     public CommentResponse addComment(String postId, String callerPrincipal, CreateCommentRequest request) {
@@ -1078,46 +1110,6 @@ public class PostService {
         return id.trim();
     }
 
-    // Map Post entity to PostResponse DTO
-    private PostResponse toPostResponse(Post post, User author, User caller) {
-        PostResponse.AuthorInfo authorInfo = null;
-        if (author != null) {
-            authorInfo = PostResponse.AuthorInfo.builder()
-                    .id(author.getId())
-                    .username(author.getUsername())
-                    .full_name(author.getFull_name())
-                    .avatar_url(author.getAvatar_url())
-                    .build();
-        }
-
-        boolean isLiked = false;
-        boolean isBookmarked = false;
-        if (caller != null && post.getId() != null) {
-            isLiked = interactionRepository
-                    .findOne(caller.getId(), post.getId(), "post", "like")
-                    .isPresent();
-            isBookmarked = interactionRepository
-                    .findOne(caller.getId(), post.getId(), "post", "bookmark")
-                    .isPresent();
-        }
-
-        List<TaggedUserDTO> taggedUserDTOs = mapTaggedUsers(post.getTagged_users());
-
-        return PostResponse.builder()
-                .id(post.getId())
-                .author(authorInfo)
-                .caption(post.getCaption())
-                .location(post.getLocation())
-                .media(post.getMedia())
-                .music_suggestion(post.getMusic_suggestion())
-                .tagged_users(taggedUserDTOs)
-                .stats(post.getStats())
-                .created_at(post.getCreated_at())
-                .isLiked(isLiked)
-                .isBookmarked(isBookmarked)
-                .build();
-    }
-
     private Criteria idCriteria(String field, String id) {
         List<Criteria> items = new ArrayList<>();
         items.add(Criteria.where(field).is(id));
@@ -1168,6 +1160,46 @@ public class PostService {
         return Math.min(size, MAX_SIZE);
     }
 
+    // MAP POST ENTITY TO POST RESPONSE
+    private PostResponse toPostResponse(Post post, User author, User caller) {
+        PostResponse.AuthorInfo authorInfo = null;
+        if (author != null) {
+            authorInfo = PostResponse.AuthorInfo.builder()
+                    .id(author.getId())
+                    .username(author.getUsername())
+                    .full_name(author.getFull_name())
+                    .avatar_url(author.getAvatar_url())
+                    .build();
+        }
+
+        boolean isLiked = false;
+        boolean isBookmarked = false;
+        if (caller != null && post.getId() != null) {
+            isLiked = interactionRepository
+                    .findOne(caller.getId(), post.getId(), "post", "like")
+                    .isPresent();
+            isBookmarked = interactionRepository
+                    .findOne(caller.getId(), post.getId(), "post", "bookmark")
+                    .isPresent();
+        }
+
+        List<TaggedUserDTO> taggedUserDTOs = mapTaggedUsers(post.getTagged_users());
+
+        return PostResponse.builder()
+                .id(post.getId())
+                .author(authorInfo)
+                .caption(post.getCaption())
+                .location(post.getLocation())
+                .media(post.getMedia())
+                .music_suggestion(post.getMusic_suggestion())
+                .tagged_users(taggedUserDTOs)
+                .stats(post.getStats())
+                .created_at(post.getCreated_at())
+                .isLiked(isLiked)
+                .isBookmarked(isBookmarked)
+                .build();
+    }
+
     private List<TaggedUserDTO> mapTaggedUsers(List<Post.TaggedUser> taggedUsers) {
         if (taggedUsers == null || taggedUsers.isEmpty()) {
             return new ArrayList<>();
@@ -1203,6 +1235,112 @@ public class PostService {
                             .build();
                 })
                 .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    // BATCH METHOD
+    private List<PostResponse> toPostResponses(List<Post> posts, User caller) {
+        if (posts == null || posts.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Set<String> userIds = new HashSet<>();
+        List<String> postIds = new ArrayList<>();
+
+        // Gather all unique IDs needed
+        for (Post post : posts) {
+            postIds.add(post.getId());
+            userIds.add(normalizeId(post.getAuthor_id()));
+            if (post.getTagged_users() != null) {
+                post.getTagged_users().forEach(tu -> {
+                    if (tu.getUser_id() != null) userIds.add(tu.getUser_id());
+                });
+            }
+        }
+
+        // Batch fetch Users
+        Map<String, User> userMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        // Batch fetch Interactions (Likes & Bookmarks)
+        Set<String> likedPostIds = new HashSet<>();
+        Set<String> bookmarkedPostIds = new HashSet<>();
+
+        if (caller != null && !postIds.isEmpty()) {
+            Query interactionQuery = new Query(new Criteria().andOperator(
+                    Criteria.where("user_id").is(caller.getId()),
+                    Criteria.where("target_id").in(postIds),
+                    Criteria.where("target_type").is("post"),
+                    Criteria.where("type").in("like", "bookmark")
+            ));
+
+            List<Interaction> interactions = mongoTemplate.find(interactionQuery, Interaction.class);
+            for (Interaction interaction : interactions) {
+                if ("like".equals(interaction.getType())) {
+                    likedPostIds.add(interaction.getTarget_id());
+                } else if ("bookmark".equals(interaction.getType())) {
+                    bookmarkedPostIds.add(interaction.getTarget_id());
+                }
+            }
+        }
+
+        // Map in memory
+        return posts.stream().map(post -> {
+            User author = userMap.get(normalizeId(post.getAuthor_id()));
+            boolean isLiked = likedPostIds.contains(post.getId());
+            boolean isBookmarked = bookmarkedPostIds.contains(post.getId());
+            List<TaggedUserDTO> taggedUserDTOs = mapTaggedUsers(post.getTagged_users(), userMap);
+
+            PostResponse.AuthorInfo authorInfo = null;
+            if (author != null) {
+                authorInfo = PostResponse.AuthorInfo.builder()
+                        .id(author.getId())
+                        .username(author.getUsername())
+                        .full_name(author.getFull_name())
+                        .avatar_url(author.getAvatar_url())
+                        .build();
+            }
+
+            return PostResponse.builder()
+                    .id(post.getId())
+                    .author(authorInfo)
+                    .caption(post.getCaption())
+                    .location(post.getLocation())
+                    .media(post.getMedia())
+                    .music_suggestion(post.getMusic_suggestion())
+                    .tagged_users(taggedUserDTOs)
+                    .stats(post.getStats())
+                    .created_at(post.getCreated_at())
+                    .isLiked(isLiked)
+                    .isBookmarked(isBookmarked)
+                    .build();
+        }).toList();
+    }
+
+    // OVERLOAD FOR BATCH PROCESSING
+    private List<TaggedUserDTO> mapTaggedUsers(List<Post.TaggedUser> taggedUsers, Map<String, User> userMap) {
+        if (taggedUsers == null || taggedUsers.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        return taggedUsers.stream()
+                .map(tu -> {
+                    User user = userMap.get(tu.getUser_id());
+                    if (user == null) return null;
+
+                    Boolean isPrivate = user.getSettings() != null && Boolean.TRUE.equals(user.getSettings().getIs_private());
+
+                    return TaggedUserDTO.builder()
+                            .id(user.getId())
+                            .username(user.getUsername())
+                            .full_name(user.getFull_name())
+                            .avatar_url(user.getAvatar_url())
+                            .is_private(isPrivate)
+                            .confidence(tu.getConfidence())
+                            .position(tu.getPosition())
+                            .build();
+                })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 }
