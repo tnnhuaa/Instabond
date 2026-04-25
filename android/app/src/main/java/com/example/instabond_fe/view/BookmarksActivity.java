@@ -222,6 +222,10 @@ public class BookmarksActivity extends AppCompatActivity {
                     hasMusic, isLiked, true
             );
 
+            if (r.getTaggedUsers() != null) {
+                p.setTaggedUsers(r.getTaggedUsers());
+            }
+
             list.add(p);
         }
         return list;
