@@ -52,7 +52,7 @@ public class NewsfeedActivity extends AppCompatActivity {
     private static final String EXTRA_REFRESH_FEED = "refresh_feed";
     private static final String FEED_MODE_FOR_YOU = "for_you";
     private static final String FEED_MODE_FOLLOWING = "following";
-    private static final int PAGE_SIZE = 5;
+    private static final int PAGE_SIZE = 12;
     private static final int VISIBLE_THRESHOLD = 2;
 
     private ActivityMainBinding binding;
@@ -62,6 +62,7 @@ public class NewsfeedActivity extends AppCompatActivity {
     private StorySectionAdapter storySectionAdapter;
     private FeedModeHeaderAdapter feedModeHeaderAdapter;
     private FriendSuggestionSectionAdapter suggestionSectionAdapter;
+    private FeedLoadingAdapter loadingAdapter;
     private ConcatAdapter feedAdapter;
     private ApiService apiService;
     private SessionManager sessionManager;
@@ -105,6 +106,7 @@ public class NewsfeedActivity extends AppCompatActivity {
         feedModeHeaderAdapter.setListener(this::switchFeedMode);
         suggestionSectionAdapter = new FriendSuggestionSectionAdapter(this, apiService);
         suggestionSectionAdapter.setOnDismissListener(() -> friendSuggestionsDismissed = true);
+        loadingAdapter = new FeedLoadingAdapter();
 
         storyAdapter.setListener(new StoryFeedAdapter.Listener() {
             @Override
@@ -223,7 +225,9 @@ public class NewsfeedActivity extends AppCompatActivity {
                 feedModeHeaderAdapter,
                 topPostsAdapter,
                 suggestionSectionAdapter,
-                bottomPostsAdapter);
+                bottomPostsAdapter,
+                loadingAdapter
+        );
         binding.rvFeed.setAdapter(feedAdapter);
         binding.rvFeed.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
@@ -244,6 +248,17 @@ public class NewsfeedActivity extends AppCompatActivity {
         binding.swipeRefreshFeed.setColorSchemeResources(R.color.login_bg_start, R.color.login_bg_mid);
 
         binding.bottomNav.bind(this, InstaBottomNavView.Tab.HOME);
+
+        binding.bottomNav.setOnTabReselectedListener(tab -> {
+            if (tab == InstaBottomNavView.Tab.HOME) {
+                binding.rvFeed.smoothScrollToPosition(0);
+
+                binding.swipeRefreshFeed.setRefreshing(true);
+
+                refreshFeed();
+            }
+        });
+
         binding.btnCamera.setOnClickListener(v -> startActivity(new Intent(this, CreatePostActivity.class)));
 
         updateFeedModeUi();
@@ -253,7 +268,6 @@ public class NewsfeedActivity extends AppCompatActivity {
         loadCurrentUserProfile();
         binding.swipeRefreshFeed.setRefreshing(true);
         refreshFeed();
-        loadFriendSuggestions();
     }
 
     private void loadFriendSuggestions() {
@@ -319,8 +333,8 @@ public class NewsfeedActivity extends AppCompatActivity {
         friendSuggestionsDismissed = false;
         suggestionSectionAdapter.submitSuggestions(List.of());
         suggestionSectionAdapter.restoreSection();
+        loadingAdapter.setLoading(false);
         loadStories();
-        loadFriendSuggestions();
         loadPage(true);
     }
 
@@ -328,6 +342,7 @@ public class NewsfeedActivity extends AppCompatActivity {
         if (isRequestInFlight || reachedEnd) {
             return;
         }
+        loadingAdapter.setLoading(true);
         loadPage(false);
     }
 
@@ -338,6 +353,7 @@ public class NewsfeedActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<JsonElement> call, Response<JsonElement> response) {
                 isRequestInFlight = false;
+                loadingAdapter.setLoading(false);
                 if (fromRefresh) binding.swipeRefreshFeed.setRefreshing(false);
 
                 if (response.code() == 401) {
@@ -356,6 +372,7 @@ public class NewsfeedActivity extends AppCompatActivity {
 
                 if (fromRefresh) {
                     applyFeedPostsForRefresh(mappedPosts);
+                    loadFriendSuggestions();
                 } else {
                     bottomPostsAdapter.appendPosts(mappedPosts);
                 }
@@ -370,6 +387,7 @@ public class NewsfeedActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<JsonElement> call, Throwable t) {
                 isRequestInFlight = false;
+                loadingAdapter.setLoading(false);
                 if (fromRefresh) binding.swipeRefreshFeed.setRefreshing(false);
                 Toast.makeText(NewsfeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
@@ -463,7 +481,12 @@ public class NewsfeedActivity extends AppCompatActivity {
     }
 
     private int resolveSuggestionInsertIndex(int postCount) {
-        return postCount <= 1 ? postCount : 1 + random.nextInt(postCount - 1);
+        if (postCount <= 1) {
+            return postCount;
+        }
+
+        int maxIndex = Math.min(5, postCount - 1);
+        return 1 + random.nextInt(maxIndex);
     }
 
     private String normalizeUrl(String rawUrl) {

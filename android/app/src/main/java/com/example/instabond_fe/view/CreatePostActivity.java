@@ -890,6 +890,18 @@ public class CreatePostActivity extends AppCompatActivity {
                 aiMusicSuggestions.clear();
 
                 if (response.isSuccessful() && response.body() != null) {
+                    // LOG 1
+
+                    List<SuggestedTag> apiTags = response.body().getSuggestedTags();
+                    android.util.Log.d("AI_DEBUG", "--------------------------------------------------");
+                    android.util.Log.d("AI_DEBUG", "[LOG 1] The number of tag Retrofit: " + (apiTags != null ? apiTags.size() : "null"));
+                    if (apiTags != null) {
+                        for (int i = 0; i < apiTags.size(); i++) {
+                            SuggestedTag t = apiTags.get(i);
+                            android.util.Log.d("AI_DEBUG", "  -> Raw Tag [" + i + "]: username=" + t.getUsername() + ", conf=" + t.getConfidence() + ", id=" + t.getId());
+                        }
+                    }
+
                     aiSceneDescription = safe(response.body().getSceneDescription());
 
                     if (response.body().getMusicSuggestions() != null) {
@@ -947,6 +959,15 @@ public class CreatePostActivity extends AppCompatActivity {
                             }
                         }
                     }
+
+                    // LOG 2
+
+                    android.util.Log.d("AI_DEBUG", "[LOG 2] The number of tag in list before drawing UI: " + taggedUsersList.size());
+                    for (int i = 0; i < taggedUsersList.size(); i++) {
+                        SuggestedTag t = taggedUsersList.get(i);
+                        android.util.Log.d("AI_DEBUG", "  -> Final Tag [" + i + "]: username=" + t.getUsername() + ", type=" + t.getTagType());
+                    }
+                    android.util.Log.d("AI_DEBUG", "--------------------------------------------------");
                 }
                 updateOptionSummaries();
             }

@@ -113,6 +113,8 @@ public class SearchViewModel extends AndroidViewModel {
         isLoading.setValue(true);
         if (type.equalsIgnoreCase("POST")) {
             searchRepository.fetchPostResults(query, page, postResultsLiveData);
+        } else if (type.equalsIgnoreCase("USER")) {
+            searchRepository.fetchSuggestions(query, suggestionsLiveData);
         }
 
         saveSearchHistory("TEXT", query, null);

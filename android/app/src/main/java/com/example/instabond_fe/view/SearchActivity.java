@@ -51,8 +51,36 @@ public class SearchActivity extends AppCompatActivity {
         getWindow().setStatusBarColor(Color.TRANSPARENT);
 
         searchViewModel = new ViewModelProvider(this).get(SearchViewModel.class);
+
         notificationCountManager = NotificationCountManager.getInstance(this);
+
         binding.bottomNav.bind(this, InstaBottomNavView.Tab.SEARCH);
+
+        binding.bottomNav.setOnTabReselectedListener(tab -> {
+            if (tab == InstaBottomNavView.Tab.SEARCH) {
+                binding.etSearch.setText("");
+                binding.etSearch.clearFocus();
+                hideKeyboard();
+
+                // Scroll back to the top
+                if (binding.rvSearchResults.getVisibility() == View.VISIBLE) {
+                    binding.rvSearchResults.smoothScrollToPosition(0);
+                }
+
+                // Reset to default explore feed
+                resetToDefaultExploreState();
+            }
+        });
+
+        // Setup SwipeRefreshLayout (Loading effect)
+        binding.swipeRefreshSearch.setColorSchemeResources(R.color.login_bg_start, R.color.login_bg_mid);
+        binding.swipeRefreshSearch.setOnRefreshListener(() -> {
+            if (currentSearchQuery.isEmpty()) {
+                resetToDefaultExploreState();
+            } else {
+                searchViewModel.fetchResults(currentSearchQuery, currentTab, 0);
+            }
+        });
 
         bindActions();
         setupRecyclerViews();
@@ -142,6 +170,7 @@ public class SearchActivity extends AppCompatActivity {
         if (!currentTab.equals(tabName)) {
             currentTab = tabName;
             updateTabUI();
+            binding.swipeRefreshSearch.setRefreshing(true);
 
             if (currentTab.equals("POST")) {
                 binding.rvSearchResults.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
@@ -201,6 +230,8 @@ public class SearchActivity extends AppCompatActivity {
 
                 binding.chipsScroll.setVisibility(View.GONE);
 
+                binding.swipeRefreshSearch.setRefreshing(false);
+
                 if (query.length() > 0) {
                     binding.rvSearchResults.setVisibility(View.GONE);
                     binding.rvSearchHistory.setVisibility(View.GONE);
@@ -241,6 +272,8 @@ public class SearchActivity extends AppCompatActivity {
 
         updateTabUI();
 
+        binding.swipeRefreshSearch.setRefreshing(true);
+
         if (currentTab.equals("POST")) {
             binding.rvSearchResults.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
             binding.rvSearchResults.setAdapter(searchPostAdapter);
@@ -258,6 +291,7 @@ public class SearchActivity extends AppCompatActivity {
         binding.rvSearchResults.setVisibility(View.GONE);
         binding.rvSearchSuggestions.setVisibility(View.GONE);
         binding.rvSearchHistory.setVisibility(View.VISIBLE);
+        binding.swipeRefreshSearch.setRefreshing(false);
 
         searchViewModel.loadSearchHistory();
     }
@@ -274,23 +308,29 @@ public class SearchActivity extends AppCompatActivity {
         binding.rvSearchResults.setAdapter(searchPostAdapter);
 
         searchPostAdapter.setPosts(new ArrayList<>());
+
+        binding.swipeRefreshSearch.post(() -> binding.swipeRefreshSearch.setRefreshing(true));
+
         searchViewModel.fetchInitialExplorePosts();
     }
 
     private void observeViewModel() {
         searchViewModel.getSuggestionsLiveData().observe(this, users -> {
+            binding.swipeRefreshSearch.setRefreshing(false);
             if (users != null) {
                 searchUserAdapter.setUsers(users);
             }
         });
 
         searchViewModel.getPostResultsLiveData().observe(this, posts -> {
+            binding.swipeRefreshSearch.setRefreshing(false);
             if (posts != null && !currentSearchQuery.isEmpty() && binding.rvSearchResults.getVisibility() == View.VISIBLE) {
                 searchPostAdapter.setPosts(posts);
             }
         });
 
         searchViewModel.getExploreResultsLiveData().observe(this, posts -> {
+            binding.swipeRefreshSearch.setRefreshing(false);
             if (posts != null && currentSearchQuery.isEmpty() && binding.rvSearchResults.getVisibility() == View.VISIBLE) {
                 searchPostAdapter.setPosts(posts);
             }
