@@ -72,6 +72,7 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private static final String EXTRA_REFRESH_FEED = "refresh_feed";
+    private static final String EXTRA_FEED_MODE = "target_feed_mode";
 
     public enum FilterType {
         NORMAL,
@@ -1058,6 +1059,7 @@ public class CreatePostActivity extends AppCompatActivity {
     private void openFeedWithRefresh() {
         Intent intent = new Intent(this, NewsfeedActivity.class);
         intent.putExtra(EXTRA_REFRESH_FEED, true);
+        intent.putExtra(EXTRA_FEED_MODE, "following");
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         startActivity(intent);
         finish();

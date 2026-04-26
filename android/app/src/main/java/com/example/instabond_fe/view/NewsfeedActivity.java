@@ -265,6 +265,11 @@ public class NewsfeedActivity extends AppCompatActivity {
 
         updateFeedModeUi();
 
+        if (getIntent() != null && getIntent().hasExtra("target_feed_mode")) {
+            currentFeedMode = getIntent().getStringExtra("target_feed_mode");
+            updateFeedModeUi();
+        }
+
         binding.btnInbox.setOnClickListener(v -> startActivity(new Intent(this, InboxActivity.class)));
 
         loadCurrentUserProfile();
@@ -297,14 +302,23 @@ public class NewsfeedActivity extends AppCompatActivity {
         super.onNewIntent(intent);
         setIntent(intent);
 
-        if (intent != null && intent.getBooleanExtra(EXTRA_REFRESH_FEED, false)) {
-            binding.swipeRefreshFeed.setRefreshing(true);
-            refreshFeed();
-            intent.removeExtra(EXTRA_REFRESH_FEED);
-        }
-        if (intent != null && intent.getBooleanExtra(CreateStoryActivity.EXTRA_REFRESH_STORIES, false)) {
-            loadStories();
-            intent.removeExtra(CreateStoryActivity.EXTRA_REFRESH_STORIES);
+        if (intent != null) {
+            if (intent.hasExtra("target_feed_mode")) {
+                currentFeedMode = intent.getStringExtra("target_feed_mode");
+                updateFeedModeUi();
+                intent.removeExtra("target_feed_mode");
+            }
+
+            if (intent.getBooleanExtra(EXTRA_REFRESH_FEED, false)) {
+                binding.swipeRefreshFeed.setRefreshing(true);
+                refreshFeed();
+                intent.removeExtra(EXTRA_REFRESH_FEED);
+            }
+
+            if (intent.getBooleanExtra(CreateStoryActivity.EXTRA_REFRESH_STORIES, false)) {
+                loadStories();
+                intent.removeExtra(CreateStoryActivity.EXTRA_REFRESH_STORIES);
+            }
         }
     }
 
