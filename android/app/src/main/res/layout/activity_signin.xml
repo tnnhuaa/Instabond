@@ -79,7 +79,7 @@
                             android:contentDescription="@string/cd_app_logo"
                             android:padding="16dp"
                             android:scaleType="fitCenter"
-                            android:src="@drawable/instabond_logo" />
+                            android:src="@drawable/instabond_app_icon" />
 
                     </FrameLayout>
 

@@ -72,7 +72,7 @@
         app:cardCornerRadius="20dp"
         app:cardElevation="12dp"
         app:layout_constraintBottom_toTopOf="@id/card_tool_panel"
-        app:layout_constraintDimensionRatio="4:5"
+        app:layout_constraintDimensionRatio="1:1"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/top_bar">
@@ -83,6 +83,16 @@
             android:layout_height="match_parent"
             android:background="@drawable/bg_image_editor_canvas">
 
+            <com.canhub.cropper.CropImageView
+                android:id="@+id/cropImageView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone"
+                app:cropFixAspectRatio="true"
+                app:cropAspectRatioX="1"
+                app:cropAspectRatioY="1"
+                app:cropGuidelines="on" />
+
             <ImageView
                 android:id="@+id/iv_editor_preview"
                 android:layout_width="match_parent"
@@ -91,11 +101,6 @@
                 android:contentDescription="@string/cd_post_image"
                 android:scaleType="fitCenter"
                 tools:src="@drawable/profile_placeholder_bg" />
-
-            <com.example.instabond_fe.view.editor.CropOverlayView
-                android:id="@+id/view_crop_overlay"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
 
             <com.example.instabond_fe.view.editor.DrawingOverlayView
                 android:id="@+id/view_drawing_overlay"
@@ -146,47 +151,6 @@
                     android:textColor="@color/login_text_primary"
                     android:textStyle="bold" />
 
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chip_group_editor_crop"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    app:singleSelection="true">
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_editor_crop_original"
-                        style="@style/Widget.MaterialComponents.Chip.Choice"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/create_post_crop_original"
-                        app:checkedIconVisible="false" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_editor_crop_square"
-                        style="@style/Widget.MaterialComponents.Chip.Choice"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/create_post_crop_square"
-                        app:checkedIconVisible="false" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_editor_crop_portrait"
-                        style="@style/Widget.MaterialComponents.Chip.Choice"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/create_post_crop_portrait"
-                        app:checkedIconVisible="false" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_editor_crop_landscape"
-                        style="@style/Widget.MaterialComponents.Chip.Choice"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/create_post_crop_landscape"
-                        app:checkedIconVisible="false" />
-
-                </com.google.android.material.chip.ChipGroup>
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -225,7 +189,6 @@
                         android:paddingBottom="10dp"
                         android:text="@string/create_post_rotate_right"
                         android:textColor="@color/login_text_primary" />
-
                 </LinearLayout>
             </LinearLayout>
 

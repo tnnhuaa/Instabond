@@ -18,7 +18,7 @@ public class SearchUserTagFragment extends Fragment {
 
     private FragmentSearchUserTagBinding binding;
     private SearchViewModel searchViewModel;
-    private SearchUserAdapter adapter; // Tái sử dụng Adapter của bạn
+    private SearchUserAdapter adapter;
 
     @Nullable
     @Override

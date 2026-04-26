@@ -27,10 +27,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
-import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityCreatePostBinding;
-import com.example.instabond_fe.databinding.DialogEditPhotoBinding;
 import com.example.instabond_fe.model.CreatePostRequest;
 import com.example.instabond_fe.model.MusicSuggestion;
 import com.example.instabond_fe.model.PostSuggestionResponse;
@@ -59,7 +57,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -84,31 +81,6 @@ public class CreatePostActivity extends AppCompatActivity {
         PULSE
     }
 
-    private enum CropRatio {
-        ORIGINAL(0f),
-        SQUARE(1f),
-        PORTRAIT(4f / 5f),
-        LANDSCAPE(16f / 9f);
-
-        private final float ratio;
-
-        CropRatio(float ratio) {
-            this.ratio = ratio;
-        }
-    }
-
-    private enum ResizePreset {
-        ORIGINAL(0),
-        MEDIUM(1080),
-        LARGE(1440);
-
-        private final int longestEdge;
-
-        ResizePreset(int longestEdge) {
-            this.longestEdge = longestEdge;
-        }
-    }
-
     private interface ValueConsumer {
         void accept(String value);
     }
@@ -130,9 +102,6 @@ public class CreatePostActivity extends AppCompatActivity {
     private Bitmap renderedBitmap;
 
     private FilterType activeFilter = FilterType.NORMAL;
-    private CropRatio cropRatio = CropRatio.ORIGINAL;
-    private ResizePreset resizePreset = ResizePreset.ORIGINAL;
-    private int rotationDegrees = 0;
 
     private String tagsText = "";
     private String locationText = "";
@@ -230,9 +199,7 @@ public class CreatePostActivity extends AppCompatActivity {
 
     private void registerLaunchers() {
         pickImageLauncher = registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
-            if (uri == null) {
-                return;
-            }
+            if (uri == null) return;
             selectedImageUri = uri;
             try {
                 sourceBitmap = decodeBitmap(uri);
@@ -245,9 +212,7 @@ public class CreatePostActivity extends AppCompatActivity {
         });
 
         takePhotoLauncher = registerForActivityResult(new ActivityResultContracts.TakePicturePreview(), bitmap -> {
-            if (bitmap == null) {
-                return;
-            }
+            if (bitmap == null) return;
             selectedImageUri = saveBitmapToCacheUri(bitmap);
             sourceBitmap = limitBitmapSize(bitmap, MAX_SOURCE_EDGE);
             resetEdits(false);
@@ -261,26 +226,19 @@ public class CreatePostActivity extends AppCompatActivity {
         editImageLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
-                    // Cancel edit -> keep original image and fetch suggestions based on it
                     if (result.getResultCode() != RESULT_OK || result.getData() == null) {
                         android.util.Log.d("AI_DEBUG", "Editor canceled. Fetching suggestions for original image.");
-                        if (sourceBitmap != null) {
-                            requestAiSuggestions();
-                        }
+                        if (sourceBitmap != null) requestAiSuggestions();
                         return;
                     }
 
-                    // NULL
                     String outputUri = result.getData().getStringExtra(ImageEditorActivity.EXTRA_OUTPUT_URI);
                     if (outputUri == null || outputUri.trim().isEmpty()) {
                         android.util.Log.d("AI_DEBUG", "Edited output URI is empty. Fetching suggestions for original image.");
-                        if (sourceBitmap != null) {
-                            requestAiSuggestions();
-                        }
+                        if (sourceBitmap != null) requestAiSuggestions();
                         return;
                     }
 
-                    // Success edit -> load edited image and fetch suggestions based on it
                     selectedImageUri = Uri.parse(outputUri);
                     try {
                         sourceBitmap = decodeBitmap(selectedImageUri);
@@ -343,18 +301,11 @@ public class CreatePostActivity extends AppCompatActivity {
         new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.create_post_dialog_photo)
                 .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
-                        pickImageLauncher.launch("image/*");
-                    } else {
-                        takePhotoLauncher.launch(null);
-                    }
+                    if (which == 0) pickImageLauncher.launch("image/*");
+                    else takePhotoLauncher.launch(null);
                 })
                 .setNegativeButton(R.string.create_post_cancel, null)
                 .show();
-    }
-
-    private void showEditToolsDialog() {
-        openImageEditorWithCurrentPreview();
     }
 
     private void openImageEditorWithCurrentPreview() {
@@ -377,90 +328,6 @@ public class CreatePostActivity extends AppCompatActivity {
         Intent intent = new Intent(this, ImageEditorActivity.class);
         intent.putExtra(ImageEditorActivity.EXTRA_INPUT_URI, sourceUri.toString());
         editImageLauncher.launch(intent);
-    }
-
-    private void showEditPhotoDialog() {
-        if (sourceBitmap == null) {
-            Toast.makeText(this, R.string.create_post_select_photo_first, Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        DialogEditPhotoBinding dialogBinding = DialogEditPhotoBinding.inflate(getLayoutInflater());
-        setCheckedCropChip(dialogBinding);
-        setCheckedResizeChip(dialogBinding);
-
-        final int[] previewRotation = {rotationDegrees};
-        dialogBinding.tvRotationValue.setText(getString(
-                R.string.create_post_rotation_value, normalizedRotation(previewRotation[0])));
-        dialogBinding.btnRotateLeft.setOnClickListener(v -> {
-            previewRotation[0] = normalizedRotation(previewRotation[0] - 90);
-            dialogBinding.tvRotationValue.setText(getString(
-                    R.string.create_post_rotation_value, normalizedRotation(previewRotation[0])));
-        });
-        dialogBinding.btnRotateRight.setOnClickListener(v -> {
-            previewRotation[0] = normalizedRotation(previewRotation[0] + 90);
-            dialogBinding.tvRotationValue.setText(getString(
-                    R.string.create_post_rotation_value, normalizedRotation(previewRotation[0])));
-        });
-
-        new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.create_post_crop_resize)
-                .setView(dialogBinding.getRoot())
-                .setNegativeButton(R.string.create_post_cancel, null)
-                .setPositiveButton(R.string.create_post_apply, (dialog, which) -> {
-                    cropRatio = resolveCropRatio(dialogBinding);
-                    resizePreset = resolveResizePreset(dialogBinding);
-                    rotationDegrees = normalizedRotation(previewRotation[0]);
-                    renderEditorState();
-                })
-                .show();
-    }
-
-    private void setCheckedCropChip(DialogEditPhotoBinding dialogBinding) {
-        if (cropRatio == CropRatio.SQUARE) {
-            dialogBinding.chipCropSquare.setChecked(true);
-        } else if (cropRatio == CropRatio.PORTRAIT) {
-            dialogBinding.chipCropPortrait.setChecked(true);
-        } else if (cropRatio == CropRatio.LANDSCAPE) {
-            dialogBinding.chipCropLandscape.setChecked(true);
-        } else {
-            dialogBinding.chipCropOriginal.setChecked(true);
-        }
-    }
-
-    private void setCheckedResizeChip(DialogEditPhotoBinding dialogBinding) {
-        if (resizePreset == ResizePreset.MEDIUM) {
-            dialogBinding.chipResizeMedium.setChecked(true);
-        } else if (resizePreset == ResizePreset.LARGE) {
-            dialogBinding.chipResizeLarge.setChecked(true);
-        } else {
-            dialogBinding.chipResizeOriginal.setChecked(true);
-        }
-    }
-
-    private CropRatio resolveCropRatio(DialogEditPhotoBinding dialogBinding) {
-        int checkedId = dialogBinding.chipGroupCrop.getCheckedChipId();
-        if (checkedId == dialogBinding.chipCropSquare.getId()) {
-            return CropRatio.SQUARE;
-        }
-        if (checkedId == dialogBinding.chipCropPortrait.getId()) {
-            return CropRatio.PORTRAIT;
-        }
-        if (checkedId == dialogBinding.chipCropLandscape.getId()) {
-            return CropRatio.LANDSCAPE;
-        }
-        return CropRatio.ORIGINAL;
-    }
-
-    private ResizePreset resolveResizePreset(DialogEditPhotoBinding dialogBinding) {
-        int checkedId = dialogBinding.chipGroupResize.getCheckedChipId();
-        if (checkedId == dialogBinding.chipResizeMedium.getId()) {
-            return ResizePreset.MEDIUM;
-        }
-        if (checkedId == dialogBinding.chipResizeLarge.getId()) {
-            return ResizePreset.LARGE;
-        }
-        return ResizePreset.ORIGINAL;
     }
 
     private void showTextInputDialog(String title, String hint, String initialValue, ValueConsumer consumer) {
@@ -552,7 +419,7 @@ public class CreatePostActivity extends AppCompatActivity {
             return;
         }
 
-        renderedBitmap = buildOutputBitmap(sourceBitmap, activeFilter, cropRatio, resizePreset, rotationDegrees);
+        renderedBitmap = buildOutputBitmap(sourceBitmap, activeFilter);
         binding.ivPreview.setImageBitmap(renderedBitmap);
         binding.ivPreview.setVisibility(View.VISIBLE);
         binding.previewPlaceholder.setVisibility(View.GONE);
@@ -576,42 +443,25 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private Bitmap createFilterThumbnail(FilterType filterType) {
-        if (sourceBitmap == null) {
-            return null;
-        }
-        Bitmap previewSource = rotateBitmap(sourceBitmap, rotationDegrees);
-        Bitmap square = cropCenterSquare(previewSource);
+        if (sourceBitmap == null) return null;
+        Bitmap square = cropCenterSquare(sourceBitmap);
         Bitmap scaled = Bitmap.createScaledBitmap(square, FILTER_THUMBNAIL_SIZE, FILTER_THUMBNAIL_SIZE, true);
         return applyFilterToBitmap(scaled, filterType);
     }
 
-    private Bitmap buildOutputBitmap(Bitmap original,
-                                     FilterType filterType,
-                                     CropRatio selectedCropRatio,
-                                     ResizePreset selectedResizePreset,
-                                     int rotation) {
-        Bitmap rotated = rotateBitmap(original, rotation);
-        Bitmap cropped = cropBitmapToRatio(rotated, selectedCropRatio);
-        Bitmap filtered = applyFilterToBitmap(cropped, filterType);
-        return resizeBitmap(filtered, selectedResizePreset);
+    private Bitmap buildOutputBitmap(Bitmap original, FilterType filterType) {
+        return applyFilterToBitmap(original, filterType);
     }
 
     private Bitmap applyFilterToBitmap(Bitmap source, FilterType filterType) {
-        if (source == null) {
-            return null;
-        }
+        if (source == null) return null;
         switch (filterType) {
-            case VIVID:
-                return applyColorMatrix(source, buildVividMatrix());
-            case BW:
-                return applyColorMatrix(source, buildBwMatrix());
-            case VINTAGE:
-                return applyColorMatrix(source, buildVintageMatrix());
-            case PULSE:
-                return applyPulseFilter(source);
+            case VIVID: return applyColorMatrix(source, buildVividMatrix());
+            case BW: return applyColorMatrix(source, buildBwMatrix());
+            case VINTAGE: return applyColorMatrix(source, buildVintageMatrix());
+            case PULSE: return applyPulseFilter(source);
             case NORMAL:
-            default:
-                return copyBitmap(source);
+            default: return copyBitmap(source);
         }
     }
 
@@ -662,64 +512,8 @@ public class CreatePostActivity extends AppCompatActivity {
         return result;
     }
 
-    private Bitmap cropBitmapToRatio(Bitmap source, CropRatio ratio) {
-        if (source == null || ratio == CropRatio.ORIGINAL) {
-            return copyBitmap(source);
-        }
-
-        int width = source.getWidth();
-        int height = source.getHeight();
-        float targetRatio = ratio.ratio;
-        int cropWidth = width;
-        int cropHeight = height;
-
-        if ((float) width / height > targetRatio) {
-            cropWidth = Math.round(height * targetRatio);
-        } else {
-            cropHeight = Math.round(width / targetRatio);
-        }
-
-        int left = Math.max(0, (width - cropWidth) / 2);
-        int top = Math.max(0, (height - cropHeight) / 2);
-        return Bitmap.createBitmap(source, left, top, cropWidth, cropHeight);
-    }
-
-    private Bitmap resizeBitmap(Bitmap source, ResizePreset preset) {
-        if (source == null || preset == ResizePreset.ORIGINAL) {
-            return copyBitmap(source);
-        }
-
-        int width = source.getWidth();
-        int height = source.getHeight();
-        int longestEdge = Math.max(width, height);
-        if (longestEdge <= preset.longestEdge) {
-            return copyBitmap(source);
-        }
-
-        float scale = preset.longestEdge / (float) longestEdge;
-        int targetWidth = Math.max(1, Math.round(width * scale));
-        int targetHeight = Math.max(1, Math.round(height * scale));
-        return Bitmap.createScaledBitmap(source, targetWidth, targetHeight, true);
-    }
-
-    private Bitmap rotateBitmap(Bitmap source, int rotation) {
-        if (source == null) {
-            return null;
-        }
-        int normalized = normalizedRotation(rotation);
-        if (normalized == 0) {
-            return copyBitmap(source);
-        }
-
-        Matrix matrix = new Matrix();
-        matrix.postRotate(normalized);
-        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
-    }
-
     private Bitmap cropCenterSquare(Bitmap source) {
-        if (source == null) {
-            return null;
-        }
+        if (source == null) return null;
         int size = Math.min(source.getWidth(), source.getHeight());
         int left = Math.max(0, (source.getWidth() - size) / 2);
         int top = Math.max(0, (source.getHeight() - size) / 2);
@@ -727,9 +521,7 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private Bitmap copyBitmap(Bitmap source) {
-        if (source == null) {
-            return null;
-        }
+        if (source == null) return null;
         Bitmap.Config config = source.getConfig() != null ? source.getConfig() : Bitmap.Config.ARGB_8888;
         return source.copy(config, false);
     }
@@ -753,15 +545,11 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private Bitmap limitBitmapSize(Bitmap bitmap, int maxEdge) {
-        if (bitmap == null) {
-            return null;
-        }
+        if (bitmap == null) return null;
         int width = bitmap.getWidth();
         int height = bitmap.getHeight();
         int longest = Math.max(width, height);
-        if (longest <= maxEdge) {
-            return copyBitmap(bitmap);
-        }
+        if (longest <= maxEdge) return copyBitmap(bitmap);
 
         float scale = maxEdge / (float) longest;
         return Bitmap.createScaledBitmap(
@@ -774,17 +562,7 @@ public class CreatePostActivity extends AppCompatActivity {
 
     private void resetEdits(boolean rerender) {
         activeFilter = FilterType.NORMAL;
-        cropRatio = CropRatio.ORIGINAL;
-        resizePreset = ResizePreset.ORIGINAL;
-        rotationDegrees = 0;
-        if (rerender) {
-            renderEditorState();
-        }
-    }
-
-    private int normalizedRotation(int rotation) {
-        int normalized = rotation % 360;
-        return normalized < 0 ? normalized + 360 : normalized;
+        if (rerender) renderEditorState();
     }
 
     private Uri saveBitmapToCacheUri(Bitmap bitmap) {
@@ -808,17 +586,12 @@ public class CreatePostActivity extends AppCompatActivity {
 
         setLoading(true);
 
-        // Map tag (SuggestedTag) -> List<TaggedUserRequest> using backend schema constraints.
         List<CreatePostRequest.TaggedUserRequest> mappedTaggedUsers = new ArrayList<>();
         for (SuggestedTag tag : taggedUsersList) {
-            if (tag == null) {
-                continue;
-            }
+            if (tag == null) continue;
 
             String userId = safe(tag.getId());
-            if (userId.isEmpty()) {
-                continue;
-            }
+            if (userId.isEmpty()) continue;
 
             String tagType = normalizeTagType(tag);
             Double confidence = normalizeConfidence(tag.getConfidence(), tagType);
@@ -841,10 +614,9 @@ public class CreatePostActivity extends AppCompatActivity {
             ));
         }
 
-        // Create request body
         CreatePostRequest request = CreatePostRequest.fromCaptionAndMedia(
                 caption,
-                null, // media processed via multipart files
+                null,
                 0, 0,
                 mappedTaggedUsers,
                 locationText != null && !locationText.trim().isEmpty()
@@ -876,13 +648,6 @@ public class CreatePostActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.create_post_image_read_error, Toast.LENGTH_SHORT).show();
             return;
         }
-
-        android.util.Log.d("AI_DEBUG", "createPostRequest payload: " + requestJson);
-        android.util.Log.d("AI_DEBUG", "createPostRequest summary -> tagged_users="
-                + mappedTaggedUsers.size()
-                + ", files=" + fileParts.size()
-                + ", has_music=" + (selectedMusic != null)
-                + ", caption_length=" + caption.length());
 
         apiService.createPost(requestPart, fileParts).enqueue(new Callback<PostResponse>() {
             @Override
@@ -937,9 +702,7 @@ public class CreatePostActivity extends AppCompatActivity {
         File tempFile = new File(getCacheDir(), fileName);
         try (InputStream inputStream = getContentResolver().openInputStream(uri);
              OutputStream outputStream = new FileOutputStream(tempFile, false)) {
-            if (inputStream == null) {
-                return null;
-            }
+            if (inputStream == null) return null;
             byte[] buffer = new byte[4096];
             int len;
             while ((len = inputStream.read(buffer)) != -1) {
@@ -953,9 +716,7 @@ public class CreatePostActivity extends AppCompatActivity {
         try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
             if (cursor != null && cursor.moveToFirst()) {
                 int idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                if (idx >= 0) {
-                    return cursor.getString(idx);
-                }
+                if (idx >= 0) return cursor.getString(idx);
             }
         }
         return null;
@@ -1009,15 +770,10 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private int findSelectedMusicIndex(List<MusicSuggestion> options) {
-        if (selectedMusic == null) {
-            return -1;
-        }
-
+        if (selectedMusic == null) return -1;
         String selectedKey = musicKey(selectedMusic);
         for (int i = 0; i < options.size(); i++) {
-            if (selectedKey.equals(musicKey(options.get(i)))) {
-                return i;
-            }
+            if (selectedKey.equals(musicKey(options.get(i)))) return i;
         }
         return -1;
     }
@@ -1026,17 +782,13 @@ public class CreatePostActivity extends AppCompatActivity {
         Map<String, MusicSuggestion> merged = new LinkedHashMap<>();
 
         for (MusicSuggestion suggestion : aiMusicSuggestions) {
-            if (suggestion == null) {
-                continue;
-            }
+            if (suggestion == null) continue;
             suggestion.setAiRecommended(true);
             merged.put(musicKey(suggestion), suggestion);
         }
 
         for (MusicSuggestion suggestion : getManualMusicCatalog()) {
-            if (suggestion == null) {
-                continue;
-            }
+            if (suggestion == null) continue;
             merged.putIfAbsent(musicKey(suggestion), suggestion);
         }
 
@@ -1074,34 +826,22 @@ public class CreatePostActivity extends AppCompatActivity {
 
     private String normalizeTagType(SuggestedTag tag) {
         String raw = safe(tag.getTagType()).toLowerCase(Locale.ROOT);
-        if ("auto-ai".equals(raw) || "user-tag".equals(raw)) {
-            return raw;
-        }
+        if ("auto-ai".equals(raw) || "user-tag".equals(raw)) return raw;
         return tag.getConfidence() != null ? "auto-ai" : "user-tag";
     }
 
     private double normalizeConfidence(Double confidence, String tagType) {
-        if ("user-tag".equals(tagType)) {
-            return 1.0;
-        }
+        if ("user-tag".equals(tagType)) return 1.0;
         double value = confidence != null ? confidence : 0.0;
-        if (value < 0.0) {
-            return 0.0;
-        }
-        if (value > 1.0) {
-            return 1.0;
-        }
+        if (value < 0.0) return 0.0;
+        if (value > 1.0) return 1.0;
         return value;
     }
 
     private double normalizeCoordinate(Double coordinate) {
         double value = coordinate != null ? coordinate : 0.5;
-        if (value < 0.0) {
-            return 0.0;
-        }
-        if (value > 1.0) {
-            return 1.0;
-        }
+        if (value < 0.0) return 0.0;
+        if (value > 1.0) return 1.0;
         return value;
     }
 
@@ -1118,7 +858,6 @@ public class CreatePostActivity extends AppCompatActivity {
         try {
             imageFile = createUploadFile();
         } catch (IOException e) {
-            android.util.Log.e("AI_DEBUG", "Error - create file temp from image: " + e.getMessage(), e);
             isFetchingAiSuggestions = false;
             updateAiSuggestionUiState();
             updateOptionSummaries();
@@ -1126,14 +865,11 @@ public class CreatePostActivity extends AppCompatActivity {
         }
 
         if (imageFile == null) {
-            android.util.Log.e("AI_DEBUG", "Error - image file is null");
             isFetchingAiSuggestions = false;
             updateAiSuggestionUiState();
             updateOptionSummaries();
             return;
         }
-
-        android.util.Log.d("AI_DEBUG", "=> START CALL API. File name: " + imageFile.getName() + " | Size: " + imageFile.length() + " bytes");
 
         isFetchingAiSuggestions = true;
         updateAiSuggestionUiState();
@@ -1147,65 +883,52 @@ public class CreatePostActivity extends AppCompatActivity {
             @Override
             public void onResponse(@NonNull Call<PostSuggestionResponse> call,
                                    @NonNull Response<PostSuggestionResponse> response) {
-                if (call.isCanceled()) {
-                    android.util.Log.d("AI_DEBUG", "CANCEL API Call");
-                    return;
-                }
+                if (call.isCanceled()) return;
 
                 isFetchingAiSuggestions = false;
                 updateAiSuggestionUiState();
                 aiMusicSuggestions.clear();
 
-                android.util.Log.d("AI_DEBUG", "=> GET RESPONSE FROM SERVER. HTTP Code: " + response.code());
-
                 if (response.isSuccessful() && response.body() != null) {
-                    android.util.Log.d("AI_DEBUG", "Response is successful and body is NOT NULL");
-
                     aiSceneDescription = safe(response.body().getSceneDescription());
-                    android.util.Log.d("AI_DEBUG", "Scene Description: " + aiSceneDescription);
 
-                    // Parse music
                     if (response.body().getMusicSuggestions() != null) {
-                        android.util.Log.d("AI_DEBUG", "Music Suggestions array size: " + response.body().getMusicSuggestions().size());
                         for (MusicSuggestion suggestion : response.body().getMusicSuggestions()) {
                             if (suggestion != null) {
                                 suggestion.setAiRecommended(true);
                                 aiMusicSuggestions.add(suggestion);
                             }
                         }
-                    } else {
-                        android.util.Log.w("AI_DEBUG", "Music Suggestions array is NULL");
                     }
 
-                    // Parse tags
                     if (response.body().getSuggestedTags() != null) {
-                        android.util.Log.d("AI_DEBUG", "Suggested Tags array size: " + response.body().getSuggestedTags().size());
+                        java.util.Iterator<SuggestedTag> iterator = taggedUsersList.iterator();
+                        while (iterator.hasNext()) {
+                            SuggestedTag tag = iterator.next();
+                            if ("auto-ai".equals(tag.getTagType())) {
+                                iterator.remove();
+                            }
+                        }
 
                         if (!response.body().getSuggestedTags().isEmpty()) {
                             List<String> autoTags = new ArrayList<>();
 
                             for (SuggestedTag suggestedTag : response.body().getSuggestedTags()) {
-                                if (suggestedTag == null) {
-                                    android.util.Log.w("AI_DEBUG", "Encountered a NULL SuggestedTag item in the array");
-                                    continue;
-                                }
-
-                                String posLog = (suggestedTag.getPosition() != null) ?
-                                        ("x:" + suggestedTag.getPosition().getX() + ", y:" + suggestedTag.getPosition().getY()) : "NULL";
-
-                                android.util.Log.d("AI_DEBUG", "Mapping Tag: ID=" + suggestedTag.getId() +
-                                        " | Username=" + suggestedTag.getUsername() +
-                                        " | Position=" + posLog);
+                                if (suggestedTag == null) continue;
 
                                 String username = safe(suggestedTag.getUsername());
-                                if (!username.isEmpty()) {
-                                    autoTags.add("@" + username);
-                                }
+                                if (!username.isEmpty()) autoTags.add("@" + username);
 
                                 boolean isAlreadyTagged = false;
-                                for (SuggestedTag existingTag : taggedUsersList) {
+                                for (int i = 0; i < taggedUsersList.size(); i++) {
+                                    SuggestedTag existingTag = taggedUsersList.get(i);
                                     if (existingTag.getId() != null && existingTag.getId().equals(suggestedTag.getId())) {
                                         isAlreadyTagged = true;
+                                        suggestedTag.setTagType(existingTag.getTagType());
+                                        if (suggestedTag.getConfidence() == null) {
+                                            suggestedTag.setConfidence(existingTag.getConfidence());
+                                        }
+                                        taggedUsersList.set(i, suggestedTag);
                                         break;
                                     }
                                 }
@@ -1216,30 +939,13 @@ public class CreatePostActivity extends AppCompatActivity {
                                         suggestedTag.setConfidence(0.0);
                                     }
                                     taggedUsersList.add(suggestedTag);
-                                    android.util.Log.d("AI_DEBUG", "Added tag to taggedUsersList: " + username);
-                                } else {
-                                    android.util.Log.d("AI_DEBUG", "Tag already exists in UI list, skipping: " + username);
                                 }
                             }
 
                             if (!autoTags.isEmpty()) {
                                 tagsText = TextUtils.join(" ", autoTags);
-                                android.util.Log.d("AI_DEBUG", "Final tagsText mapped: " + tagsText);
                             }
-                        } else {
-                            android.util.Log.w("AI_DEBUG", "Suggested Tags array is EMPTY");
                         }
-                    } else {
-                        android.util.Log.w("AI_DEBUG", "Suggested Tags array is NULL (Check @SerializedName or Server response)");
-                    }
-                } else {
-                    android.util.Log.e("AI_DEBUG", "API Response Failed. Code: " + response.code());
-                    try {
-                        if (response.errorBody() != null) {
-                            android.util.Log.e("AI_DEBUG", "Error Body: " + response.errorBody().string());
-                        }
-                    } catch (Exception e) {
-                        android.util.Log.e("AI_DEBUG", "Cannot read error body: " + e.getMessage());
                     }
                 }
                 updateOptionSummaries();
@@ -1247,11 +953,7 @@ public class CreatePostActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(@NonNull Call<PostSuggestionResponse> call, @NonNull Throwable t) {
-                android.util.Log.e("AI_DEBUG", "API Call FAILED or CRASHED: " + t.getMessage(), t);
-
-                if (call.isCanceled()) {
-                    return;
-                }
+                if (call.isCanceled()) return;
 
                 isFetchingAiSuggestions = false;
                 updateAiSuggestionUiState();
@@ -1308,9 +1010,7 @@ public class CreatePostActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        if (postSuggestionCall != null) {
-            postSuggestionCall.cancel();
-        }
+        if (postSuggestionCall != null) postSuggestionCall.cancel();
         super.onDestroy();
     }
 

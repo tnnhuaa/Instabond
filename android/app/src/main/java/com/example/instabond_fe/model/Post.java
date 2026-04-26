@@ -18,6 +18,8 @@ public class Post {
     private final String musicSummary;
     private final String musicPreviewUrl;
     private final boolean hasMusicBadge;
+    private List<SuggestedTag> taggedUsers = new ArrayList<>();
+    private boolean tagsVisible = false;
     private boolean isLiked;
     private boolean isBookmarked;
 
@@ -120,6 +122,22 @@ public class Post {
 
     public boolean isHasMusicBadge() {
         return hasMusicBadge;
+    }
+
+    public List<SuggestedTag> getTaggedUsers() {
+        return taggedUsers;
+    }
+
+    public void setTaggedUsers(List<SuggestedTag> taggedUsers) {
+        this.taggedUsers = taggedUsers;
+    }
+
+    public boolean isTagsVisible() {
+        return tagsVisible;
+    }
+
+    public void setTagsVisible(boolean tagsVisible) {
+        this.tagsVisible = tagsVisible;
     }
 
     public boolean isLiked() {

@@ -29,6 +29,9 @@ public class PostResponse {
     @SerializedName(value = "music_suggestion", alternate = {"musicSuggestion"})
     private MusicSuggestion musicSuggestion;
 
+    @SerializedName("tagged_users")
+    private List<SuggestedTag> taggedUsers;
+
     @SerializedName("stats")
     private Stats stats;
 
@@ -90,6 +93,10 @@ public class PostResponse {
         }
 
         return valueOrEmpty(musicSuggestion.getArtist());
+    }
+
+    public List<SuggestedTag> getTaggedUsers() {
+        return taggedUsers;
     }
 
     public String getMusicPreviewUrl() {

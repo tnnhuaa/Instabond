@@ -40,7 +40,16 @@ public class TaggedUserAdapter extends RecyclerView.Adapter<TaggedUserAdapter.Vi
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_tagged_user_preview, parent, false);
+                .inflate(R.layout.item_tagged_user, parent, false);
+
+        ViewGroup.LayoutParams layoutParams = view.getLayoutParams();
+        if (!isRemovable) {
+            layoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT;
+        } else {
+            layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
+        }
+        view.setLayoutParams(layoutParams);
+
         return new ViewHolder(view);
     }
 

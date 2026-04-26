@@ -387,7 +387,7 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
         int shares = response.getStats() != null ? response.getStats().getShares() : 0;
         String musicPreviewUrl = response.getMusicPreviewUrl();
 
-        return new Post(
+        Post uiPost = new Post(
                 valueOrEmpty(response.getId()),
                 authorId,
                 username,
@@ -405,6 +405,12 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
                 response.isLiked(),
                 false
         );
+
+        if (response.getTaggedUsers() != null) {
+            uiPost.setTaggedUsers(response.getTaggedUsers());
+        }
+
+        return uiPost;
     }
 
     private void togglePostLike(Post post, int position) {
