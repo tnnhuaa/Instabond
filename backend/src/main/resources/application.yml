@@ -39,3 +39,5 @@ app:
     redis-enabled: ${PRESENCE_REDIS_ENABLED:false}
     ttl-minutes: ${PRESENCE_TTL_MINUTES:5}
     retry-backoff-seconds: ${PRESENCE_RETRY_BACKOFF_SECONDS:30}
+  ai-detection:
+    confidence-threshold: ${AI_CONFIDENCE_THRESHOLD:0.5}

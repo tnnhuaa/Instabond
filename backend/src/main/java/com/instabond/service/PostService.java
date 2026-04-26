@@ -58,6 +58,9 @@ public class PostService {
     @Value("${ai.service.url:http://localhost:8000}")
     private String aiServiceUrl;
 
+    @Value("${app.ai-detection.confidence-threshold:0.5}")
+    private Double confidenceThreshold;
+
     private final ExecutorService aiExecutor = Executors.newFixedThreadPool(15);
 
     // AI-suggestions
@@ -134,7 +137,7 @@ public class PostService {
         }
 
         return aiTagResponse.getDetected_faces().stream()
-                .filter(face -> face.getConfidence() != null && face.getConfidence() > 0.42)
+                .filter(face -> face.getConfidence() != null && face.getConfidence() > confidenceThreshold)
                 .filter(face -> !face.getMatched_user_id().equals(currentUserId))
                 .collect(Collectors.toMap(
                         face -> face.getMatched_user_id(),
