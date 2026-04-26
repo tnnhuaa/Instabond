@@ -188,6 +188,7 @@ public class NewsfeedActivity extends AppCompatActivity {
 
             @Override
             public void onBookmarkClicked(Post post, int position) {
+                // Handle bookmark action
                 boolean isCurrentlyBookmarked = post.isBookmarked();
                 post.setBookmarked(!isCurrentlyBookmarked);
                 notifyPostChanged(post);
@@ -196,6 +197,7 @@ public class NewsfeedActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(Call<PostResponse> call, Response<PostResponse> response) {
                         if (!response.isSuccessful()) {
+                            // Revert on failure
                             post.setBookmarked(isCurrentlyBookmarked);
                             notifyPostChanged(post);
                         }
@@ -310,6 +312,7 @@ public class NewsfeedActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         loadStories();
+        // Fetch fresh unread notification count
         notificationCountManager.fetchUnreadCount();
     }
 

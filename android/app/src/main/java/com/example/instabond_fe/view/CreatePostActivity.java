@@ -226,6 +226,7 @@ public class CreatePostActivity extends AppCompatActivity {
         editImageLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
+                    // Cancel edit -> keep original image and fetch suggestions based on it
                     if (result.getResultCode() != RESULT_OK || result.getData() == null) {
                         android.util.Log.d("AI_DEBUG", "Editor canceled. Fetching suggestions for original image.");
                         if (sourceBitmap != null) requestAiSuggestions();
@@ -239,6 +240,7 @@ public class CreatePostActivity extends AppCompatActivity {
                         return;
                     }
 
+                    // Success edit -> load edited image and fetch suggestions based on it
                     selectedImageUri = Uri.parse(outputUri);
                     try {
                         sourceBitmap = decodeBitmap(selectedImageUri);
@@ -586,6 +588,7 @@ public class CreatePostActivity extends AppCompatActivity {
 
         setLoading(true);
 
+        // Map tag (SuggestedTag) -> List<TaggedUserRequest> using backend schema constraints.
         List<CreatePostRequest.TaggedUserRequest> mappedTaggedUsers = new ArrayList<>();
         for (SuggestedTag tag : taggedUsersList) {
             if (tag == null) continue;
@@ -614,6 +617,7 @@ public class CreatePostActivity extends AppCompatActivity {
             ));
         }
 
+        // Create request body
         CreatePostRequest request = CreatePostRequest.fromCaptionAndMedia(
                 caption,
                 null,
@@ -648,6 +652,13 @@ public class CreatePostActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.create_post_image_read_error, Toast.LENGTH_SHORT).show();
             return;
         }
+
+        android.util.Log.d("AI_DEBUG", "createPostRequest payload: " + requestJson);
+        android.util.Log.d("AI_DEBUG", "createPostRequest summary -> tagged_users="
+                + mappedTaggedUsers.size()
+                + ", files=" + fileParts.size()
+                + ", has_music=" + (selectedMusic != null)
+                + ", caption_length=" + caption.length());
 
         apiService.createPost(requestPart, fileParts).enqueue(new Callback<PostResponse>() {
             @Override
@@ -826,7 +837,9 @@ public class CreatePostActivity extends AppCompatActivity {
 
     private String normalizeTagType(SuggestedTag tag) {
         String raw = safe(tag.getTagType()).toLowerCase(Locale.ROOT);
-        if ("auto-ai".equals(raw) || "user-tag".equals(raw)) return raw;
+        if ("auto-ai".equals(raw) || "user-tag".equals(raw)) {
+            return raw;
+        }
         return tag.getConfidence() != null ? "auto-ai" : "user-tag";
     }
 
@@ -858,6 +871,7 @@ public class CreatePostActivity extends AppCompatActivity {
         try {
             imageFile = createUploadFile();
         } catch (IOException e) {
+            android.util.Log.e("AI_DEBUG", "Error - create file temp from image: " + e.getMessage(), e);
             isFetchingAiSuggestions = false;
             updateAiSuggestionUiState();
             updateOptionSummaries();
@@ -865,11 +879,14 @@ public class CreatePostActivity extends AppCompatActivity {
         }
 
         if (imageFile == null) {
+            android.util.Log.e("AI_DEBUG", "Error - image file is null");
             isFetchingAiSuggestions = false;
             updateAiSuggestionUiState();
             updateOptionSummaries();
             return;
         }
+
+        android.util.Log.d("AI_DEBUG", "=> START CALL API. File name: " + imageFile.getName() + " | Size: " + imageFile.length() + " bytes");
 
         isFetchingAiSuggestions = true;
         updateAiSuggestionUiState();
@@ -883,7 +900,10 @@ public class CreatePostActivity extends AppCompatActivity {
             @Override
             public void onResponse(@NonNull Call<PostSuggestionResponse> call,
                                    @NonNull Response<PostSuggestionResponse> response) {
-                if (call.isCanceled()) return;
+                if (call.isCanceled()) {
+                    android.util.Log.d("AI_DEBUG", "CANCEL API Call");
+                    return;
+                }
 
                 isFetchingAiSuggestions = false;
                 updateAiSuggestionUiState();
