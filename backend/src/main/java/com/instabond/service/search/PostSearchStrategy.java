@@ -10,15 +10,18 @@ import com.instabond.repository.RelationshipRepository;
 import com.instabond.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +29,7 @@ public class PostSearchStrategy implements SearchStrategy {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final RelationshipRepository relationshipRepository;
+    private final MongoTemplate mongoTemplate;
 
     @Override
     public String getType() {
@@ -39,36 +43,64 @@ public class PostSearchStrategy implements SearchStrategy {
 
     @Override
     public List<?> search(String keyword, Pageable pageable, String userEmail) {
+        if (userEmail == null || userEmail.isBlank()) {
+            throw new ForbiddenOperationException("User must be logged in to search posts");
+        }
         User currentUser = resolveUserFromPrincipal(userEmail);
 
-        List<Post> posts = postRepository.searchPosts(keyword, pageable);
+        // Fetch a pool of posts to allow safe in-memory privacy filtering and pagination.
+        Query query = new Query();
 
-        return posts.stream()
-                // I. Media is empty => no display
-                .filter(post -> post.getMedia() != null && !post.getMedia().isEmpty())
+        // Search by keyword in caption or location
+        query.addCriteria(new Criteria().orOperator(
+                Criteria.where("caption").regex(keyword, "i"),
+                Criteria.where("location.name").regex(keyword, "i")
+        ));
 
-                // II. Process privacy
-                .filter(post -> {
-                    if (post.getAuthor_id().equals(currentUser.getId())) {
-                        return true;
-                    }
+        // Must contain media
+        query.addCriteria(Criteria.where("media").exists(true).not().size(0));
 
-                    User author = userRepository.findById(post.getAuthor_id()).orElse(null);
-                    if (author == null) return false;
+        if (pageable.getSort().isEmpty()) {
+            query.with(pageable.getSort());
+        } else {
+            query.with(Sort.by(Sort.Direction.DESC, "created_at"));
+        }
 
-                    boolean isPrivate = author.getSettings() != null
-                            && Boolean.TRUE.equals(author.getSettings().getIs_private());
+        query.limit(500);
 
-                    // No private
-                    if (!isPrivate) {
-                        return true;
-                    }
+        List<Post> poolPosts = mongoTemplate.find(query, Post.class);
 
-                    // Private => check relationship
-                    return relationshipRepository.findByRequesterIdAndRecipientId(currentUser.getId(), author.getId())
-                            .map(relationship -> "ACCEPTED".equals(relationship.getStatus()))
-                            .orElse(false);
-                })
+        if (poolPosts.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Batch load Authors and Relationships
+
+        Set<String> authorIds = poolPosts.stream()
+                .map(Post::getAuthor_id)
+                .collect(Collectors.toSet());
+
+        Map<String, User> authorsMap = userRepository.findAllById(authorIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        Set<String> acceptedFollowingIds = getAcceptedFollowingIds(currentUser.getId());
+
+        // In-memory privacy filtering & In-memory pagination
+
+        List<Post> visiblePosts = poolPosts.stream()
+                .filter(post -> isPostVisibleToUser(post, currentUser, authorsMap, acceptedFollowingIds))
+                .collect(Collectors.toList());
+
+        int fromIndex = (int) pageable.getOffset();
+        if (fromIndex >= visiblePosts.size()) {
+            return Collections.emptyList();
+        }
+
+        int toIndex = Math.min(fromIndex + pageable.getPageSize(), visiblePosts.size());
+
+        // Map to DTO
+
+        return visiblePosts.subList(fromIndex, toIndex).stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
@@ -84,63 +116,50 @@ public class PostSearchStrategy implements SearchStrategy {
         }
         User currentUser = resolveUserFromPrincipal(userEmail);
 
-        List<String> shuffledIds = postRepository.findAllPostIds().stream()
-                .map(PostRepository.PostIdProjection::getId)
-                .filter(id -> id != null && !id.isBlank())
+        // Fetch a limited pool of posts that have media
+        Query query = new Query(Criteria.where("media").exists(true).not().size(0))
+                .with(Sort.by(Sort.Direction.DESC, "created_at"))
+                .limit(500);
+
+        List<Post> poolPosts = mongoTemplate.find(query, Post.class);
+
+        if (poolPosts.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Batch load Authors to prevent N+1 queries
+        Set<String> authorIds = poolPosts.stream()
+                .map(Post::getAuthor_id)
+                .collect(Collectors.toSet());
+
+        Map<String, User> authorsMap = userRepository.findAllById(authorIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        // Batch load Relationships for privacy checks
+        Set<String> acceptedFollowingIds = getAcceptedFollowingIds(currentUser.getId());
+
+        // In-memory privacy filtering
+        List<Post> visiblePosts = poolPosts.stream()
+                .filter(post -> isPostVisibleToUser(post, currentUser, authorsMap, acceptedFollowingIds))
                 .collect(Collectors.toList());
 
-        if (shuffledIds.isEmpty()) {
-            return List.of();
-        }
+        // Deterministic shuffle for stable pagination
+        Collections.shuffle(visiblePosts, new Random(seed));
 
-        Collections.shuffle(shuffledIds, new Random(seed));
-
+        // Paginate the filtered results securely
         int fromIndex = (int) pageable.getOffset();
-        if (fromIndex >= shuffledIds.size()) {
-            return List.of();
+        if (fromIndex >= visiblePosts.size()) {
+            return Collections.emptyList();
         }
 
-        int toIndex = Math.min(fromIndex + pageable.getPageSize(), shuffledIds.size());
-        List<String> pagedIds = shuffledIds.subList(fromIndex, toIndex);
+        int toIndex = Math.min(fromIndex + pageable.getPageSize(), visiblePosts.size());
 
-        // Query posts
-        List<Post> posts = postRepository.findByIdIn(pagedIds);
-
-        Map<String, Integer> orderIndex = IntStream.range(0, pagedIds.size())
-                .boxed()
-                .collect(Collectors.toMap(pagedIds::get, i -> i));
-
-        posts.sort(Comparator.comparingInt(post -> orderIndex.getOrDefault(post.getId(), Integer.MAX_VALUE)));
-
-        return posts.stream()
-                // I. Media is empty => no display
-                .filter(post -> post.getMedia() != null && !post.getMedia().isEmpty())
-
-                // II. Process privacy
-                .filter(post -> {
-                    if (post.getAuthor_id().equals(currentUser.getId())) {
-                        return true;
-                    }
-
-                    User author = userRepository.findById(post.getAuthor_id()).orElse(null);
-                    if (author == null) return false;
-
-                    boolean isPrivate = author.getSettings() != null
-                            && Boolean.TRUE.equals(author.getSettings().getIs_private());
-
-                    // No private
-                    if (!isPrivate) {
-                        return true;
-                    }
-
-                    // Private => check relationship
-                    return relationshipRepository.findByRequesterIdAndRecipientId(currentUser.getId(), author.getId())
-                            .map(relationship -> "ACCEPTED".equals(relationship.getStatus()))
-                            .orElse(false);
-                })
+        return visiblePosts.subList(fromIndex, toIndex).stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
+
+    // HELPER METHODS
 
     private PostSearchDTO mapToDTO(Post post) {
         String thumbnailUrl = null;
@@ -159,6 +178,40 @@ public class PostSearchStrategy implements SearchStrategy {
                 .likes(likes)
                 .comments(comments)
                 .build();
+    }
+
+    private boolean isPostVisibleToUser(Post post, User currentUser, Map<String, User> authorsMap, Set<String> acceptedFollowingIds) {
+        String authorId = post.getAuthor_id();
+
+        if (authorId.equals(currentUser.getId())) {
+            return true;
+        }
+
+        User author = authorsMap.get(authorId);
+        if (author == null) {
+            return false;
+        }
+
+        boolean isPrivate = author.getSettings() != null && Boolean.TRUE.equals(author.getSettings().getIs_private());
+
+        if (!isPrivate) {
+            return true;
+        }
+
+        return acceptedFollowingIds.contains(authorId);
+    }
+
+    private Set<String> getAcceptedFollowingIds(String userId) {
+        Query query = new Query(new Criteria().andOperator(
+                Criteria.where("requester_id").is(userId),
+                Criteria.where("status").is("ACCEPTED")
+        ));
+
+        return mongoTemplate.find(query, Map.class, "relationships").stream()
+                .map(map -> map.get("recipient_id"))
+                .filter(java.util.Objects::nonNull)
+                .map(Object::toString)
+                .collect(Collectors.toSet());
     }
 
     // Mapper

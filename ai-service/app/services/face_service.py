@@ -73,7 +73,7 @@ async def process_face_tagging(image_url: str):
                 max_similarity = similarity
                 best_match_user_id = str(user["_id"])
 
-        if max_similarity > 0.4:
+        if max_similarity > 0.3:
             detected_faces.append({
                 "matched_user_id": best_match_user_id,
                 "confidence": round(float(max_similarity), 4),
