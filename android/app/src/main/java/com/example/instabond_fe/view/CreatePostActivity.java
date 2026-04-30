@@ -129,8 +129,6 @@ public class CreatePostActivity extends AppCompatActivity {
         setupBottomNav();
         setupFilterStrip();
         setupActions();
-        styleSwitch(binding.switchFacebook);
-        styleSwitch(binding.switchTwitter);
         updateAiSuggestionUiState();
         updateOptionSummaries();
         renderEditorState();
@@ -964,23 +962,6 @@ public class CreatePostActivity extends AppCompatActivity {
         });
     }
 
-    private void styleSwitch(SwitchMaterial materialSwitch) {
-        int[][] states = new int[][]{
-                new int[]{android.R.attr.state_checked},
-                new int[]{-android.R.attr.state_checked}
-        };
-        int[] thumbColors = new int[]{
-                ContextCompat.getColor(this, R.color.create_post_switch_thumb_on),
-                ContextCompat.getColor(this, R.color.create_post_switch_thumb_off)
-        };
-        int[] trackColors = new int[]{
-                ContextCompat.getColor(this, R.color.create_post_switch_track_on),
-                ContextCompat.getColor(this, R.color.create_post_switch_track_off)
-        };
-        materialSwitch.setThumbTintList(new ColorStateList(states, thumbColors));
-        materialSwitch.setTrackTintList(new ColorStateList(states, trackColors));
-    }
-
     private int dp(int value) {
         return Math.round(getResources().getDisplayMetrics().density * value);
     }
@@ -993,8 +974,6 @@ public class CreatePostActivity extends AppCompatActivity {
         binding.cardLocation.setEnabled(!loading);
         binding.cardTagPeople.setEnabled(!loading);
         binding.cardMusic.setEnabled(!loading);
-        binding.switchFacebook.setEnabled(!loading);
-        binding.switchTwitter.setEnabled(!loading);
         binding.btnPost.setText(loading
                 ? getString(R.string.create_post_posting)
                 : getString(R.string.create_post_post));
