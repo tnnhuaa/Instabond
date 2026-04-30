@@ -1,0 +1,96 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Instabond – Full Stack Compose
+#
+#  Services:
+#    redis       – In-memory store for presence/online-status tracking
+#    ai-service  – FastAPI ML microservice (embeddings, face, music)
+#    backend     – Spring Boot REST + WebSocket API
+#
+#  External dependencies (cloud, no local container needed):
+#    • MongoDB Atlas  – used by both backend and ai-service via env vars
+#    • Cloudinary     – used by backend via env vars
+#    • Gmail SMTP     – used by backend via env vars
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - instabond-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── AI Service ─────────────────────────────────────────────────────────────
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    image: instabond-ai-service
+    container_name: instabond-ai-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./ai-service/.env
+    volumes:
+      # Cache Hugging Face models between container restarts
+      - hf-model-cache:/root/.cache/huggingface
+      # Cache additional Torch hub models
+      - torch-hub-cache:/root/.cache/torch
+    networks:
+      - instabond-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s   # extra time for first-run model downloads
+
+  # ── Backend ────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: instabond-backend
+    container_name: instabond-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./backend/.env
+    environment:
+      # Override Redis to use the compose service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_SSL_ENABLED: "false"
+      PRESENCE_REDIS_ENABLED: "true"
+      # Point to the compose ai-service
+      # Spring Boot relaxed binding: AI_SERVICE_URL -> ai.service.url
+      AI_SERVICE_URL: http://ai-service:8000
+    depends_on:
+      redis:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    networks:
+      - instabond-net
+
+# ── Shared network ─────────────────────────────────────────────────────────
+networks:
+  instabond-net:
+    driver: bridge
+
+# ── Named volumes for model caches ────────────────────────────────────────
+volumes:
+  hf-model-cache:
+  torch-hub-cache:

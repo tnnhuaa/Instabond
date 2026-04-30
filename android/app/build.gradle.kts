@@ -34,7 +34,7 @@ android {
             buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
         }
 
-        create("luan_phone") {
+        create("phone") {
             initWith(getByName("debug"))
             buildConfigField("String", "BASE_URL", "\"http://172.20.10.5:8080/\"")
             matchingFallbacks.add("debug")
