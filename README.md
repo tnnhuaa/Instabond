@@ -160,6 +160,14 @@ The system includes 3 main services and 1 mobile application. You can choose to 
 - PowerShell on Windows
 - Internet connection for the first AI model download
 
+### Environment Setup
+
+Before running the services, you must configure the environment variables:
+
+1. **Backend**: Copy `backend/.env.sample` to `backend/.env` and fill in your Cloudinary, MongoDB Atlas, and Mail credentials.
+
+2. **AI Service**: Copy `ai-service/.env.sample` to `ai-service/.env` and configure your database and model settings.
+
 ### Method 1: Running with Docker (Recommended)
 
 This is the fastest way to start the entire infrastructure (including Redis).
@@ -198,17 +206,12 @@ python -m venv .venv
 \.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
-python -m pip install "numpy<2"
 ```
 
 **Run Service:**
 
 ```powershell
-# Normal run
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-
-# Run with auto-reload for development
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+python -m app.main
 ```
 
 #### 3. Backend (Spring Boot)
@@ -219,14 +222,6 @@ Note: If the `.mvn` directory is missing, run `mvn wrapper:wrapper` first.
 
 ```powershell
 cd backend
-# Set environment variables
-$env:MONGODB_URI="mongodb://localhost:27017/instabond"
-$env:CLOUDINARY_CLOUD_NAME="your_cloud_name"
-$env:CLOUDINARY_API_KEY="your_api_key"
-$env:CLOUDINARY_API_SECRET="your_api_secret"
-$env:JWT_SECRET_KEY="your_jwt_secret"
-$env:MAIL_USERNAME="your_email@gmail.com"
-$env:MAIL_PASSWORD="your_app_password"
 
 # Start
 .\mvnw.cmd spring-boot:run
