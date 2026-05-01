@@ -42,6 +42,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import com.example.instabond_fe.model.FollowUserResponse;
+import com.example.instabond_fe.InstabondApplication;
 
 public class NewsfeedActivity extends AppCompatActivity {
     @Override
@@ -340,13 +341,10 @@ public class NewsfeedActivity extends AppCompatActivity {
                 isRequestInFlight = false;
                 if (fromRefresh) binding.swipeRefreshFeed.setRefreshing(false);
 
-                if (response.code() == 401) {
-                    handleUnauthorized();
-                    return;
-                }
-
                 if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(NewsfeedActivity.this, "Failed to load Newsfeed", Toast.LENGTH_SHORT).show();
+                    if (sessionManager.isLoggedIn()) {
+                        Toast.makeText(NewsfeedActivity.this, "Failed to load Newsfeed", Toast.LENGTH_SHORT).show();
+                    }
                     return;
                 }
 
@@ -371,7 +369,9 @@ public class NewsfeedActivity extends AppCompatActivity {
             public void onFailure(Call<JsonElement> call, Throwable t) {
                 isRequestInFlight = false;
                 if (fromRefresh) binding.swipeRefreshFeed.setRefreshing(false);
-                Toast.makeText(NewsfeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(NewsfeedActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -566,14 +566,6 @@ public class NewsfeedActivity extends AppCompatActivity {
         Intent intent = new Intent(this, StoryViewerActivity.class);
         intent.putExtra(StoryViewerActivity.EXTRA_STORIES, new ArrayList<>(authorStories));
         intent.putExtra(StoryViewerActivity.EXTRA_STORY_INDEX, storyIndex);
-        startActivity(intent);
-    }
-
-    private void handleUnauthorized() {
-        sessionManager.clearSession();
-        Toast.makeText(this, "Session expired", Toast.LENGTH_SHORT).show();
-        Intent intent = new Intent(this, SignInActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
     }
 }

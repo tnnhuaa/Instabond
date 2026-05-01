@@ -31,6 +31,7 @@ public class FriendSuggestionCardAdapter extends RecyclerView.Adapter<FriendSugg
     private final List<FollowUserResponse> suggestions;
     private final Context context;
     private final ApiService apiService;
+    private final com.example.instabond_fe.network.SessionManager sessionManager;
     private OnFollowListener listener;
 
     private enum FollowButtonState {
@@ -50,6 +51,7 @@ public class FriendSuggestionCardAdapter extends RecyclerView.Adapter<FriendSugg
         }
         this.context = context;
         this.apiService = apiService;
+        this.sessionManager = new com.example.instabond_fe.network.SessionManager(context);
     }
 
     public void setListener(OnFollowListener listener) {
@@ -108,14 +110,18 @@ public class FriendSuggestionCardAdapter extends RecyclerView.Adapter<FriendSugg
                     }
                 } else {
                     applyFollowButtonState(holder, FollowButtonState.FOLLOW);
-                    Toast.makeText(context, "Theo dõi thất bại", Toast.LENGTH_SHORT).show();
+                    if (sessionManager.isLoggedIn()) {
+                        Toast.makeText(context, "Theo dõi thất bại", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
 
             @Override
             public void onFailure(Call<FollowUserResponse> call, Throwable t) {
                 applyFollowButtonState(holder, FollowButtonState.FOLLOW);
-                Toast.makeText(context, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(context, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }

@@ -106,6 +106,9 @@
     <string name="msg_profile_update_failed">Profile update failed</string>
     <string name="msg_profile_updated">Profile updated</string>
     <string name="msg_login_expired">Login session expired</string>
+    <string name="session_expired_title">Session expired</string>
+    <string name="session_expired_action_ok">OK</string>
+    <string name="session_expired_action_close">Close</string>
     <string name="msg_logged_out">Logged out</string>
     <string name="msg_connection_error">Connection error: %1$s</string>
     <string name="msg_update_error">Update error: %1$s</string>

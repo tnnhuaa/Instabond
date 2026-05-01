@@ -6,6 +6,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.instabond_fe.InstabondApplication;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivitySettingsBinding;
 import com.example.instabond_fe.model.ChangePasswordRequest;
@@ -110,11 +111,6 @@ public class SettingsActivity extends AppCompatActivity {
         apiService.getMe().enqueue(new Callback<UserProfileResponse>() {
             @Override
             public void onResponse(Call<UserProfileResponse> call, Response<UserProfileResponse> response) {
-                if (response.code() == 401) {
-                    handleUnauthorized();
-                    return;
-                }
-
                 if (response.isSuccessful() && response.body() != null) {
                     UserProfileResponse me = response.body();
                     if (me.getId() != null) {
@@ -142,18 +138,22 @@ public class SettingsActivity extends AppCompatActivity {
                     setUiEnabled(true);
                 } else {
                     setUiEnabled(true);
-                    Toast.makeText(SettingsActivity.this, "Could not load profile", Toast.LENGTH_SHORT).show();
+                    if (sessionManager.isLoggedIn()) {
+                        Toast.makeText(SettingsActivity.this, "Could not load profile", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
 
             @Override
             public void onFailure(Call<UserProfileResponse> call, Throwable t) {
                 setUiEnabled(true);
-                Toast.makeText(
-                        SettingsActivity.this,
-                        getString(R.string.msg_connection_error, t.getMessage()),
-                        Toast.LENGTH_SHORT
-                ).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(
+                            SettingsActivity.this,
+                            getString(R.string.msg_connection_error, t.getMessage()),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
             }
         });
     }
@@ -193,7 +193,7 @@ public class SettingsActivity extends AppCompatActivity {
                     currentTagPreference = normalizeTagPreference(response.body().getAllowTagging());
                     updateTagPreferenceUi();
                     Toast.makeText(SettingsActivity.this, R.string.msg_profile_updated, Toast.LENGTH_SHORT).show();
-                } else {
+                } else if (sessionManager.isLoggedIn()) {
                     Toast.makeText(
                             SettingsActivity.this,
                             getString(R.string.msg_update_error, getString(R.string.allow_tagging_label)),
@@ -205,11 +205,13 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<UpdateAllowTaggingResponse> call, Throwable t) {
                 setUiEnabled(true);
-                Toast.makeText(
-                        SettingsActivity.this,
-                        getString(R.string.msg_update_error, t.getMessage()),
-                        Toast.LENGTH_SHORT
-                ).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(
+                            SettingsActivity.this,
+                            getString(R.string.msg_update_error, t.getMessage()),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
             }
         });
     }
@@ -267,21 +269,23 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<UserProfileResponse> call, Response<UserProfileResponse> response) {
                 setUiEnabled(true);
-                Toast.makeText(
-                        SettingsActivity.this,
-                        response.isSuccessful() ? R.string.msg_profile_updated : R.string.msg_profile_update_failed,
-                        Toast.LENGTH_SHORT
-                ).show();
+                if (response.isSuccessful()) {
+                    Toast.makeText(SettingsActivity.this, R.string.msg_profile_updated, Toast.LENGTH_SHORT).show();
+                } else if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(SettingsActivity.this, R.string.msg_profile_update_failed, Toast.LENGTH_SHORT).show();
+                }
             }
 
             @Override
             public void onFailure(Call<UserProfileResponse> call, Throwable t) {
                 setUiEnabled(true);
-                Toast.makeText(
-                        SettingsActivity.this,
-                        getString(R.string.msg_connection_error, t.getMessage()),
-                        Toast.LENGTH_SHORT
-                ).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(
+                            SettingsActivity.this,
+                            getString(R.string.msg_connection_error, t.getMessage()),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
             }
         });
     }
@@ -298,11 +302,6 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<UserProfileResponse> call, Response<UserProfileResponse> response) {
                 isUpdatingPrivacy = false;
-
-                if (response.code() == 401) {
-                    handleUnauthorized();
-                    return;
-                }
 
                 if (response.isSuccessful()) {
                     UserProfileResponse body = response.body();
@@ -322,7 +321,9 @@ public class SettingsActivity extends AppCompatActivity {
                 } else {
                     setPrivacyToggleCheckedSilently(currentPrivacyState);
                     setPrivacyToggleEnabled(true);
-                    Toast.makeText(SettingsActivity.this, "Could not update privacy", Toast.LENGTH_SHORT).show();
+                    if (sessionManager.isLoggedIn()) {
+                        Toast.makeText(SettingsActivity.this, "Could not update privacy", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
 
@@ -331,11 +332,13 @@ public class SettingsActivity extends AppCompatActivity {
                 isUpdatingPrivacy = false;
                 setPrivacyToggleCheckedSilently(currentPrivacyState);
                 setPrivacyToggleEnabled(true);
-                Toast.makeText(
-                        SettingsActivity.this,
-                        getString(R.string.msg_connection_error, t.getMessage()),
-                        Toast.LENGTH_SHORT
-                ).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(
+                            SettingsActivity.this,
+                            getString(R.string.msg_connection_error, t.getMessage()),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
             }
         });
     }
@@ -382,11 +385,6 @@ public class SettingsActivity extends AppCompatActivity {
                     public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                         setChangePasswordEnabled(true);
 
-                        if (response.code() == 401) {
-                            handleUnauthorized();
-                            return;
-                        }
-
                         if (response.isSuccessful()) {
                             binding.etCurrentPassword.setText("");
                             binding.etNewPassword.setText("");
@@ -401,17 +399,21 @@ public class SettingsActivity extends AppCompatActivity {
                             errorText = getString(R.string.settings_change_password_failed);
                         }
                         applyPasswordErrorToField(errorText);
-                        Toast.makeText(SettingsActivity.this, errorText, Toast.LENGTH_SHORT).show();
+                        if (sessionManager.isLoggedIn()) {
+                            Toast.makeText(SettingsActivity.this, errorText, Toast.LENGTH_SHORT).show();
+                        }
                     }
 
                     @Override
                     public void onFailure(Call<ResponseBody> call, Throwable t) {
                         setChangePasswordEnabled(true);
-                        Toast.makeText(
-                                SettingsActivity.this,
-                                getString(R.string.msg_connection_error, t.getMessage()),
-                                Toast.LENGTH_SHORT
-                        ).show();
+                        if (sessionManager.isLoggedIn()) {
+                            Toast.makeText(
+                                    SettingsActivity.this,
+                                    getString(R.string.msg_connection_error, t.getMessage()),
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                        }
                     }
                 });
     }
@@ -534,15 +536,6 @@ public class SettingsActivity extends AppCompatActivity {
         suppressThemeToggleListener = true;
         binding.swTheme.setChecked(ThemePreferenceManager.isDarkModeEnabled(this));
         suppressThemeToggleListener = false;
-    }
-
-    private void handleUnauthorized() {
-        ChatRepository.getInstance(this).disconnectRealtime();
-        sessionManager.clearSession();
-        Intent intent = new Intent(this, SignInActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
     }
 
     private void logout() {

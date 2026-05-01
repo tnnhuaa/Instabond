@@ -13,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import com.example.instabond_fe.InstabondApplication;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityProfileBinding;
 import com.example.instabond_fe.model.FollowUserResponse;
@@ -326,7 +327,9 @@ public class ProfileActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<UserProfileResponse> call, Throwable t) {
-                Toast.makeText(ProfileActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(ProfileActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -335,7 +338,9 @@ public class ProfileActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<UserProfileResponse> call, Response<UserProfileResponse> response) {
                 if (response.code() == 404) {
-                    Toast.makeText(ProfileActivity.this, "Không tìm thấy người dùng", Toast.LENGTH_SHORT).show();
+                    if (sessionManager.isLoggedIn()) {
+                        Toast.makeText(ProfileActivity.this, "Không tìm thấy người dùng", Toast.LENGTH_SHORT).show();
+                    }
                     finish();
                     return;
                 }
@@ -344,20 +349,19 @@ public class ProfileActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<UserProfileResponse> call, Throwable t) {
-                Toast.makeText(ProfileActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(ProfileActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
 
 
     private void handleProfileResponse(Response<UserProfileResponse> response) {
-        if (response.code() == 401) {
-            handleUnauthorized();
-            return;
-        }
-
         if (!response.isSuccessful() || response.body() == null) {
-            Toast.makeText(ProfileActivity.this, "Không tải được hồ sơ", Toast.LENGTH_SHORT).show();
+            if (sessionManager.isLoggedIn()) {
+                Toast.makeText(ProfileActivity.this, "Không tải được hồ sơ", Toast.LENGTH_SHORT).show();
+            }
             return;
         }
 
@@ -475,10 +479,6 @@ public class ProfileActivity extends AppCompatActivity {
         apiService.getPostsByUserId(userId).enqueue(new Callback<JsonElement>() {
             @Override
             public void onResponse(Call<JsonElement> call, Response<JsonElement> response) {
-                if (response.code() == 401) {
-                    handleUnauthorized();
-                    return;
-                }
                 if (!response.isSuccessful() || response.body() == null) {
                     return;
                 }
@@ -821,19 +821,18 @@ public class ProfileActivity extends AppCompatActivity {
         apiService.resolveProfile(normalizedPayload).enqueue(new Callback<UserProfileResponse>() {
             @Override
             public void onResponse(Call<UserProfileResponse> call, Response<UserProfileResponse> response) {
-                if (response.code() == 401) {
-                    handleUnauthorized();
-                    return;
-                }
-
                 if (response.code() == 404) {
-                    Toast.makeText(ProfileActivity.this, "Không tìm thấy người dùng", Toast.LENGTH_SHORT).show();
+                    if (sessionManager.isLoggedIn()) {
+                        Toast.makeText(ProfileActivity.this, "Không tìm thấy người dùng", Toast.LENGTH_SHORT).show();
+                    }
                     finish();
                     return;
                 }
 
                 if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(ProfileActivity.this, "Không thể mở hồ sơ từ QR", Toast.LENGTH_SHORT).show();
+                    if (sessionManager.isLoggedIn()) {
+                        Toast.makeText(ProfileActivity.this, "Không thể mở hồ sơ từ QR", Toast.LENGTH_SHORT).show();
+                    }
                     return;
                 }
 
@@ -853,7 +852,9 @@ public class ProfileActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<UserProfileResponse> call, Throwable t) {
-                Toast.makeText(ProfileActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(ProfileActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -876,11 +877,7 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void handleUnauthorized() {
-        sessionManager.clearSession();
-        Toast.makeText(this, "Phiên đăng nhập đã hết hạn", Toast.LENGTH_SHORT).show();
-        Intent intent = new Intent(this, SignInActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+        ((InstabondApplication) getApplication()).notifySessionExpired();
     }
 
     private void openSettings() {
@@ -929,7 +926,7 @@ public class ProfileActivity extends AppCompatActivity {
                         Toast.makeText(ProfileActivity.this, "Cập nhật ảnh đại diện thành công", Toast.LENGTH_SHORT)
                                 .show();
                         loadMyProfile();
-                    } else {
+                    } else if (sessionManager.isLoggedIn()) {
                         Toast.makeText(ProfileActivity.this, "Cập nhật thất bại", Toast.LENGTH_SHORT).show();
                     }
                 }
@@ -937,9 +934,11 @@ public class ProfileActivity extends AppCompatActivity {
                 @Override
                 public void onFailure(Call<UserProfileResponse> call, Throwable t) {
                     binding.btnEditAvatar.setEnabled(true);
-                    Toast.makeText(ProfileActivity.this,
-                            "Lỗi tải lên: " + t.getMessage(),
-                            Toast.LENGTH_SHORT).show();
+                    if (sessionManager.isLoggedIn()) {
+                        Toast.makeText(ProfileActivity.this,
+                                "Lỗi tải lên: " + t.getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
                 }
             });
         } catch (Exception e) {
@@ -1049,14 +1048,16 @@ public class ProfileActivity extends AppCompatActivity {
                 if (response.isSuccessful()) {
                     Toast.makeText(ProfileActivity.this, "Đã chặn người dùng", Toast.LENGTH_SHORT).show();
                     finish();
-                } else {
+                } else if (sessionManager.isLoggedIn()) {
                     Toast.makeText(ProfileActivity.this, "Chặn thất bại", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<Void> call, Throwable t) {
-                Toast.makeText(ProfileActivity.this, "Lỗi: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(ProfileActivity.this, "Lỗi: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -1073,7 +1074,9 @@ public class ProfileActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<java.util.List<FollowUserResponse>> call, Throwable t) {
-                Toast.makeText(ProfileActivity.this, "Lỗi tải gợi ý", Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(ProfileActivity.this, "Lỗi tải gợi ý", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -1147,7 +1150,7 @@ public class ProfileActivity extends AppCompatActivity {
 
                     // Reload profile
                     loadMyProfile();
-                } else {
+                } else if (sessionManager.isLoggedIn()) {
                     Toast.makeText(ProfileActivity.this, R.string.toast_delete_face_failed, Toast.LENGTH_SHORT).show();
                 }
             }
@@ -1157,7 +1160,9 @@ public class ProfileActivity extends AppCompatActivity {
                 // Revert UI from loading state
                 binding.progressDeleteFace.setVisibility(View.GONE);
                 binding.btnDeleteFace.setVisibility(View.VISIBLE);
-                Toast.makeText(ProfileActivity.this, getString(R.string.toast_delete_face_error, t.getMessage()), Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(ProfileActivity.this, getString(R.string.toast_delete_face_error, t.getMessage()), Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }

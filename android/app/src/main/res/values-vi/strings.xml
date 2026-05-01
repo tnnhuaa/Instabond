@@ -119,6 +119,9 @@
     <string name="msg_profile_update_failed">Cập nhật profile thất bại</string>
     <string name="msg_profile_updated">Đã cập nhật profile</string>
     <string name="msg_login_expired">Phiên đăng nhập đã hết hạn</string>
+    <string name="session_expired_title">Phiên đăng nhập đã hết hạn</string>
+    <string name="session_expired_action_ok">OK</string>
+    <string name="session_expired_action_close">Đóng</string>
     <string name="msg_logged_out">Đã đăng xuất</string>
     <string name="msg_connection_error">Lỗi kết nối: %1$s</string>
     <string name="msg_update_error">Lỗi cập nhật: %1$s</string>

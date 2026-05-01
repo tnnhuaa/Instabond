@@ -652,12 +652,10 @@ public class CreatePostActivity extends AppCompatActivity {
             public void onResponse(@NonNull Call<PostResponse> call,
                                    @NonNull Response<PostResponse> response) {
                 setLoading(false);
-                if (response.code() == 401) {
-                    Toast.makeText(CreatePostActivity.this, R.string.msg_login_expired, Toast.LENGTH_SHORT).show();
-                    return;
-                }
                 if (!response.isSuccessful()) {
-                    Toast.makeText(CreatePostActivity.this, R.string.create_post_failed, Toast.LENGTH_SHORT).show();
+                    if (sessionManager.isLoggedIn()) {
+                        Toast.makeText(CreatePostActivity.this, R.string.create_post_failed, Toast.LENGTH_SHORT).show();
+                    }
                     return;
                 }
                 Toast.makeText(CreatePostActivity.this, R.string.create_post_success, Toast.LENGTH_SHORT).show();
@@ -667,11 +665,13 @@ public class CreatePostActivity extends AppCompatActivity {
             @Override
             public void onFailure(@NonNull Call<PostResponse> call, @NonNull Throwable t) {
                 setLoading(false);
-                Toast.makeText(
-                        CreatePostActivity.this,
-                        getString(R.string.msg_connection_error, t.getMessage()),
-                        Toast.LENGTH_SHORT
-                ).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(
+                            CreatePostActivity.this,
+                            getString(R.string.msg_connection_error, t.getMessage()),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
             }
         });
     }

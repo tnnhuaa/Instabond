@@ -62,6 +62,7 @@ public class FaceRegistrationActivity extends AppCompatActivity {
     private long lastCaptureTime = 0;
 
     private ApiService apiService;
+    private com.example.instabond_fe.network.SessionManager sessionManager;
 
     // --- State Machine ---
     private enum FaceStep {
@@ -90,6 +91,7 @@ public class FaceRegistrationActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         apiService = ApiClient.getApiService(this);
+        sessionManager = new com.example.instabond_fe.network.SessionManager(this);
         binding.btnClose.setOnClickListener(v -> finish());
 
         // First instruction
@@ -327,7 +329,9 @@ public class FaceRegistrationActivity extends AppCompatActivity {
     }
 
     private void handleError() {
-        Toast.makeText(this, getString(R.string.face_register_failed_retry), Toast.LENGTH_SHORT).show();
+        if (sessionManager.isLoggedIn()) {
+            Toast.makeText(this, getString(R.string.face_register_failed_retry), Toast.LENGTH_SHORT).show();
+        }
         capturedFaces.clear();
         isProcessingApi = false;
         currentStep = FaceStep.STRAIGHT;

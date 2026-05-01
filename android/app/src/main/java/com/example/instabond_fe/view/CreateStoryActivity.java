@@ -497,12 +497,10 @@ public class CreateStoryActivity extends AppCompatActivity {
                 public void onResponse(@NonNull Call<StoryResponse> call,
                                        @NonNull Response<StoryResponse> response) {
                     setLoading(false);
-                    if (response.code() == 401) {
-                        Toast.makeText(CreateStoryActivity.this, R.string.msg_login_expired, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
                     if (!response.isSuccessful()) {
-                        Toast.makeText(CreateStoryActivity.this, R.string.story_create_failed, Toast.LENGTH_SHORT).show();
+                        if (sessionManager.isLoggedIn()) {
+                            Toast.makeText(CreateStoryActivity.this, R.string.story_create_failed, Toast.LENGTH_SHORT).show();
+                        }
                         return;
                     }
                     Toast.makeText(CreateStoryActivity.this, R.string.story_create_success, Toast.LENGTH_SHORT).show();
@@ -512,11 +510,13 @@ public class CreateStoryActivity extends AppCompatActivity {
                 @Override
                 public void onFailure(@NonNull Call<StoryResponse> call, @NonNull Throwable t) {
                     setLoading(false);
-                    Toast.makeText(
-                            CreateStoryActivity.this,
-                            getString(R.string.msg_connection_error, t.getMessage()),
-                            Toast.LENGTH_SHORT
-                    ).show();
+                    if (sessionManager.isLoggedIn()) {
+                        Toast.makeText(
+                                CreateStoryActivity.this,
+                                getString(R.string.msg_connection_error, t.getMessage()),
+                                Toast.LENGTH_SHORT
+                        ).show();
+                    }
                 }
             });
         } catch (IOException e) {
