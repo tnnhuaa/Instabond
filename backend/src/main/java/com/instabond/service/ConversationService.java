@@ -191,6 +191,7 @@ public class ConversationService {
         return relationshipRepository.findByRequesterIdAndRecipientIdIn(requesterId, cleanedRecipientIds)
                 .stream()
                 .filter(relationship -> relationship.getRecipient_id() != null)
+                .filter(relationship -> relationship.getStreak() != null)
                 .collect(Collectors.toMap(
                         Relationship::getRecipient_id,
                         Relationship::getStreak,
