@@ -36,6 +36,7 @@ public class BookmarksActivity extends AppCompatActivity {
     private PostAdapter adapter;
     private ApiService apiService;
     private final Gson gson = new Gson();
+    private com.example.instabond_fe.network.SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +45,7 @@ public class BookmarksActivity extends AppCompatActivity {
         getWindow().setStatusBarColor(Color.TRANSPARENT);
 
         apiService = ApiClient.getApiService(this);
+        sessionManager = new com.example.instabond_fe.network.SessionManager(this);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -183,7 +185,9 @@ public class BookmarksActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<JsonElement> call, Throwable t) {
-                Toast.makeText(BookmarksActivity.this, "Lỗi tải bookmarks", Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(BookmarksActivity.this, "Lỗi tải bookmarks", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }

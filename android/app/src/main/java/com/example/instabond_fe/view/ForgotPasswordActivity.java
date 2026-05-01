@@ -27,6 +27,7 @@ public class ForgotPasswordActivity extends AppCompatActivity {
 
     private ActivityForgotPasswordBinding binding;
     private ApiService apiService;
+    private com.example.instabond_fe.network.SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,6 +37,7 @@ public class ForgotPasswordActivity extends AppCompatActivity {
         getWindow().setStatusBarColor(Color.TRANSPARENT);
 
         apiService = ApiClient.getApiService(this);
+        sessionManager = new com.example.instabond_fe.network.SessionManager(this);
 
         binding.btnBack.setOnClickListener(v -> finish());
         binding.btnSendOtp.setOnClickListener(v -> handleSendOtp());
@@ -58,7 +60,7 @@ public class ForgotPasswordActivity extends AppCompatActivity {
                     Intent intent = new Intent(ForgotPasswordActivity.this, ResetPasswordActivity.class);
                     intent.putExtra("EMAIL", email);
                     startActivity(intent);
-                } else {
+                } else if (sessionManager.isLoggedIn()) {
                     showError(response);
                 }
             }
@@ -66,7 +68,9 @@ public class ForgotPasswordActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 setLoading(false);
-                Toast.makeText(ForgotPasswordActivity.this, "Connection error", Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(ForgotPasswordActivity.this, "Connection error", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }

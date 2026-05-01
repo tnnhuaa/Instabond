@@ -107,7 +107,7 @@ public class FollowListActivity extends AppCompatActivity {
                 progressBar.setVisibility(View.GONE);
                 if (response.isSuccessful() && response.body() != null) {
                     adapter.setUsers(response.body());
-                } else {
+                } else if (sessionManager.isLoggedIn()) {
                     Toast.makeText(FollowListActivity.this, "Không thể tải danh sách", Toast.LENGTH_SHORT).show();
                 }
             }
@@ -115,7 +115,9 @@ public class FollowListActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<List<FollowUserResponse>> call, Throwable t) {
                 progressBar.setVisibility(View.GONE);
-                Toast.makeText(FollowListActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(FollowListActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+                }
             }
         };
 
@@ -135,14 +137,16 @@ public class FollowListActivity extends AppCompatActivity {
                     user.setCloseFriend(nextStatus);
                     adapter.notifyItemChanged(position);
                     Toast.makeText(FollowListActivity.this, "Đã cập nhật danh sách Bạn thân!", Toast.LENGTH_SHORT).show();
-                } else {
+                } else if (sessionManager.isLoggedIn()) {
                     Toast.makeText(FollowListActivity.this, "Lỗi từ Server", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<FollowUserResponse> call, Throwable t) {
-                Toast.makeText(FollowListActivity.this, "Lỗi mạng", Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(FollowListActivity.this, "Lỗi mạng", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -236,14 +240,16 @@ public class FollowListActivity extends AppCompatActivity {
                             if (response.isSuccessful()) {
                                 Toast.makeText(FollowListActivity.this, "Đã bỏ chặn", Toast.LENGTH_SHORT).show();
                                 loadBlockedUsers();
-                            } else {
+                            } else if (sessionManager.isLoggedIn()) {
                                 Toast.makeText(FollowListActivity.this, "Bỏ chặn thất bại", Toast.LENGTH_SHORT).show();
                             }
                         }
 
                         @Override
                         public void onFailure(Call<Void> call, Throwable t) {
-                            Toast.makeText(FollowListActivity.this, "Lỗi mạng", Toast.LENGTH_SHORT).show();
+                            if (sessionManager.isLoggedIn()) {
+                                Toast.makeText(FollowListActivity.this, "Lỗi mạng", Toast.LENGTH_SHORT).show();
+                            }
                         }
                     });
                     return;
@@ -296,7 +302,7 @@ public class FollowListActivity extends AppCompatActivity {
                 progressBar.setVisibility(View.GONE);
                 if (response.isSuccessful() && response.body() != null) {
                     adapter.setUsers(response.body());
-                } else {
+                } else if (sessionManager.isLoggedIn()) {
                     Toast.makeText(FollowListActivity.this, getString(R.string.blocked_users_empty), Toast.LENGTH_SHORT).show();
                 }
             }
@@ -304,7 +310,9 @@ public class FollowListActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<List<FollowUserResponse>> call, Throwable t) {
                 progressBar.setVisibility(View.GONE);
-                Toast.makeText(FollowListActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(FollowListActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -317,14 +325,16 @@ public class FollowListActivity extends AppCompatActivity {
                 progressBar.setVisibility(View.GONE);
                 if (response.isSuccessful() && response.body() != null) {
                     requestAdapter.setRequests(response.body());
-                } else {
+                } else if (sessionManager.isLoggedIn()) {
                     Toast.makeText(FollowListActivity.this, "Không thể tải yêu cầu: " + response.code(), Toast.LENGTH_SHORT).show();
                 }
             }
             @Override
             public void onFailure(Call<List<FollowUserResponse>> call, Throwable t) {
                 progressBar.setVisibility(View.GONE);
-                Toast.makeText(FollowListActivity.this, "Lỗi mạng", Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(FollowListActivity.this, "Lỗi mạng", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }

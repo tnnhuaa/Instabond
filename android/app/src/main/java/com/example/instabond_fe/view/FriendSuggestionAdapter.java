@@ -29,11 +29,13 @@ public class FriendSuggestionAdapter extends RecyclerView.Adapter<FriendSuggesti
     private final List<FollowUserResponse> suggestions;
     private final Context context;
     private final ApiService apiService;
+    private final com.example.instabond_fe.network.SessionManager sessionManager;
 
     public FriendSuggestionAdapter(List<FollowUserResponse> suggestions, Context context) {
         this.suggestions = suggestions;
         this.context = context;
         this.apiService = ApiClient.getApiService(context);
+        this.sessionManager = new com.example.instabond_fe.network.SessionManager(context);
     }
 
     @NonNull
@@ -76,7 +78,9 @@ public class FriendSuggestionAdapter extends RecyclerView.Adapter<FriendSuggesti
 
             @Override
             public void onFailure(Call<FollowUserResponse> call, Throwable t) {
-                Toast.makeText(context, "Lỗi: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(context, "Lỗi: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -102,5 +106,4 @@ public class FriendSuggestionAdapter extends RecyclerView.Adapter<FriendSuggesti
         }
     }
 }
-
 

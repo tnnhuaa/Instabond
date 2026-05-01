@@ -2,7 +2,6 @@ package com.example.instabond_fe.network;
 
 import com.example.instabond_fe.model.AuthRequest;
 import com.example.instabond_fe.model.AuthResponse;
-import com.example.instabond_fe.model.CreatePostRequest;
 import com.example.instabond_fe.model.ForgotPasswordRequest;
 import com.example.instabond_fe.model.Notification;
 import com.example.instabond_fe.model.NotificationPageResponse;
@@ -32,6 +31,7 @@ import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.DELETE;
 import retrofit2.http.GET;
+import retrofit2.http.Header;
 import retrofit2.http.Headers;
 import retrofit2.http.Multipart;
 import retrofit2.http.PATCH;
@@ -49,6 +49,9 @@ import com.example.instabond_fe.model.ChatMessageRequest;
 public interface ApiService {
     @POST("api/auth/login")
     Call<AuthResponse> login(@Body AuthRequest request);
+
+    @POST("api/auth/refresh")
+    Call<AuthResponse> refreshToken(@Header("Authorization") String refreshTokenHeader);
 
     @POST("api/auth/register")
     Call<AuthResponse> register(@Body AuthRequest request);

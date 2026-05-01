@@ -2,6 +2,7 @@ package com.example.instabond_fe;
 
 import android.app.Activity;
 import android.app.Application;
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -12,10 +13,13 @@ import com.example.instabond_fe.model.ConversationPageResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.repository.ChatRepository;
 import com.example.instabond_fe.repository.WebSocketManager;
 import com.example.instabond_fe.utils.MessagePopupHelper;
 import com.example.instabond_fe.utils.ThemePreferenceManager;
 import com.example.instabond_fe.view.ChatActivity;
+import com.example.instabond_fe.view.SignInActivity;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -26,6 +30,8 @@ public class InstabondApplication extends Application {
     private Activity currentActivity;
     private SessionManager sessionManager;
     private ApiService apiService;
+    private volatile boolean sessionExpiredPending;
+    private volatile boolean sessionExpiredDialogShowing;
 
     @Override
     public void onCreate() {
@@ -38,6 +44,9 @@ public class InstabondApplication extends Application {
             @Override
             public void onActivityResumed(@NonNull Activity activity) {
                 currentActivity = activity;
+                if (sessionExpiredPending) {
+                    showSessionExpiredDialog(activity);
+                }
             }
 
             @Override
@@ -98,5 +107,53 @@ public class InstabondApplication extends Application {
 
             @Override public void onFailure(@NonNull Call<ConversationPageResponse> call, @NonNull Throwable t) {}
         });
+    }
+
+    public void notifySessionExpired() {
+        sessionExpiredPending = true;
+        Activity activity = currentActivity;
+        if (activity != null) {
+            showSessionExpiredDialog(activity);
+        }
+    }
+
+    private void showSessionExpiredDialog(@NonNull Activity activity) {
+        if (sessionExpiredDialogShowing) {
+            return;
+        }
+        sessionExpiredDialogShowing = true;
+        activity.runOnUiThread(() -> {
+            if (activity.isFinishing() || activity.isDestroyed()) {
+                sessionExpiredDialogShowing = false;
+                return;
+            }
+
+            new MaterialAlertDialogBuilder(activity)
+                    .setTitle(R.string.session_expired_title)
+                    .setMessage(R.string.msg_login_expired)
+                    .setCancelable(false)
+                    .setPositiveButton(R.string.session_expired_action_ok, (dialog, which) -> {
+                        dialog.dismiss();
+                        forceLogout(activity);
+                    })
+                    .setNegativeButton(R.string.session_expired_action_close, (dialog, which) -> {
+                        dialog.dismiss();
+                        forceLogout(activity);
+                    })
+                    .setOnDismissListener(dialog -> {
+                        sessionExpiredDialogShowing = false;
+                        sessionExpiredPending = false;
+                    })
+                    .show();
+        });
+    }
+
+    private void forceLogout(@NonNull Activity activity) {
+        ChatRepository.getInstance(activity.getApplicationContext()).disconnectRealtime();
+        sessionManager.clearSession();
+        Intent intent = new Intent(activity, SignInActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        activity.startActivity(intent);
+        activity.finish();
     }
 }

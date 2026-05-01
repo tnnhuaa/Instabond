@@ -269,12 +269,16 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
                     if (tryRedirectToFallbackProfile()) {
                         return;
                     }
-                    Toast.makeText(CommentActivity.this, "Post not found", Toast.LENGTH_SHORT).show();
+                    if (sessionManager.isLoggedIn()) {
+                        Toast.makeText(CommentActivity.this, "Post not found", Toast.LENGTH_SHORT).show();
+                    }
                     finish();
                 } else if (response.code() == 404) {
-                    Toast.makeText(CommentActivity.this, "Post not found", Toast.LENGTH_SHORT).show();
+                    if (sessionManager.isLoggedIn()) {
+                        Toast.makeText(CommentActivity.this, "Post not found", Toast.LENGTH_SHORT).show();
+                    }
                     finish();
-                } else {
+                } else if (sessionManager.isLoggedIn()) {
                     Toast.makeText(CommentActivity.this, R.string.comment_load_failed, Toast.LENGTH_SHORT).show();
                 }
             }
@@ -282,11 +286,13 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
             @Override
             public void onFailure(@NonNull Call<PostResponse> call, @NonNull Throwable t) {
                 hideLoading();
-                Toast.makeText(
-                        CommentActivity.this,
-                        getString(R.string.msg_connection_error, valueOrEmpty(t.getMessage())),
-                        Toast.LENGTH_SHORT
-                ).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(
+                            CommentActivity.this,
+                            getString(R.string.msg_connection_error, valueOrEmpty(t.getMessage())),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
             }
         });
     }
@@ -305,7 +311,7 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
                     commentAdapter.setComments(comments);
                 } else if (response.code() == 404) {
                     commentAdapter.setComments(Collections.emptyList());
-                } else {
+                } else if (sessionManager.isLoggedIn()) {
                     Toast.makeText(CommentActivity.this, R.string.comment_load_failed, Toast.LENGTH_SHORT).show();
                 }
             }
@@ -313,11 +319,13 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
             @Override
             public void onFailure(@NonNull Call<List<CommentResponse>> call, @NonNull Throwable t) {
                 hideLoading();
-                Toast.makeText(
-                        CommentActivity.this,
-                        getString(R.string.msg_connection_error, valueOrEmpty(t.getMessage())),
-                        Toast.LENGTH_SHORT
-                ).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(
+                            CommentActivity.this,
+                            getString(R.string.msg_connection_error, valueOrEmpty(t.getMessage())),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
             }
         });
     }
@@ -342,7 +350,7 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
                     replyTargetId = null;
                     loadPostDetail();
                     loadComments();
-                } else {
+                } else if (sessionManager.isLoggedIn()) {
                     Toast.makeText(CommentActivity.this, R.string.comment_post_failed, Toast.LENGTH_SHORT).show();
                 }
             }
@@ -350,11 +358,13 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
             @Override
             public void onFailure(@NonNull Call<CommentResponse> call, @NonNull Throwable t) {
                 btnPostComment.setEnabled(true);
-                Toast.makeText(
-                        CommentActivity.this,
-                        getString(R.string.msg_connection_error, valueOrEmpty(t.getMessage())),
-                        Toast.LENGTH_SHORT
-                ).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(
+                            CommentActivity.this,
+                            getString(R.string.msg_connection_error, valueOrEmpty(t.getMessage())),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
             }
         });
     }
@@ -429,7 +439,9 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
                     post.setLiked(isCurrentlyLiked);
                     post.setLikesCount(currentLikes);
                     postAdapter.notifyItemChanged(position);
-                    Toast.makeText(CommentActivity.this, "Failed to update like status", Toast.LENGTH_SHORT).show();
+                    if (sessionManager.isLoggedIn()) {
+                        Toast.makeText(CommentActivity.this, "Failed to update like status", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
 
@@ -438,7 +450,9 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
                 post.setLiked(isCurrentlyLiked);
                 post.setLikesCount(currentLikes);
                 postAdapter.notifyItemChanged(position);
-                Toast.makeText(CommentActivity.this, "Connection error", Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(CommentActivity.this, "Connection error", Toast.LENGTH_SHORT).show();
+                }
             }
         };
 
@@ -491,7 +505,9 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
             return false;
         }
 
-        Toast.makeText(this, "Only followers can see this post", Toast.LENGTH_SHORT).show();
+        if (sessionManager.isLoggedIn()) {
+            Toast.makeText(this, "Only followers can see this post", Toast.LENGTH_SHORT).show();
+        }
         Intent intent = new Intent(this, ProfileActivity.class);
         intent.putExtra("targetUserId", fallbackUserId);
         startActivity(intent);
@@ -533,7 +549,9 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
                     comment.setLiked(isCurrentlyLiked);
                     comment.setLikesCount(currentLikes);
                     contentAdapter.notifyItemChanged(contentPosition);
-                    Toast.makeText(CommentActivity.this, "Failed to update like status", Toast.LENGTH_SHORT).show();
+                    if (sessionManager.isLoggedIn()) {
+                        Toast.makeText(CommentActivity.this, "Failed to update like status", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
 
@@ -543,7 +561,9 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
                 comment.setLiked(isCurrentlyLiked);
                 comment.setLikesCount(currentLikes);
                 contentAdapter.notifyItemChanged(contentPosition);
-                Toast.makeText(CommentActivity.this, "Connection error", Toast.LENGTH_SHORT).show();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(CommentActivity.this, "Connection error", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }

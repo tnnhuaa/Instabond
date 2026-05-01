@@ -1,5 +1,16 @@
 # Instabond
 
+[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.3-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Android](https://img.shields.io/badge/Android-Native-3DDC84.svg)](https://developer.android.com/)
+[![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.135.3-009688.svg)](https://fastapi.tiangolo.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248.svg)](https://www.mongodb.com/)
+[![Redis](https://img.shields.io/badge/Redis-7-DC382D.svg)](https://redis.io/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg)](https://www.docker.com/)
+[![Cloudinary](https://img.shields.io/badge/Cloudinary-2.0.0-3448C5.svg)](https://cloudinary.com/)
+[![AI Microservice](https://img.shields.io/badge/AI_Microservice-FastAPI_|_PyTorch_|_DeepFace-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+
 Instabond is a mobile social media application built with a native Android client, a Spring Boot backend, and a FastAPI AI microservice. The project focuses on content sharing, social interaction, and AI-assisted posting on top of a clean multi-service architecture that is easy to explain, extend, and demo.
 
 ## Quick Overview
@@ -9,6 +20,8 @@ Instabond is a mobile social media application built with a native Android clien
 - Deployment style: local development with 3 services running in parallel
 - Storage and media: MongoDB + Cloudinary
 - Authentication: JWT access token / refresh token
+
+---
 
 ## Project Highlights
 
@@ -26,19 +39,19 @@ Instabond is a mobile social media application built with a native Android clien
 - Built-in image editing flow before posting stories or posts
 - Swagger documentation available for both backend and AI service
 
+---
+
 ## System Architecture
 
-```text
-Android App
-  |
-  |-- HTTP -> Spring Boot Backend (port 8080)
-  |             |-- MongoDB
-  |             |-- Cloudinary
-  |             |-- Gmail SMTP / OTP
-  |             |-- STOMP WebSocket (/ws)
-  |             '-- REST call -> FastAPI AI Service (port 8000)
-  |
-  '-- WebSocket -> Spring Boot Backend
+```mermaid
+graph TD
+    A[Android App] -->|HTTP/REST| B[Spring Boot Backend]
+    A -->|WebSocket| B
+    B -->|REST| C[FastAPI AI Service]
+    B --> D[(MongoDB)]
+    B --> E[(Redis)]
+    B --> F[Cloudinary]
+    B --> G[Gmail SMTP]
 ```
 
 ### 1. Android app
@@ -86,44 +99,7 @@ Android App
 - AI libraries currently used: `transformers`, `torch`, `timm`, `deepface`, `opencv-python`
 - Useful for showcasing intelligent features without overloading the main backend
 
-## Main Features
-
-### User and security
-
-- Registration, login, and token refresh
-- Forgot password and password reset with email OTP
-- Profile updates and tagging permission settings
-
-### Social features
-
-- Create posts with multiple media items
-- Like, unlike, comment, share, and bookmark
-- Newsfeed and profile pages
-- Create and view stories
-- Follower / following management
-- Private accounts, follow requests, and close friends
-- Blocking users and managing blocked users
-
-### Search and connection
-
-- Search users and posts
-- Store and manage search history
-- Friend suggestions based on friends-of-friends logic
-- Profile sharing through QR and deep links
-
-### Chat and notifications
-
-- Inbox, conversations, and 1-to-1 chat
-- Send / receive messages through WebSocket
-- Online status through presence handling
-- Notifications for key system actions
-
-### AI-enhanced posting
-
-- Analyze images to suggest matching music for a post
-- Suggest user tags from detected faces
-- Generate embeddings for future extensibility
-- Dedicated AI service that can evolve independently
+---
 
 ## Folder Structure
 
@@ -136,15 +112,7 @@ Instabond/
 '- README.md
 ```
 
-## Environment Requirements
-
-- JDK 21
-- Android Studio + Android SDK
-- Python 3.10+
-- Local MongoDB
-- Maven Wrapper included in the repo
-- PowerShell on Windows
-- Internet connection for the first AI model download
+---
 
 ## Required Environment Variables
 
@@ -175,91 +143,143 @@ Instabond/
     - `FLORENCE_API_URL`
     - `FLORENCE_API_TOKEN`
 
+---
+
 ## How to Run Locally
 
-Recommended startup order:
+The system includes 3 main services and 1 mobile application. You can choose to run quickly with Docker Compose or start each service manually.
 
-1. MongoDB
-2. `ai-service`
-3. `backend`
-4. Android app
+### Prerequisites
 
-### 1. Run MongoDB
+- JDK 21
+- Android Studio + Android SDK
+- Python 3.11+
+- Docker Desktop (Recommended)
+- Local MongoDB
+- Maven Wrapper included in the repo
+- PowerShell on Windows
+- Internet connection for the first AI model download
+
+### Environment Setup
+
+Before running the services, you must configure the environment variables:
+
+1. **Backend**: Copy `backend/.env.sample` to `backend/.env` and fill in your Cloudinary, MongoDB Atlas, and Mail credentials.
+
+2. **AI Service**: Copy `ai-service/.env.sample` to `ai-service/.env` and configure your database and model settings.
+
+### Method 1: Running with Docker (Recommended)
+
+This is the fastest way to start the entire infrastructure (including Redis).
+
+**Configure Environment:** Create a `.env` file at the root directory and fill in Cloudinary, Mail, and JWT information.
+
+**Start:**
 
 ```powershell
-mongod --dbpath D:\data\db
+docker compose up --build
 ```
 
-Or make sure this URI is available:
+Note: If you encounter `instabond-redis` container conflicts, delete the old container before running again.
 
-```text
-mongodb://localhost:27017/instabond
+### Method 2: Manual Startup (For Development)
+
+Recommended startup order: MongoDB -> AI Service -> Backend -> Android App.
+
+#### 1. Database (MongoDB)
+
+Ensure MongoDB is running on port 27017:
+
+```powershell
+mongod --dbpath "D:\data\db"
 ```
 
-### 2. Run the AI service
+#### 2. AI Service (FastAPI)
 
-First time setup:
+Service handling Face Tagging and music suggestions.
+
+**First time setup:**
 
 ```powershell
 cd ai-service
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
-python -m pip install "numpy<2"
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Next runs:
+**Run Service:**
 
 ```powershell
-cd ai-service
-.\.venv\Scripts\Activate.ps1
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+python -m app.main
 ```
 
-For auto reload during development:
+#### 3. Backend (Spring Boot)
 
-```powershell
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
-```
+Service handling main business logic.
 
-### 3. Run the backend
+Note: If the `.mvn` directory is missing, run `mvn wrapper:wrapper` first.
 
 ```powershell
 cd backend
-$env:MONGODB_URI="mongodb://localhost:27017/instabond"
-$env:CLOUDINARY_CLOUD_NAME="your_cloud_name"
-$env:CLOUDINARY_API_KEY="your_api_key"
-$env:CLOUDINARY_API_SECRET="your_api_secret"
-$env:JWT_SECRET_KEY="your_jwt_secret"
-$env:MAIL_USERNAME="your_email@gmail.com"
-$env:MAIL_PASSWORD="your_app_password"
+
+# Start
 .\mvnw.cmd spring-boot:run
 ```
 
-Notes:
+#### 4. Android App
 
-- The backend calls `ai-service` at `http://localhost:8000` by default
-- Redis is not required in the current flow because `PRESENCE_REDIS_ENABLED=false`
+1. Open the `android/` folder in Android Studio
+2. Wait for Gradle sync to complete
+3. Run on Emulator or real device
 
-### 4. Run the Android app
-
-Open the project in Android Studio from the `android/` folder, then:
-
-1. Start an emulator
-2. Run the app
-
-Or use command line:
+Or quickly run via CLI:
 
 ```powershell
 cd android
 .\gradlew.bat installDebug
 ```
 
+### Important Notes
+
+- AI Service: Configuration in `requirements.txt` has been optimized for CPU-only to avoid excessively large image size (~10GB) causing disk overflow
+- Redis: `PRESENCE_REDIS_ENABLED` is currently set to `false`. When running with Docker, Redis will automatically be available on port 6379
+- Troubleshooting: If you encounter `/.mvn not found` error during Docker build, ensure the `.mvn` directory exists in the backend folder (not blocked by `.dockerignore`)
+
+---
+
 ## API Docs and Useful Endpoints
 
-- Backend Swagger: [http://127.0.0.1:8080/swagger-ui/index.html](http://127.0.0.1:8080/swagger-ui/index.html)
-- AI Service Swagger: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- WebSocket endpoint: `ws://<host>:8080/ws`
-- The Android emulator reaches the host machine through `10.0.2.2`
+**Service URLs**
+
+| Service | URL / Endpoint | Note |
+|:---|:---|:---|
+| **Backend API** | `http://localhost:8080` | Default Spring Boot port |
+| **AI Service** | `http://localhost:8000` | Backend communicates with AI service via this URL |
+| **WebSockets** | `ws://localhost:8080/ws` | Used for real-time features |
+
+**API Documentation**
+
+- Backend Swagger: http://localhost:8080/swagger-ui/index.html
+
+- AI Service Docs: http://localhost:8000/docs
+
+**Mobile Development**
+
+The Android app uses **Build Variants** to manage the `BASE_URL` dynamically.
+
+| Build Variant | Purpose | Base URL |
+| :--- | :--- | :--- |
+| **debug** (default) | Android Emulator | `http://10.0.2.2:8080/` |
+| **phone** | Physical device | `http://<Local-IP>:8080/` |
+
+#### Quick Setup:
+
+1. Switch variant via **Build Variants** window in Android Studio.
+
+2. For **phone** variant: Ensure both PC and device are on the same Wi-Fi network.
+
+3. Update your `Local IP` in the `build.gradle` (if using **phone**)
+
+**Note:** The emulator uses `10.0.2.2` to alias the host machine's `127.0.0.1`.
+

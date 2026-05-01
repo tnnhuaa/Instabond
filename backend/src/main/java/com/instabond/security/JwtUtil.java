@@ -16,7 +16,7 @@ import java.util.function.Function;
 public class JwtUtil {
     @Value("${jwt.secret-key}")
     private String secretKey;
-    private static final long EXPIRATION_TIME = 1000L * 60 * 60 * 24;       // 1 day
+    private static final long EXPIRATION_TIME = 1000L * 60 * 60 * 24; // 1 day
     private static final long REFRESH_EXPIRATION_TIME = 1000L * 60 * 60 * 24 * 7; // 7 days
 
     private Key getSigningKey() {
