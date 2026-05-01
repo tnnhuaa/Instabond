@@ -32,8 +32,13 @@ public class InstaBottomNavView extends FrameLayout {
         PROFILE
     }
 
+    public interface OnTabReselectedListener {
+        void onTabReselected(Tab tab);
+    }
+
     private final ViewInstaBottomNavBinding binding;
     private NotificationCountManager countManager;
+    private OnTabReselectedListener tabReselectedListener;
     private final NotificationCountManager.UnreadCountListener unreadCountListener = count ->
             setNotificationsBadgeVisible(count > 0);
 
@@ -50,6 +55,10 @@ public class InstaBottomNavView extends FrameLayout {
         binding = ViewInstaBottomNavBinding.inflate(LayoutInflater.from(context), this);
     }
 
+    public void setOnTabReselectedListener(OnTabReselectedListener listener) {
+        this.tabReselectedListener = listener;
+    }
+
     public void bind(Activity activity, Tab activeTab) {
         setActiveTab(activeTab);
         
@@ -59,10 +68,10 @@ public class InstaBottomNavView extends FrameLayout {
         // Set initial badge state
         setNotificationsBadgeVisible(countManager.getUnreadCount() > 0);
 
-        binding.navHome.setOnClickListener(v -> navigateTo(activity, NewsfeedActivity.class));
-        binding.navSearch.setOnClickListener(v -> navigateTo(activity, SearchActivity.class));
-        binding.navNotifications.setOnClickListener(v -> navigateTo(activity, NotificationsActivity.class));
-        binding.navProfile.setOnClickListener(v -> navigateTo(activity, ProfileActivity.class));
+        binding.navHome.setOnClickListener(v -> handleTabClick(activity, NewsfeedActivity.class, Tab.HOME));
+        binding.navSearch.setOnClickListener(v -> handleTabClick(activity, SearchActivity.class, Tab.SEARCH));
+        binding.navNotifications.setOnClickListener(v -> handleTabClick(activity, NotificationsActivity.class, Tab.NOTIFICATIONS));
+        binding.navProfile.setOnClickListener(v -> handleTabClick(activity, ProfileActivity.class, Tab.PROFILE));
         binding.btnCreate.setOnClickListener(v ->
                 getContext().startActivity(new Intent(getContext(), CreatePostActivity.class)));
     }
@@ -82,21 +91,25 @@ public class InstaBottomNavView extends FrameLayout {
         binding.ivNavNotificationsBadge.setVisibility(visible ? VISIBLE : GONE);
     }
 
+    private void handleTabClick(Activity activity, Class<?> destination, Tab clickedTab) {
+        if (activity.getClass().equals(destination)) {
+            if (tabReselectedListener != null) {
+                tabReselectedListener.onTabReselected(clickedTab);
+            }
+            return;
+        }
+
+        Intent intent = new Intent(activity, destination);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        activity.startActivity(intent);
+        activity.finish();
+    }
+
     private void applyState(FrameLayout container, ImageView icon, boolean active, int activeColor, int inactiveColor) {
         int color = active ? activeColor : inactiveColor;
         icon.setImageTintList(ColorStateList.valueOf(color));
         container.setBackgroundResource(active
                 ? R.drawable.feed_bottom_nav_active_bg
                 : android.R.color.transparent);
-    }
-
-    private void navigateTo(Activity activity, Class<?> destination) {
-        if (activity.getClass().equals(destination)) {
-            return;
-        }
-        Intent intent = new Intent(activity, destination);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        activity.startActivity(intent);
-        activity.finish();
     }
 }

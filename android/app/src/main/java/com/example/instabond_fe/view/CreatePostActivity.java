@@ -72,6 +72,7 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private static final String EXTRA_REFRESH_FEED = "refresh_feed";
+    private static final String EXTRA_FEED_MODE = "target_feed_mode";
 
     public enum FilterType {
         NORMAL,
@@ -224,6 +225,7 @@ public class CreatePostActivity extends AppCompatActivity {
         editImageLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
+                    // Cancel edit -> keep original image and fetch suggestions based on it
                     if (result.getResultCode() != RESULT_OK || result.getData() == null) {
                         android.util.Log.d("AI_DEBUG", "Editor canceled. Fetching suggestions for original image.");
                         if (sourceBitmap != null) requestAiSuggestions();
@@ -237,6 +239,7 @@ public class CreatePostActivity extends AppCompatActivity {
                         return;
                     }
 
+                    // Success edit -> load edited image and fetch suggestions based on it
                     selectedImageUri = Uri.parse(outputUri);
                     try {
                         sourceBitmap = decodeBitmap(selectedImageUri);
@@ -584,6 +587,7 @@ public class CreatePostActivity extends AppCompatActivity {
 
         setLoading(true);
 
+        // Map tag (SuggestedTag) -> List<TaggedUserRequest> using backend schema constraints.
         List<CreatePostRequest.TaggedUserRequest> mappedTaggedUsers = new ArrayList<>();
         for (SuggestedTag tag : taggedUsersList) {
             if (tag == null) continue;
@@ -612,6 +616,7 @@ public class CreatePostActivity extends AppCompatActivity {
             ));
         }
 
+        // Create request body
         CreatePostRequest request = CreatePostRequest.fromCaptionAndMedia(
                 caption,
                 null,
@@ -646,6 +651,13 @@ public class CreatePostActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.create_post_image_read_error, Toast.LENGTH_SHORT).show();
             return;
         }
+
+        android.util.Log.d("AI_DEBUG", "createPostRequest payload: " + requestJson);
+        android.util.Log.d("AI_DEBUG", "createPostRequest summary -> tagged_users="
+                + mappedTaggedUsers.size()
+                + ", files=" + fileParts.size()
+                + ", has_music=" + (selectedMusic != null)
+                + ", caption_length=" + caption.length());
 
         apiService.createPost(requestPart, fileParts).enqueue(new Callback<PostResponse>() {
             @Override
@@ -824,7 +836,9 @@ public class CreatePostActivity extends AppCompatActivity {
 
     private String normalizeTagType(SuggestedTag tag) {
         String raw = safe(tag.getTagType()).toLowerCase(Locale.ROOT);
-        if ("auto-ai".equals(raw) || "user-tag".equals(raw)) return raw;
+        if ("auto-ai".equals(raw) || "user-tag".equals(raw)) {
+            return raw;
+        }
         return tag.getConfidence() != null ? "auto-ai" : "user-tag";
     }
 
@@ -856,6 +870,7 @@ public class CreatePostActivity extends AppCompatActivity {
         try {
             imageFile = createUploadFile();
         } catch (IOException e) {
+            android.util.Log.e("AI_DEBUG", "Error - create file temp from image: " + e.getMessage(), e);
             isFetchingAiSuggestions = false;
             updateAiSuggestionUiState();
             updateOptionSummaries();
@@ -863,11 +878,14 @@ public class CreatePostActivity extends AppCompatActivity {
         }
 
         if (imageFile == null) {
+            android.util.Log.e("AI_DEBUG", "Error - image file is null");
             isFetchingAiSuggestions = false;
             updateAiSuggestionUiState();
             updateOptionSummaries();
             return;
         }
+
+        android.util.Log.d("AI_DEBUG", "=> START CALL API. File name: " + imageFile.getName() + " | Size: " + imageFile.length() + " bytes");
 
         isFetchingAiSuggestions = true;
         updateAiSuggestionUiState();
@@ -881,13 +899,28 @@ public class CreatePostActivity extends AppCompatActivity {
             @Override
             public void onResponse(@NonNull Call<PostSuggestionResponse> call,
                                    @NonNull Response<PostSuggestionResponse> response) {
-                if (call.isCanceled()) return;
+                if (call.isCanceled()) {
+                    android.util.Log.d("AI_DEBUG", "CANCEL API Call");
+                    return;
+                }
 
                 isFetchingAiSuggestions = false;
                 updateAiSuggestionUiState();
                 aiMusicSuggestions.clear();
 
                 if (response.isSuccessful() && response.body() != null) {
+                    // LOG 1
+
+                    List<SuggestedTag> apiTags = response.body().getSuggestedTags();
+                    android.util.Log.d("AI_DEBUG", "--------------------------------------------------");
+                    android.util.Log.d("AI_DEBUG", "[LOG 1] The number of tag Retrofit: " + (apiTags != null ? apiTags.size() : "null"));
+                    if (apiTags != null) {
+                        for (int i = 0; i < apiTags.size(); i++) {
+                            SuggestedTag t = apiTags.get(i);
+                            android.util.Log.d("AI_DEBUG", "  -> Raw Tag [" + i + "]: username=" + t.getUsername() + ", conf=" + t.getConfidence() + ", id=" + t.getId());
+                        }
+                    }
+
                     aiSceneDescription = safe(response.body().getSceneDescription());
 
                     if (response.body().getMusicSuggestions() != null) {
@@ -945,6 +978,15 @@ public class CreatePostActivity extends AppCompatActivity {
                             }
                         }
                     }
+
+                    // LOG 2
+
+                    android.util.Log.d("AI_DEBUG", "[LOG 2] The number of tag in list before drawing UI: " + taggedUsersList.size());
+                    for (int i = 0; i < taggedUsersList.size(); i++) {
+                        SuggestedTag t = taggedUsersList.get(i);
+                        android.util.Log.d("AI_DEBUG", "  -> Final Tag [" + i + "]: username=" + t.getUsername() + ", type=" + t.getTagType());
+                    }
+                    android.util.Log.d("AI_DEBUG", "--------------------------------------------------");
                 }
                 updateOptionSummaries();
             }
@@ -996,6 +1038,7 @@ public class CreatePostActivity extends AppCompatActivity {
     private void openFeedWithRefresh() {
         Intent intent = new Intent(this, NewsfeedActivity.class);
         intent.putExtra(EXTRA_REFRESH_FEED, true);
+        intent.putExtra(EXTRA_FEED_MODE, "following");
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         startActivity(intent);
         finish();

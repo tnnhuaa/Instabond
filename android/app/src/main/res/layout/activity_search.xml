@@ -169,7 +169,8 @@
         </LinearLayout>
     </HorizontalScrollView>
 
-    <FrameLayout
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshSearch"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="16dp"
@@ -178,42 +179,48 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_search_results"
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
-            android:paddingBottom="24dp"
-            app:layoutManager="androidx.recyclerview.widget.StaggeredGridLayoutManager"
-            app:spanCount="2"
-            tools:listitem="@layout/item_search_grid_image" />
+            android:layout_height="match_parent">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_search_suggestions"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@color/login_card_surface"
-            android:visibility="gone"
-            android:clipToPadding="false"
-            android:paddingTop="8dp"
-            android:paddingBottom="24dp"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-            tools:listitem="@layout/item_user" />
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_search_results"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:paddingBottom="24dp"
+                app:layoutManager="androidx.recyclerview.widget.StaggeredGridLayoutManager"
+                app:spanCount="2"
+                tools:listitem="@layout/item_search_grid_image" />
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_search_history"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@color/login_card_surface"
-            android:visibility="gone"
-            android:clipToPadding="false"
-            android:paddingTop="8dp"
-            android:paddingBottom="24dp"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_search_suggestions"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/login_card_surface"
+                android:visibility="gone"
+                android:clipToPadding="false"
+                android:paddingTop="8dp"
+                android:paddingBottom="24dp"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                tools:listitem="@layout/item_user" />
 
-    </FrameLayout>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_search_history"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/login_card_surface"
+                android:visibility="gone"
+                android:clipToPadding="false"
+                android:paddingTop="8dp"
+                android:paddingBottom="24dp"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+        </FrameLayout>
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <com.example.instabond_fe.view.component.InstaBottomNavView
         android:id="@+id/bottom_nav"
