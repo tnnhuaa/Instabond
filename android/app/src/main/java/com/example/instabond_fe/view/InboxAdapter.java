@@ -110,16 +110,15 @@ public class InboxAdapter extends RecyclerView.Adapter<InboxAdapter.InboxViewHol
             int previewColor = ContextCompat.getColor(itemView.getContext(), isUnread ? R.color.login_text_primary : R.color.login_text_secondary);
             int timeColor = ContextCompat.getColor(itemView.getContext(), isUnread ? R.color.login_bg_start : R.color.login_text_secondary);
 
-            binding.cardConversation.setCardBackgroundColor(isUnread || position == 0 ? highlightedSurface : secondarySurface);
-            binding.cardConversation.setCardElevation(isUnread || position == 0 ? dp(8f) : 0f);
+            binding.cardConversation.setCardBackgroundColor(isUnread ? highlightedSurface : secondarySurface);
+            binding.cardConversation.setCardElevation(isUnread ? dp(8f) : 0f);
             binding.cardConversation.setStrokeColor(strokeColor);
-            binding.cardConversation.setStrokeWidth((int) dp(isUnread || position == 0 ? 1f : 0f));
+            binding.cardConversation.setStrokeWidth((int) dp(isUnread ? 1f : 0f));
             binding.tvConversationTitle.setTextColor(titleColor);
             binding.tvConversationPreview.setTextColor(previewColor);
             binding.tvConversationTime.setTextColor(timeColor);
 
             binding.viewUnreadBadge.setVisibility(isUnread ? View.VISIBLE : View.GONE);
-            binding.viewUnreadBadge.setText("1");
 
             binding.getRoot().setOnClickListener(v -> clickListener.onConversationClick(conversation));
         }

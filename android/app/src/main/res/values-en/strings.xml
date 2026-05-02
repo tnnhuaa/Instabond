@@ -453,4 +453,5 @@
     <string name="toast_delete_face_success">Face ID removed successfully!</string>
     <string name="toast_delete_face_failed">Removal failed, please try again later.</string>
     <string name="toast_delete_face_error">Error: %1$s</string>
+    <string name="cd_clear_search">Clear search</string>
 </resources>
