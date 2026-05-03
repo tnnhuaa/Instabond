@@ -23,6 +23,7 @@ import com.example.instabond_fe.model.UserSearchDTO;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.repository.WebSocketManager;
 import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.viewmodel.InboxViewModel;
 import com.example.instabond_fe.viewmodel.SearchViewModel;
@@ -236,6 +237,9 @@ public class InboxActivity extends AppCompatActivity {
                 }
 
                 Conversation conversation = response.body();
+                Boolean cachedPresence = WebSocketManager.getInstance(InboxActivity.this)
+                    .getCachedPresenceByUserId(user.getId());
+                boolean partnerOnline = Boolean.TRUE.equals(cachedPresence);
                 Intent intent = new Intent(InboxActivity.this, ChatActivity.class);
                 intent.putExtra("CONVERSATION_ID", conversation.getId());
                 intent.putExtra("conversationId", conversation.getId());
@@ -244,13 +248,13 @@ public class InboxActivity extends AppCompatActivity {
                 intent.putExtra("PARTNER_NAME", user.getUsername());
                 intent.putExtra("PARTNER_EMAIL", "");
                 intent.putExtra("PARTNER_AVATAR", user.getAvatarUrl());
-                intent.putExtra("PARTNER_ONLINE", false);
+                intent.putExtra("PARTNER_ONLINE", partnerOnline);
 
                 intent.putExtra("partnerId", user.getId());
                 intent.putExtra("partnerName", user.getUsername());
                 intent.putExtra("partnerEmail", "");
                 intent.putExtra("partnerAvatar", user.getAvatarUrl());
-                intent.putExtra("partnerOnline", false);
+                intent.putExtra("partnerOnline", partnerOnline);
 
                 startActivity(intent);
             }

@@ -89,6 +89,7 @@ public class WebSocketManager {
     private String activeConversationId = null;
     private final Map<String, String> userCache = new ConcurrentHashMap<>();
     private final Map<String, Boolean> presenceCache = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> presenceByUserIdCache = new ConcurrentHashMap<>();
 
     private WebSocketManager(Context context) {
         this.sessionManager = new SessionManager(context.getApplicationContext());
@@ -204,7 +205,7 @@ public class WebSocketManager {
                 if (status == null) return;
 
                 Log.d(TAG, "Presence update received: " + status.getEmail() + " online=" + status.isOnline());
-                cachePresence(status.getEmail(), status.isOnline());
+                cachePresence(status.getEmail(), status.getUserId(), status.isOnline());
 
                 for (OnlineStatusListener listener : onlineStatusListeners) {
                     listener.onStatusChanged(status);
@@ -297,14 +298,21 @@ public class WebSocketManager {
         return userId != null ? userCache.get(userId) : null;
     }
 
-    public void cachePresence(String email, boolean online) {
+    public void cachePresence(String email, String userId, boolean online) {
         if (email != null) {
             presenceCache.put(email.toLowerCase(), online);
+        }
+        if (userId != null) {
+            presenceByUserIdCache.put(userId, online);
         }
     }
 
     public Boolean getCachedPresence(String email) {
         return email == null ? null : presenceCache.get(email.toLowerCase());
+    }
+
+    public Boolean getCachedPresenceByUserId(String userId) {
+        return userId == null ? null : presenceByUserIdCache.get(userId);
     }
 
     private void connectInternal() {
@@ -420,7 +428,7 @@ public class WebSocketManager {
                 continue;
             }
 
-            cachePresence(status.getEmail(), status.isOnline());
+            cachePresence(status.getEmail(), status.getUserId(), status.isOnline());
             for (OnlineStatusListener listener : onlineStatusListeners) {
                 listener.onStatusChanged(status);
             }

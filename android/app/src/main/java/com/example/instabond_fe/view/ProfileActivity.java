@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat;
 import com.example.instabond_fe.InstabondApplication;
 import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityProfileBinding;
+import com.example.instabond_fe.model.Conversation;
 import com.example.instabond_fe.model.FollowUserResponse;
 import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.model.ProfileShareResponse;
@@ -240,10 +241,8 @@ public class ProfileActivity extends AppCompatActivity {
         binding.btnPrimaryAction.setTextColor(getColor(R.color.login_primary_text));
         binding.btnPrimaryAction.setOnClickListener(v -> openSettings());
 
-        binding.btnSecondaryAction.setText(R.string.profile_action_share);
-        binding.btnSecondaryAction.setBackgroundResource(R.drawable.search_follow_back_button_bg);
-        binding.btnSecondaryAction.setTextColor(getColor(R.color.login_text_primary));
-        binding.btnSecondaryAction.setOnClickListener(v -> shareProfile());
+        binding.btnSecondaryAction.setOnClickListener(null);
+        binding.btnSecondaryAction.setVisibility(View.GONE);
     }
 
     private void configureExternalProfileView(String targetUserId, boolean showSearchBottomNav) {
@@ -264,8 +263,8 @@ public class ProfileActivity extends AppCompatActivity {
         binding.btnPrimaryAction.setOnClickListener(v -> toggleFollow(targetUserId));
 
         binding.btnSecondaryAction.setText(R.string.profile_action_message);
-        binding.btnSecondaryAction.setOnClickListener(v ->
-                Toast.makeText(this, getString(R.string.feed_messages_coming_soon), Toast.LENGTH_SHORT).show());
+        binding.btnSecondaryAction.setVisibility(View.VISIBLE);
+        binding.btnSecondaryAction.setOnClickListener(v -> openChatWithProfileUser(targetUserId));
     }
 
     private void toggleFollow(String targetUserId) {
@@ -377,6 +376,7 @@ public class ProfileActivity extends AppCompatActivity {
         }
         currentUsername = profile.getUsername();
         currentAvatarUrl = profile.getAvatarUrl();
+        isOwnProfileView = currentUserId != null && currentUserId.equals(sessionManager.getUserId());
 
         String displayName = nonEmpty(profile.getUsername(), profile.getFullName(), "Unknown User");
         String subtitle = nonEmpty(profile.getFullName(), "Digital Artist & Storyteller");
@@ -473,6 +473,61 @@ public class ProfileActivity extends AppCompatActivity {
                 binding.layoutFaceRegistered.setVisibility(View.GONE);
             }
         }
+
+        if (isOwnProfileView) {
+            binding.btnSecondaryAction.setOnClickListener(null);
+            binding.btnSecondaryAction.setVisibility(View.GONE);
+        } else {
+            binding.btnSecondaryAction.setText(R.string.profile_action_message);
+            binding.btnSecondaryAction.setVisibility(View.VISIBLE);
+            binding.btnSecondaryAction.setOnClickListener(v -> openChatWithProfileUser(currentUserId));
+        }
+    }
+
+    private void openChatWithProfileUser(String partnerId) {
+        if (partnerId == null || partnerId.trim().isEmpty()) {
+            Toast.makeText(this, R.string.chat_missing_conversation, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        apiService.getOrCreateDirectConversation(partnerId).enqueue(new Callback<Conversation>() {
+            @Override
+            public void onResponse(Call<Conversation> call, Response<Conversation> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    Toast.makeText(ProfileActivity.this, R.string.chat_missing_conversation, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                Boolean cachedPresence = com.example.instabond_fe.repository.WebSocketManager
+                        .getInstance(ProfileActivity.this)
+                        .getCachedPresenceByUserId(partnerId);
+                boolean partnerOnline = Boolean.TRUE.equals(cachedPresence);
+
+                Conversation conversation = response.body();
+                Intent intent = new Intent(ProfileActivity.this, ChatActivity.class);
+                intent.putExtra("CONVERSATION_ID", conversation.getId());
+                intent.putExtra("conversationId", conversation.getId());
+
+                intent.putExtra("PARTNER_ID", partnerId);
+                intent.putExtra("PARTNER_NAME", currentUsername == null ? "" : currentUsername);
+                intent.putExtra("PARTNER_EMAIL", "");
+                intent.putExtra("PARTNER_AVATAR", currentAvatarUrl == null ? "" : currentAvatarUrl);
+                intent.putExtra("PARTNER_ONLINE", partnerOnline);
+
+                intent.putExtra("partnerId", partnerId);
+                intent.putExtra("partnerName", currentUsername == null ? "" : currentUsername);
+                intent.putExtra("partnerEmail", "");
+                intent.putExtra("partnerAvatar", currentAvatarUrl == null ? "" : currentAvatarUrl);
+                intent.putExtra("partnerOnline", partnerOnline);
+
+                startActivity(intent);
+            }
+
+            @Override
+            public void onFailure(Call<Conversation> call, Throwable t) {
+                Toast.makeText(ProfileActivity.this, R.string.chat_missing_conversation, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void loadUserPosts(String userId) {
