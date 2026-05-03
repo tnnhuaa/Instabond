@@ -42,6 +42,15 @@ public class InstabondApplication extends Application {
 
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override
+            public void onActivityStarted(@NonNull Activity activity) {
+                // Keep WebSocket alive as long as any Activity is in the foreground
+                if (sessionManager.isLoggedIn() && !(activity instanceof SignInActivity)) {
+                    ChatRepository.getInstance(InstabondApplication.this).connectRealtime();
+                    ChatRepository.getInstance(InstabondApplication.this).subscribeGlobalChannels();
+                }
+            }
+
+            @Override
             public void onActivityResumed(@NonNull Activity activity) {
                 currentActivity = activity;
                 if (sessionExpiredPending) {
@@ -57,7 +66,6 @@ public class InstabondApplication extends Application {
             }
 
             @Override public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle savedInstanceState) {}
-            @Override public void onActivityStarted(@NonNull Activity activity) {}
             @Override public void onActivityStopped(@NonNull Activity activity) {}
             @Override public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) {}
             @Override public void onActivityDestroyed(@NonNull Activity activity) {}

@@ -111,10 +111,14 @@ public class InboxViewModel extends AndroidViewModel {
                 continue;
             }
 
-            // Cache usernames
+            // Cache usernames and hydrate cached presence when available
             if (item.getParticipants() != null) {
                 for (Conversation.Participant p : item.getParticipants()) {
                     WebSocketManager.getInstance(getApplication()).cacheUser(p.getId(), p.getUsername());
+                    Boolean cachedPresence = WebSocketManager.getInstance(getApplication()).getCachedPresence(p.getEmail());
+                    if (cachedPresence != null) {
+                        p.setOnline(cachedPresence);
+                    }
                 }
             }
 
