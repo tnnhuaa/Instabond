@@ -99,7 +99,7 @@ public class InboxAdapter extends RecyclerView.Adapter<InboxAdapter.InboxViewHol
 
             AvatarLoader.load(binding.ivAvatar, normalizeUrl(avatarUrl));
 
-            binding.tvConversationTitle.setText(title);
+            binding.tvConversationTitle.setText(truncateTitle(title));
             binding.tvConversationPreview.setText(preview);
             binding.tvConversationTime.setText(TimeUtils.getConversationTimeLabel(conversation.getUpdatedAt()));
 
@@ -156,6 +156,13 @@ public class InboxAdapter extends RecyclerView.Adapter<InboxAdapter.InboxViewHol
 
         private float dp(float value) {
             return value * itemView.getResources().getDisplayMetrics().density;
+        }
+
+        private String truncateTitle(String title) {
+            if (title == null) {
+                return "";
+            }
+            return title.length() > 20 ? title.substring(0, 20) + "..." : title;
         }
     }
 }
