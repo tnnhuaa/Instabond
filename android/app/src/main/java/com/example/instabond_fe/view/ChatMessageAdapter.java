@@ -117,6 +117,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
             }
 
             containerBubble.setGravity(isMine ? Gravity.END : Gravity.START);
+            updateBubbleAlignment(isMine);
             bubbleCard.setBackgroundResource(isMine
                     ? R.drawable.bg_chat_message_outgoing
                     : R.drawable.bg_chat_message_incoming);
@@ -126,7 +127,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
                     isMine ? android.R.color.white : R.color.login_text_primary);
             tvMessageContent.setTextColor(contentColor);
             tvMessageTime.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.feed_meta));
-            tvMessageTime.setTextAlignment(isMine ? View.TEXT_ALIGNMENT_VIEW_END : View.TEXT_ALIGNMENT_VIEW_START);
+            tvMessageTime.setGravity(isMine ? Gravity.END : Gravity.START);
             tvRichHeader.setTextColor(ContextCompat.getColor(itemView.getContext(),
                     isMine ? android.R.color.white : R.color.feed_meta));
             tvRichTitle.setTextColor(contentColor);
@@ -196,6 +197,24 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
                     .placeholder(R.drawable.create_post_preview_placeholder)
                     .error(R.drawable.create_post_preview_placeholder)
                     .into(ivRichPreview);
+        }
+
+        private void updateBubbleAlignment(boolean isMine) {
+            int gravity = isMine ? Gravity.END : Gravity.START;
+
+            ViewGroup.LayoutParams bubbleParams = bubbleCard.getLayoutParams();
+            if (bubbleParams instanceof LinearLayout.LayoutParams) {
+                LinearLayout.LayoutParams layoutParams = (LinearLayout.LayoutParams) bubbleParams;
+                layoutParams.gravity = gravity;
+                bubbleCard.setLayoutParams(layoutParams);
+            }
+
+            ViewGroup.LayoutParams timeParams = tvMessageTime.getLayoutParams();
+            if (timeParams instanceof LinearLayout.LayoutParams) {
+                LinearLayout.LayoutParams layoutParams = (LinearLayout.LayoutParams) timeParams;
+                layoutParams.gravity = gravity;
+                tvMessageTime.setLayoutParams(layoutParams);
+            }
         }
 
         private boolean looksLikeUrl(String value) {
