@@ -73,7 +73,6 @@ public class ChatViewModel extends AndroidViewModel {
         currentUserId = new com.example.instabond_fe.network.SessionManager(application).getUserId();
 
         chatRepository.addRealtimeMessageListener(messageListener);
-        chatRepository.addOnlineStatusListener(onlineStatusListener);
         chatRepository.addConnectionListener(connectionListener);
     }
 
@@ -107,7 +106,11 @@ public class ChatViewModel extends AndroidViewModel {
     public void startChat(String conversationId, String partnerId, String partnerEmail, boolean initialOnline) {
         this.activeConversationId = conversationId;
         this.trackedPartnerEmail = partnerEmail;
-        partnerOnlineLiveData.setValue(initialOnline);
+
+        Boolean cached = WebSocketManager.getInstance(getApplication()).getCachedPresence(partnerEmail);
+        partnerOnlineLiveData.setValue(cached != null ? cached : initialOnline);
+
+        chatRepository.addOnlineStatusListener(onlineStatusListener);
 
         seenMessageKeys.clear();
         messagesLiveData.setValue(new ArrayList<>());

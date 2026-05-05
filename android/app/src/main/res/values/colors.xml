@@ -164,4 +164,8 @@
     <color name="settings_chip_purple_icon">@color/theme_primary</color>
     <color name="settings_chip_peach_icon">#E45E38</color>
     <color name="settings_chip_yellow_icon">#8F7312</color>
+
+    <color name="streak_color_text">#9A3412</color>
+    <color name="streak_color">#FF6B00</color>
+    <color name="streak_color_inactive">#D1D5DB</color>
 </resources>

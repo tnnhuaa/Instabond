@@ -12,6 +12,7 @@ import com.example.instabond_fe.model.Conversation;
 import com.example.instabond_fe.model.ConversationPageResponse;
 import com.example.instabond_fe.model.LastMessage;
 import com.example.instabond_fe.model.OnlineStatusEvent;
+import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.ChatRepository;
 import com.example.instabond_fe.repository.WebSocketManager;
 import com.example.instabond_fe.utils.RichMessageUtils;
@@ -32,6 +33,7 @@ public class InboxViewModel extends AndroidViewModel {
     private final Object inboxLock = new Object();
     private final WebSocketManager.InboxListener inboxListener = this::applyRealtimeMessage;
     private final WebSocketManager.OnlineStatusListener onlineStatusListener = this::applyOnlineStatus;
+    private final String currentUserId;
 
     private String nextCursor;
     private boolean hasMore = true;
@@ -40,6 +42,9 @@ public class InboxViewModel extends AndroidViewModel {
     public InboxViewModel(@NonNull Application application) {
         super(application);
         repository = ChatRepository.getInstance(application);
+        SessionManager sessionManager = new SessionManager(application);
+        String userId = sessionManager.getUserId();
+        currentUserId = userId == null ? "" : userId;
 
         repository.addInboxListener(inboxListener);
         // TODO: Re-enable or Refactor after deciding on Online Status UI logic
@@ -111,10 +116,14 @@ public class InboxViewModel extends AndroidViewModel {
                 continue;
             }
 
-            // Cache usernames
+            // Cache usernames and hydrate cached presence when available
             if (item.getParticipants() != null) {
                 for (Conversation.Participant p : item.getParticipants()) {
                     WebSocketManager.getInstance(getApplication()).cacheUser(p.getId(), p.getUsername());
+                    Boolean cachedPresence = WebSocketManager.getInstance(getApplication()).getCachedPresence(p.getEmail());
+                    if (cachedPresence != null) {
+                        p.setOnline(cachedPresence);
+                    }
                 }
             }
 
@@ -186,6 +195,8 @@ public class InboxViewModel extends AndroidViewModel {
         last.setContent(RichMessageUtils.getConversationPreview(getApplication(), message));
         last.setSenderId(message.getSenderId());
         last.setSentAt(message.getCreatedAt());
+        boolean isIncoming = message.getSenderId() != null && !message.getSenderId().equals(currentUserId);
+        last.setIsRead(!isIncoming);
         conversation.setUpdatedAt(message.getCreatedAt());
     }
 

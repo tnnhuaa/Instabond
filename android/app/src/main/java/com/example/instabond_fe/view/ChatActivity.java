@@ -410,13 +410,9 @@ public class ChatActivity extends AppCompatActivity {
         binding.layoutChatStreak.setVisibility(View.VISIBLE);
         binding.tvChatStreakCount.setVisibility(hasActiveStreak ? View.VISIBLE : View.GONE);
         binding.tvChatStreakCount.setText(String.valueOf(Math.max(0, partnerStreakCount)));
-        binding.tvChatStreakCount.setTextColor(ContextCompat.getColor(
-                this,
-                hasActiveStreak ? android.R.color.white : R.color.login_text_secondary
-        ));
         binding.ivChatStreakFlame.setColorFilter(ContextCompat.getColor(
                 this,
-                hasActiveStreak ? R.color.login_bg_start : android.R.color.white
+                hasActiveStreak ? R.color.streak_color : R.color.streak_color_inactive
         ));
         binding.ivChatStreakFlame.setAlpha(hasActiveStreak ? 1f : 0.82f);
     }

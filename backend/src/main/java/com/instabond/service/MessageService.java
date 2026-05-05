@@ -137,6 +137,21 @@ public class MessageService {
         User reader = resolveUserByEmail(readerEmail);
         resolveConversationAndValidateParticipant(conversationId, reader.getId());
 
+        // Mask read messages in the conversation's last message preview if the reader is not the sender
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Conversation not found: " + conversationId));
+        log.info("Marking last message as read in conversation {}", conversationId);
+
+        if (conversation.getLast_message() != null) {
+            String lastMessageSenderId = conversation.getLast_message().getSender_id();
+
+            if (!reader.getId().equals(lastMessageSenderId)) {
+                conversation.getLast_message().set_read(true);
+
+                conversationRepository.save(conversation);
+            }
+        }
+
         // Filter messages
         List<Message> unreadMessages = messageRepository.findUnreadMessages(conversationId, reader.getId());
 

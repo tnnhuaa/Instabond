@@ -10,7 +10,9 @@ import com.example.instabond_fe.model.WsEvent;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.SessionManager;
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -86,6 +88,8 @@ public class WebSocketManager {
 
     private String activeConversationId = null;
     private final Map<String, String> userCache = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> presenceCache = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> presenceByUserIdCache = new ConcurrentHashMap<>();
 
     private WebSocketManager(Context context) {
         this.sessionManager = new SessionManager(context.getApplicationContext());
@@ -109,11 +113,13 @@ public class WebSocketManager {
         if (stompClient != null && stompClient.isConnected()) {
             isSocketOpened = true;
             isConnecting = false;
+            Log.d(TAG, "connectWebSocket: already connected, re-subscribing");
             subscribeGlobalChannelsInternal();
             notifyConnected();
             return;
         }
         if (isSocketOpened || isConnecting) return;
+        Log.d(TAG, "connectWebSocket: starting connect");
         connectInternal();
     }
 
@@ -144,6 +150,8 @@ public class WebSocketManager {
     private void subscribeEventsInternal() {
         if (stompClient == null) return;
         if (eventsDisposable != null && !eventsDisposable.isDisposed()) return;
+
+        Log.d(TAG, "Subscribing to events: " + EVENTS_QUEUE);
 
         eventsDisposable = stompClient.topic(EVENTS_QUEUE).subscribe(stompMessage -> {
             WsEvent event = gson.fromJson(stompMessage.getPayload(), WsEvent.class);
@@ -176,10 +184,29 @@ public class WebSocketManager {
             }
 
             if (WsEvent.TYPE_PRESENCE.equalsIgnoreCase(type)) {
+                if (payload == null || payload.isJsonNull()) return;
+
+                if (payload.isJsonArray()) {
+                    Log.d(TAG, "Presence snapshot received (array), size=" + payload.getAsJsonArray().size());
+                    applyPresenceSnapshot(payload.getAsJsonArray());
+                    return;
+                }
+
+                if (payload.isJsonObject()) {
+                    JsonObject object = payload.getAsJsonObject();
+                    if (object.has("users") && object.get("users").isJsonArray()) {
+                        Log.d(TAG, "Presence snapshot received (users), size=" + object.getAsJsonArray("users").size());
+                        applyPresenceSnapshot(object.getAsJsonArray("users"));
+                        return;
+                    }
+                }
+
                 OnlineStatusEvent status = gson.fromJson(payload, OnlineStatusEvent.class);
                 if (status == null) return;
 
-                // TODO: Re-enable UI status update after refining the Online/Offline logic
+                Log.d(TAG, "Presence update received: " + status.getEmail() + " online=" + status.isOnline());
+                cachePresence(status.getEmail(), status.getUserId(), status.isOnline());
+
                 for (OnlineStatusListener listener : onlineStatusListeners) {
                     listener.onStatusChanged(status);
                 }
@@ -271,6 +298,23 @@ public class WebSocketManager {
         return userId != null ? userCache.get(userId) : null;
     }
 
+    public void cachePresence(String email, String userId, boolean online) {
+        if (email != null) {
+            presenceCache.put(email.toLowerCase(), online);
+        }
+        if (userId != null) {
+            presenceByUserIdCache.put(userId, online);
+        }
+    }
+
+    public Boolean getCachedPresence(String email) {
+        return email == null ? null : presenceCache.get(email.toLowerCase());
+    }
+
+    public Boolean getCachedPresenceByUserId(String userId) {
+        return userId == null ? null : presenceByUserIdCache.get(userId);
+    }
+
     private void connectInternal() {
         if (isConnecting) return;
         isConnecting = true;
@@ -280,6 +324,7 @@ public class WebSocketManager {
         }
         disposeAllSubscriptions();
         String wsUrl = buildWsUrl(ApiClient.getBaseUrl());
+        Log.d(TAG, "Connecting WebSocket to " + wsUrl);
         stompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, wsUrl);
         stompClient.withClientHeartbeat(HEARTBEAT_MS).withServerHeartbeat(HEARTBEAT_MS);
         List<StompHeader> headers = new ArrayList<>();
@@ -295,15 +340,18 @@ public class WebSocketManager {
 
     private void handleLifecycleEvent(LifecycleEvent lifecycleEvent) {
         if (lifecycleEvent.getType() == LifecycleEvent.Type.OPENED) {
+            Log.d(TAG, "WebSocket OPENED");
             isConnecting = false; isSocketOpened = true; reconnectAttempt = 0;
             cancelReconnect(); subscribeGlobalChannelsInternal();
             notifyConnected(); flushPendingMessages();
         } else if (lifecycleEvent.getType() == LifecycleEvent.Type.ERROR) {
+            Log.e(TAG, "WebSocket ERROR", lifecycleEvent.getException());
             isConnecting = false;
             isSocketOpened = false;
             notifyError(lifecycleEvent.getException());
             scheduleReconnect();
         } else if (lifecycleEvent.getType() == LifecycleEvent.Type.CLOSED) {
+            Log.d(TAG, "WebSocket CLOSED");
             isConnecting = false;
             boolean wasOpened = isSocketOpened;
             isSocketOpened = false;
@@ -363,5 +411,27 @@ public class WebSocketManager {
     private String buildWsUrl(String baseUrl) {
         String normalized = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         return (normalized.startsWith("https") ? "wss" : "ws") + "://" + normalized.substring(normalized.indexOf("//") + 2) + "/" + WS_SUFFIX;
+    }
+
+    private void applyPresenceSnapshot(JsonArray array) {
+        if (array == null) {
+            return;
+        }
+
+        for (JsonElement element : array) {
+            if (element == null || !element.isJsonObject()) {
+                continue;
+            }
+
+            OnlineStatusEvent status = gson.fromJson(element, OnlineStatusEvent.class);
+            if (status == null) {
+                continue;
+            }
+
+            cachePresence(status.getEmail(), status.getUserId(), status.isOnline());
+            for (OnlineStatusListener listener : onlineStatusListeners) {
+                listener.onStatusChanged(status);
+            }
+        }
     }
 }

@@ -283,6 +283,8 @@ public class NotificationsActivity extends AppCompatActivity {
             );
 
             if (hasText(conversationId)) {
+                Boolean cachedPresence = webSocketManager.getCachedPresenceByUserId(notification.getSenderId());
+                boolean partnerOnline = Boolean.TRUE.equals(cachedPresence);
                 Intent intent = new Intent(this, ChatActivity.class);
                 intent.putExtra("CONVERSATION_ID", conversationId);
                 intent.putExtra("PARTNER_ID", notification.getSenderId());
@@ -294,6 +296,7 @@ public class NotificationsActivity extends AppCompatActivity {
                 if (hasText(partnerName)) {
                     intent.putExtra("PARTNER_NAME", partnerName);
                 }
+                intent.putExtra("PARTNER_ONLINE", partnerOnline);
                 startActivity(intent);
             } else {
                 startActivity(new Intent(this, InboxActivity.class));

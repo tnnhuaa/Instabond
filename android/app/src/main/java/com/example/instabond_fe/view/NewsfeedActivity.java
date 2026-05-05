@@ -332,6 +332,16 @@ public class NewsfeedActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        if (sessionManager.isLoggedIn()) {
+            ChatRepository repository = ChatRepository.getInstance(this);
+            repository.connectRealtime();
+            repository.subscribeGlobalChannels();
+        }
+    }
+
+    @Override
     protected void onPause() {
         PostAdapter.stopAudioPlayback();
         super.onPause();

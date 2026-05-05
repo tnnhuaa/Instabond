@@ -1,9 +1,13 @@
 package com.example.instabond_fe.view;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.View;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -11,14 +15,18 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivityInboxBinding;
 import com.example.instabond_fe.model.Conversation;
 import com.example.instabond_fe.model.UserProfileResponse;
+import com.example.instabond_fe.model.UserSearchDTO;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.repository.WebSocketManager;
 import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.viewmodel.InboxViewModel;
+import com.example.instabond_fe.viewmodel.SearchViewModel;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -41,7 +49,9 @@ public class InboxActivity extends AppCompatActivity {
     private ActivityInboxBinding binding;
     private InboxAdapter adapter;
     private InboxActiveAdapter activeAdapter;
+    private SearchUserAdapter searchUserAdapter;
     private InboxViewModel viewModel;
+    private SearchViewModel searchViewModel;
     private ApiService apiService;
     private String currentUserId;
     private final List<Conversation> allConversations = new ArrayList<>();
@@ -59,11 +69,15 @@ public class InboxActivity extends AppCompatActivity {
 
         adapter = new InboxAdapter(this, this::openConversation);
         activeAdapter = new InboxActiveAdapter(this, this::openConversation);
+        searchUserAdapter = new SearchUserAdapter();
+        searchUserAdapter.setOnItemClickListener(this::openConversationFromSuggestion);
 
         setupLists();
         bindActions();
 
         viewModel = new ViewModelProvider(this).get(InboxViewModel.class);
+        searchViewModel = new ViewModelProvider(this).get(SearchViewModel.class);
+
         viewModel.getInboxLiveData().observe(this, conversations -> {
             allConversations.clear();
             if (conversations != null) {
@@ -73,6 +87,11 @@ public class InboxActivity extends AppCompatActivity {
             applyFilters();
         });
 
+        searchViewModel.getSuggestionsLiveData().observe(this, suggestions -> runOnUiThread(() -> {
+            List<UserSearchDTO> safeSuggestions = suggestions == null ? new ArrayList<>() : suggestions;
+            searchUserAdapter.setUsers(safeSuggestions);
+        }));
+
         viewModel.loadInbox();
     }
 
@@ -80,6 +99,12 @@ public class InboxActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         viewModel.ensureRealtimeConnected();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        viewModel.loadInbox();
     }
 
     private void setupLists() {
@@ -104,10 +129,14 @@ public class InboxActivity extends AppCompatActivity {
         binding.rvActiveUsers.setLayoutManager(
                 new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         binding.rvActiveUsers.setAdapter(activeAdapter);
+
+        binding.rvSearchSuggestions.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvSearchSuggestions.setAdapter(searchUserAdapter);
     }
 
     private void bindActions() {
         binding.btnBack.setOnClickListener(v -> finish());
+        binding.btnClearSearch.setOnClickListener(v -> clearSearchAndReset());
         binding.etSearch.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -115,7 +144,17 @@ public class InboxActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                applyFilters();
+                String query = s == null ? "" : s.toString().trim();
+                binding.btnClearSearch.setVisibility(query.isEmpty() ? View.GONE : View.VISIBLE);
+
+                if (query.isEmpty()) {
+                    searchViewModel.onSearchQueryChanged("");
+                    showDefaultMode();
+                    applyFilters();
+                } else {
+                    showSuggestionsMode();
+                    searchViewModel.onSearchQueryChanged(query);
+                }
             }
 
             @Override
@@ -128,6 +167,10 @@ public class InboxActivity extends AppCompatActivity {
         String query = binding.etSearch.getText() == null
                 ? ""
                 : binding.etSearch.getText().toString().trim().toLowerCase(Locale.getDefault());
+
+        if (!query.isEmpty()) {
+            return;
+        }
 
         List<Conversation> filtered = new ArrayList<>();
         for (Conversation conversation : allConversations) {
@@ -143,6 +186,84 @@ public class InboxActivity extends AppCompatActivity {
         activeAdapter.setConversations(activeItems);
         activeAdapter.notifyDataSetChanged();
         updateActiveSectionVisibility(activeItems);
+    }
+
+    private void showSuggestionsMode() {
+        binding.rvSearchSuggestions.setVisibility(View.VISIBLE);
+        binding.tvActiveHeading.setVisibility(View.GONE);
+        binding.rvActiveUsers.setVisibility(View.GONE);
+        binding.tvRecentHeading.setVisibility(View.GONE);
+        binding.rvInbox.setVisibility(View.GONE);
+    }
+
+    private void showDefaultMode() {
+        binding.rvSearchSuggestions.setVisibility(View.GONE);
+        binding.tvRecentHeading.setVisibility(View.VISIBLE);
+        binding.rvInbox.setVisibility(View.VISIBLE);
+    }
+
+    private void clearSearchAndReset() {
+        binding.etSearch.setText("");
+        binding.etSearch.clearFocus();
+        hideKeyboard();
+        searchViewModel.onSearchQueryChanged("");
+        searchUserAdapter.setUsers(new ArrayList<>());
+        showDefaultMode();
+        applyFilters();
+    }
+
+    private void hideKeyboard() {
+        View view = getCurrentFocus();
+        if (view == null) {
+            view = binding.getRoot();
+        }
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) {
+            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
+    }
+
+    private void openConversationFromSuggestion(UserSearchDTO user) {
+        if (user == null || user.getId() == null || user.getId().trim().isEmpty()) {
+            return;
+        }
+
+        apiService.getOrCreateDirectConversation(user.getId()).enqueue(new Callback<Conversation>() {
+            @Override
+            public void onResponse(Call<Conversation> call, Response<Conversation> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    Toast.makeText(InboxActivity.this, R.string.chat_missing_conversation, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                Conversation conversation = response.body();
+                Boolean cachedPresence = WebSocketManager.getInstance(InboxActivity.this)
+                    .getCachedPresenceByUserId(user.getId());
+                boolean partnerOnline = Boolean.TRUE.equals(cachedPresence);
+                Intent intent = new Intent(InboxActivity.this, ChatActivity.class);
+                intent.putExtra("CONVERSATION_ID", conversation.getId());
+                intent.putExtra("conversationId", conversation.getId());
+
+                intent.putExtra("PARTNER_ID", user.getId());
+                intent.putExtra("PARTNER_NAME", user.getUsername());
+                intent.putExtra("PARTNER_EMAIL", "");
+                intent.putExtra("PARTNER_AVATAR", user.getAvatarUrl());
+                intent.putExtra("PARTNER_ONLINE", partnerOnline);
+
+                intent.putExtra("partnerId", user.getId());
+                intent.putExtra("partnerName", user.getUsername());
+                intent.putExtra("partnerEmail", "");
+                intent.putExtra("partnerAvatar", user.getAvatarUrl());
+                intent.putExtra("partnerOnline", partnerOnline);
+
+                startActivity(intent);
+            }
+
+            @Override
+            public void onFailure(Call<Conversation> call, Throwable t) {
+                Toast.makeText(InboxActivity.this, R.string.chat_missing_conversation, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private boolean matchesQuery(Conversation conversation, String query) {
@@ -196,6 +317,7 @@ public class InboxActivity extends AppCompatActivity {
     }
 
     private void openConversation(Conversation conversation) {
+        markConversationAsReadIfNeeded(conversation);
         Intent intent = new Intent(InboxActivity.this, ChatActivity.class);
         intent.putExtra("CONVERSATION_ID", conversation.getId());
         intent.putExtra("conversationId", conversation.getId());
@@ -216,6 +338,38 @@ public class InboxActivity extends AppCompatActivity {
         }
 
         startActivity(intent);
+    }
+
+    private void markConversationAsReadIfNeeded(Conversation conversation) {
+        if (conversation == null || apiService == null) {
+            return;
+        }
+
+        com.example.instabond_fe.model.LastMessage lastMessage = conversation.getLastMessage();
+        if (lastMessage == null) {
+            return;
+        }
+
+        String senderId = lastMessage.getSenderId();
+        if (senderId == null || senderId.trim().isEmpty()) {
+            return;
+        }
+
+        String currentId = currentUserId == null ? "" : currentUserId;
+        Boolean isRead = lastMessage.getIsRead();
+        if (senderId.equals(currentId) || Boolean.TRUE.equals(isRead)) {
+            return;
+        }
+
+        apiService.markMessagesAsRead(conversation.getId()).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+            }
+        });
     }
 
     private Conversation.Participant findPeer(Conversation conversation, String safeCurrentUserId) {
