@@ -214,6 +214,9 @@
     <string name="story_create_pick_body">Bắt đầu từ thư viện ảnh hoặc chụp một cái gì đó mới. Kết quả sẽ phù hợp với tâm trạng chỉnh sửa tinh tế của bảng tin.</string>
     <string name="story_create_pick_gallery">Chọn từ thư viện</string>
     <string name="story_create_pick_camera">Chụp ảnh</string>
+    <string name="story_create_camera_permission_required">Cần cấp quyền camera để tạo story.</string>
+    <string name="story_create_camera_unavailable">Hiện không thể mở xem trước camera.</string>
+    <string name="story_create_camera_capture_failed">Không thể chụp ảnh.</string>
     <string name="story_create_pick_photo_first">Chọn ảnh trước khi chia sẻ</string>
     <string name="story_create_image_error">Không thể chuẩn bị ảnh đã chọn</string>
     <string name="story_create_success">Chia sẻ tin thành công</string>

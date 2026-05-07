@@ -1,5 +1,6 @@
 package com.example.instabond_fe.view;
 
+import android.Manifest;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -21,6 +22,12 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.CameraSelector;
+import androidx.camera.core.ImageCapture;
+import androidx.camera.core.ImageCaptureException;
+import androidx.camera.core.Preview;
+import androidx.camera.lifecycle.ProcessCameraProvider;
+import androidx.core.content.ContextCompat;
 
 import com.bumptech.glide.Glide;
 import com.example.instabond_fe.R;
@@ -33,12 +40,15 @@ import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.utils.AvatarLoader;
 import com.example.instabond_fe.utils.LocaleManager;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -60,6 +70,7 @@ public class CreateStoryActivity extends AppCompatActivity {
     }
 
     public static final String EXTRA_REFRESH_STORIES = "refresh_stories";
+    private static final String CAMERA_PERMISSION = Manifest.permission.CAMERA;
 
     private static final int MAX_SOURCE_EDGE = 1600;
     private static final int[] STORY_EDITOR_COLORS = {
@@ -83,13 +94,17 @@ public class CreateStoryActivity extends AppCompatActivity {
     private SessionManager sessionManager;
 
     private ActivityResultLauncher<String> pickImageLauncher;
-    private ActivityResultLauncher<Void> takePhotoLauncher;
+    private ActivityResultLauncher<String> requestCameraPermissionLauncher;
 
     private Uri selectedImageUri;
     private Bitmap selectedBitmap;
     private OverlaySelection selectedOverlay = OverlaySelection.NONE;
     private int textOverlayColorIndex;
     private int iconOverlayColorIndex;
+    private ProcessCameraProvider cameraProvider;
+    private ImageCapture imageCapture;
+    private ExecutorService cameraExecutor;
+    private boolean cameraPermissionDenied;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,6 +114,7 @@ public class CreateStoryActivity extends AppCompatActivity {
 
         apiService = ApiClient.getApiService(this);
         sessionManager = new SessionManager(this);
+        cameraExecutor = Executors.newSingleThreadExecutor();
 
         registerLaunchers();
         setupToolbar();
@@ -106,6 +122,7 @@ public class CreateStoryActivity extends AppCompatActivity {
         setupActions();
         loadCurrentUser();
         renderPreview();
+        ensureCameraReady();
     }
 
     private void setupToolbar() {
@@ -136,7 +153,7 @@ public class CreateStoryActivity extends AppCompatActivity {
             }
         });
         binding.btnChooseStoryPhoto.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
-        binding.btnCaptureStoryPhoto.setOnClickListener(v -> takePhotoLauncher.launch(null));
+        binding.btnCaptureStoryPhoto.setOnClickListener(v -> captureStoryPhoto());
         binding.btnReplaceStoryPhoto.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
         binding.btnStoryToolFlash.setOnClickListener(toolsSoonClick);
         binding.btnStoryToolText.setOnClickListener(v -> showTextOverlayDialog());
@@ -402,16 +419,18 @@ public class CreateStoryActivity extends AppCompatActivity {
                 Toast.makeText(this, R.string.story_create_image_error, Toast.LENGTH_SHORT).show();
             }
         });
-
-        takePhotoLauncher = registerForActivityResult(new ActivityResultContracts.TakePicturePreview(), bitmap -> {
-            if (bitmap == null) {
-                return;
-            }
-            selectedBitmap = limitBitmapSize(bitmap, MAX_SOURCE_EDGE);
-            selectedImageUri = saveBitmapToCacheUri(selectedBitmap);
-            clearStoryOverlays();
-            renderPreview();
-        });
+        requestCameraPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                granted -> {
+                    cameraPermissionDenied = !granted;
+                    if (granted) {
+                        startCameraPreview();
+                    } else {
+                        renderPreview();
+                        Toast.makeText(this, R.string.story_create_camera_permission_required, Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
     }
 
     private void loadCurrentUser() {
@@ -451,11 +470,14 @@ public class CreateStoryActivity extends AppCompatActivity {
         binding.previewCard.setClickable(hasImage);
         binding.previewCard.setFocusable(hasImage);
         binding.storyPreviewBottomScrim.setAlpha(hasImage ? 0.9f : 0.65f);
+        binding.storyCameraPreview.setVisibility(hasImage ? View.GONE : View.VISIBLE);
 
         if (!hasImage) {
             selectOverlay(OverlaySelection.NONE);
             binding.ivStoryPreview.setImageDrawable(null);
-            binding.ivStoryPreview.setBackgroundResource(R.drawable.story_create_camera_preview_bg);
+            binding.ivStoryPreview.setBackground(cameraPermissionDenied
+                    ? ContextCompat.getDrawable(this, R.drawable.story_create_camera_preview_bg)
+                    : null);
             return;
         }
 
@@ -700,6 +722,88 @@ public class CreateStoryActivity extends AppCompatActivity {
                 : getString(R.string.story_create_post_action));
     }
 
+    private void ensureCameraReady() {
+        if (hasSelectedImage()) {
+            return;
+        }
+
+        if (ContextCompat.checkSelfPermission(this, CAMERA_PERMISSION)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            cameraPermissionDenied = false;
+            startCameraPreview();
+        } else {
+            requestCameraPermissionLauncher.launch(CAMERA_PERMISSION);
+        }
+    }
+
+    private void startCameraPreview() {
+        ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(this);
+        cameraProviderFuture.addListener(() -> {
+            try {
+                ProcessCameraProvider provider = cameraProviderFuture.get();
+                cameraProvider = provider;
+
+                Preview preview = new Preview.Builder().build();
+                preview.setSurfaceProvider(binding.storyCameraPreview.getSurfaceProvider());
+
+                imageCapture = new ImageCapture.Builder()
+                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                        .setJpegQuality(92)
+                        .build();
+
+                provider.unbindAll();
+                provider.bindToLifecycle(
+                        this,
+                        CameraSelector.DEFAULT_BACK_CAMERA,
+                        preview,
+                        imageCapture
+                );
+            } catch (Exception exception) {
+                Toast.makeText(this, R.string.story_create_camera_unavailable, Toast.LENGTH_SHORT).show();
+                cameraPermissionDenied = true;
+                renderPreview();
+            }
+        }, ContextCompat.getMainExecutor(this));
+    }
+
+    private void captureStoryPhoto() {
+        if (imageCapture == null) {
+            ensureCameraReady();
+            return;
+        }
+
+        File outputFile = new File(getCacheDir(), "story_capture_" + System.currentTimeMillis() + ".jpg");
+        ImageCapture.OutputFileOptions outputOptions =
+                new ImageCapture.OutputFileOptions.Builder(outputFile).build();
+
+        imageCapture.takePicture(
+                outputOptions,
+                cameraExecutor,
+                new ImageCapture.OnImageSavedCallback() {
+                    @Override
+                    public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+                        runOnUiThread(() -> {
+                            selectedImageUri = Uri.fromFile(outputFile);
+                            try {
+                                selectedBitmap = decodeBitmap(selectedImageUri);
+                                clearStoryOverlays();
+                                renderPreview();
+                            } catch (IOException e) {
+                                Toast.makeText(CreateStoryActivity.this, R.string.story_create_image_error, Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(@NonNull ImageCaptureException exception) {
+                        runOnUiThread(() ->
+                                Toast.makeText(CreateStoryActivity.this, R.string.story_create_camera_capture_failed, Toast.LENGTH_SHORT).show()
+                        );
+                    }
+                }
+        );
+    }
+
     private int dp(int value) {
         return Math.round(getResources().getDisplayMetrics().density * value);
     }
@@ -710,5 +814,16 @@ public class CreateStoryActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         startActivity(intent);
         finish();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (cameraProvider != null) {
+            cameraProvider.unbindAll();
+        }
+        if (cameraExecutor != null) {
+            cameraExecutor.shutdown();
+        }
+        super.onDestroy();
     }
 }

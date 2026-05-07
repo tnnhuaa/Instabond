@@ -187,6 +187,9 @@
     <string name="story_create_pick_body">Start from your gallery or capture something fresh. The result will match the refined editorial mood of the feed.</string>
     <string name="story_create_pick_gallery">Pick from gallery</string>
     <string name="story_create_pick_camera">Take a photo</string>
+    <string name="story_create_camera_permission_required">Camera permission is required to create a story.</string>
+    <string name="story_create_camera_unavailable">Camera preview is unavailable right now.</string>
+    <string name="story_create_camera_capture_failed">Could not capture photo.</string>
     <string name="story_create_pick_photo_first">Choose a photo before sharing</string>
     <string name="story_create_image_error">Could not prepare the selected image</string>
     <string name="story_create_success">Story shared successfully</string>
