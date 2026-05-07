@@ -14,6 +14,8 @@ import com.example.instabond_fe.R;
 import com.example.instabond_fe.model.PostSearchDTO;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 public class SearchPostAdapter extends RecyclerView.Adapter<SearchPostAdapter.PostViewHolder> {
@@ -23,6 +25,26 @@ public class SearchPostAdapter extends RecyclerView.Adapter<SearchPostAdapter.Po
     public void setPosts(List<PostSearchDTO> posts) {
         this.postList = posts;
         notifyDataSetChanged();
+    }
+
+    public void removePostsByIds(Collection<String> postIds) {
+        if (postIds == null || postIds.isEmpty() || postList == null || postList.isEmpty()) {
+            return;
+        }
+
+        boolean changed = false;
+        Iterator<PostSearchDTO> iterator = postList.iterator();
+        while (iterator.hasNext()) {
+            PostSearchDTO post = iterator.next();
+            if (post != null && post.getId() != null && postIds.contains(post.getId())) {
+                iterator.remove();
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            notifyDataSetChanged();
+        }
     }
 
     @NonNull

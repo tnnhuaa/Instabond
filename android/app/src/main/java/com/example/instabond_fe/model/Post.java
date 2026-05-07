@@ -22,6 +22,7 @@ public class Post {
     private boolean tagsVisible = false;
     private boolean isLiked;
     private boolean isBookmarked;
+    private boolean ownedByCurrentUser;
 
     public Post(String id, String authorId, String username, String caption, int likesCount, int commentsCount, int sharesCount,
                 String avatarUrl, String imageUrl, boolean hasMusicBadge, boolean isLiked) {
@@ -154,6 +155,14 @@ public class Post {
 
     public void setBookmarked(boolean bookmarked) {
         isBookmarked = bookmarked;
+    }
+
+    public boolean isOwnedByCurrentUser() {
+        return ownedByCurrentUser;
+    }
+
+    public void setOwnedByCurrentUser(boolean ownedByCurrentUser) {
+        this.ownedByCurrentUser = ownedByCurrentUser;
     }
 
     public void setSharesCount(int sharesCount) {

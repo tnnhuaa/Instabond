@@ -8,6 +8,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,8 +29,10 @@ import com.example.instabond_fe.model.UserProfileResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
+import com.example.instabond_fe.utils.DeletedPostRegistry;
 import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.utils.ShareUtils;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -139,6 +142,7 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
 
     private void setupContentList() {
         postAdapter = new PostAdapter(new ArrayList<>());
+        postAdapter.setShowOverflowActions(true);
         commentAdapter = new CommentAdapter("", this);
         contentAdapter = new ConcatAdapter(postAdapter, commentAdapter);
 
@@ -221,6 +225,11 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
                 } else {
                     apiService.bookmarkPost(post.getId()).enqueue(cb);
                 }
+            }
+
+            @Override
+            public void onOptionsClicked(Post post, int position, android.view.View anchorView) {
+                showPostOptionsMenu(post, position, anchorView);
             }
         });
     }
@@ -419,6 +428,7 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
         if (response.getTaggedUsers() != null) {
             uiPost.setTaggedUsers(response.getTaggedUsers());
         }
+        uiPost.setOwnedByCurrentUser(authorId.equals(valueOrEmpty(sessionManager.getUserId())));
 
         return uiPost;
     }
@@ -461,6 +471,64 @@ public class CommentActivity extends AppCompatActivity implements CommentAdapter
         } else {
             apiService.likePost(post.getId()).enqueue(callback);
         }
+    }
+
+    private void showPostOptionsMenu(Post post, int position, android.view.View anchorView) {
+        if (post == null || !post.isOwnedByCurrentUser()) {
+            return;
+        }
+
+        PopupMenu popupMenu = new PopupMenu(this, anchorView);
+        popupMenu.getMenu().add(0, 1, 0, R.string.post_delete_action);
+        popupMenu.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == 1) {
+                showDeletePostConfirmation(post, position);
+                return true;
+            }
+            return false;
+        });
+        popupMenu.show();
+    }
+
+    private void showDeletePostConfirmation(Post post, int position) {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.post_delete_title)
+                .setMessage(R.string.post_delete_message)
+                .setPositiveButton(R.string.post_delete_confirm, (dialog, which) -> deletePost(post, position))
+                .setNegativeButton(R.string.post_delete_cancel, null)
+                .show();
+    }
+
+    private void deletePost(Post post, int position) {
+        showLoading();
+        apiService.deletePost(post.getId()).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
+                hideLoading();
+                if (response.isSuccessful()) {
+                    DeletedPostRegistry.markDeleted(post.getId());
+                    Toast.makeText(CommentActivity.this, R.string.post_delete_success, Toast.LENGTH_SHORT).show();
+                    Intent resultIntent = new Intent();
+                    resultIntent.putExtra("deletedPostId", post.getId());
+                    setResult(RESULT_OK, resultIntent);
+                    finish();
+                } else if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(CommentActivity.this, R.string.post_delete_failed, Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
+                hideLoading();
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(
+                            CommentActivity.this,
+                            getString(R.string.msg_connection_error, valueOrEmpty(t.getMessage())),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
+            }
+        });
     }
 
     private void showLoading() {

@@ -2,6 +2,7 @@ package com.example.instabond_fe.view;
 
 import android.os.Bundle;
 import android.widget.Toast;
+import android.widget.PopupMenu;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.instabond_fe.databinding.ActivityProfilePostDetailBinding;
@@ -17,23 +18,11 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import com.google.android.material.bottomsheet.BottomSheetDialog;
-import com.example.instabond_fe.model.FollowUserResponse;
-import com.example.instabond_fe.model.Conversation;
-import com.example.instabond_fe.model.ChatMessageRequest;
-import com.example.instabond_fe.model.ChatMessageResponse;
 import com.example.instabond_fe.network.SessionManager;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.LayoutInflater;
-import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.Button;
-import com.bumptech.glide.Glide;
+import com.example.instabond_fe.utils.DeletedPostRegistry;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
 import com.example.instabond_fe.R;
-import com.example.instabond_fe.model.ChatMessageRequest;
 import com.example.instabond_fe.utils.LocaleManager;
 public class ProfilePostDetailActivity extends AppCompatActivity {
     @Override
@@ -44,7 +33,9 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
     private ActivityProfilePostDetailBinding binding;
     private PostAdapter adapter;
     private ApiService apiService;
+    private SessionManager sessionManager;
     private final Gson gson = new Gson();
+    private int lastHandledDeletedPostVersion = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,6 +44,7 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         apiService = ApiClient.getApiService(this);
+        sessionManager = new SessionManager(this);
 
         setSupportActionBar(binding.toolbar);
         if (getSupportActionBar() != null) {
@@ -62,6 +54,7 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
         binding.toolbar.setNavigationOnClickListener(v -> finish());
 
         adapter = new PostAdapter(new ArrayList<>());
+        adapter.setShowOverflowActions(true);
         binding.rvPosts.setLayoutManager(new LinearLayoutManager(this));
         binding.rvPosts.setAdapter(adapter);
 
@@ -166,6 +159,11 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
                     apiService.bookmarkPost(post.getId()).enqueue(cb);
                 }
             }
+
+            @Override
+            public void onOptionsClicked(Post post, int position, android.view.View anchorView) {
+                showPostOptionsMenu(post, position, anchorView);
+            }
         });
     }
 
@@ -173,6 +171,12 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
     protected void onPause() {
         PostAdapter.stopAudioPlayback();
         super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        syncDeletedPosts();
     }
 
     private void loadPosts(String userId, int startPosition) {
@@ -230,9 +234,81 @@ public class ProfilePostDetailActivity extends AppCompatActivity {
                     musicPreviewUrl,
                     hasMusic, isLiked, r.isBookmarked()
             );
+            p.setOwnedByCurrentUser(authorId.equals(valueOrEmpty(sessionManager.getUserId())));
 
             list.add(p);
         }
         return list;
+    }
+
+    private void showPostOptionsMenu(Post post, int position, android.view.View anchorView) {
+        if (post == null || !post.isOwnedByCurrentUser()) {
+            return;
+        }
+
+        PopupMenu popupMenu = new PopupMenu(this, anchorView);
+        popupMenu.getMenu().add(0, 1, 0, R.string.post_delete_action);
+        popupMenu.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == 1) {
+                showDeletePostConfirmation(post, position);
+                return true;
+            }
+            return false;
+        });
+        popupMenu.show();
+    }
+
+    private void showDeletePostConfirmation(Post post, int position) {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.post_delete_title)
+                .setMessage(R.string.post_delete_message)
+                .setPositiveButton(R.string.post_delete_confirm, (dialog, which) -> deletePost(post, position))
+                .setNegativeButton(R.string.post_delete_cancel, null)
+                .show();
+    }
+
+    private void deletePost(Post post, int position) {
+        apiService.deletePost(post.getId()).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
+                if (response.isSuccessful()) {
+                    DeletedPostRegistry.markDeleted(post.getId());
+                    adapter.removePostAt(position);
+                    Toast.makeText(ProfilePostDetailActivity.this, R.string.post_delete_success, Toast.LENGTH_SHORT).show();
+                    setResult(RESULT_OK, new android.content.Intent().putExtra("deletedPostId", post.getId()));
+                    if (adapter.getItemCount() == 0) {
+                        finish();
+                    }
+                } else {
+                    Toast.makeText(ProfilePostDetailActivity.this, R.string.post_delete_failed, Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
+                Toast.makeText(
+                        ProfilePostDetailActivity.this,
+                        getString(R.string.msg_connection_error, valueOrEmpty(t.getMessage())),
+                        Toast.LENGTH_SHORT
+                ).show();
+            }
+        });
+    }
+
+    private String valueOrEmpty(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private void syncDeletedPosts() {
+        int currentVersion = DeletedPostRegistry.getVersion();
+        if (currentVersion == lastHandledDeletedPostVersion) {
+            return;
+        }
+
+        lastHandledDeletedPostVersion = currentVersion;
+        boolean removed = adapter.removePostsByIds(DeletedPostRegistry.snapshotDeletedPostIds());
+        if (removed && adapter.getItemCount() == 0) {
+            finish();
+        }
     }
 }

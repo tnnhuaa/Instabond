@@ -3,6 +3,7 @@ package com.example.instabond_fe.view;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.widget.PopupMenu;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -16,7 +17,9 @@ import com.example.instabond_fe.model.PostResponse;
 import com.example.instabond_fe.network.ApiClient;
 import com.example.instabond_fe.network.ApiListParser;
 import com.example.instabond_fe.network.ApiService;
+import com.example.instabond_fe.utils.DeletedPostRegistry;
 import com.example.instabond_fe.utils.LocaleManager;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 
@@ -37,6 +40,7 @@ public class BookmarksActivity extends AppCompatActivity {
     private ApiService apiService;
     private final Gson gson = new Gson();
     private com.example.instabond_fe.network.SessionManager sessionManager;
+    private int lastHandledDeletedPostVersion = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,6 +61,7 @@ public class BookmarksActivity extends AppCompatActivity {
         toolbar.setNavigationOnClickListener(v -> finish());
 
         adapter = new PostAdapter(new ArrayList<>());
+        adapter.setShowOverflowActions(true);
         RecyclerView rvBookmarks = findViewById(R.id.rv_bookmarks);
         rvBookmarks.setLayoutManager(new LinearLayoutManager(this));
         rvBookmarks.setAdapter(adapter);
@@ -161,6 +166,11 @@ public class BookmarksActivity extends AppCompatActivity {
                     apiService.bookmarkPost(post.getId()).enqueue(cb);
                 }
             }
+
+            @Override
+            public void onOptionsClicked(Post post, int position, android.view.View anchorView) {
+                showPostOptionsMenu(post, position, anchorView);
+            }
         });
 
         loadBookmarkedPosts();
@@ -170,6 +180,12 @@ public class BookmarksActivity extends AppCompatActivity {
     protected void onPause() {
         PostAdapter.stopAudioPlayback();
         super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        syncDeletedPosts();
     }
 
     private void loadBookmarkedPosts() {
@@ -229,9 +245,76 @@ public class BookmarksActivity extends AppCompatActivity {
             if (r.getTaggedUsers() != null) {
                 p.setTaggedUsers(r.getTaggedUsers());
             }
+            p.setOwnedByCurrentUser(authorId.equals(valueOrEmpty(sessionManager.getUserId())));
 
             list.add(p);
         }
         return list;
+    }
+
+    private void showPostOptionsMenu(Post post, int position, android.view.View anchorView) {
+        if (post == null || !post.isOwnedByCurrentUser()) {
+            return;
+        }
+
+        PopupMenu popupMenu = new PopupMenu(this, anchorView);
+        popupMenu.getMenu().add(0, 1, 0, R.string.post_delete_action);
+        popupMenu.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == 1) {
+                showDeletePostConfirmation(post, position);
+                return true;
+            }
+            return false;
+        });
+        popupMenu.show();
+    }
+
+    private void showDeletePostConfirmation(Post post, int position) {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.post_delete_title)
+                .setMessage(R.string.post_delete_message)
+                .setPositiveButton(R.string.post_delete_confirm, (dialog, which) -> deletePost(post, position))
+                .setNegativeButton(R.string.post_delete_cancel, null)
+                .show();
+    }
+
+    private void deletePost(Post post, int position) {
+        apiService.deletePost(post.getId()).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful()) {
+                    DeletedPostRegistry.markDeleted(post.getId());
+                    adapter.removePostAt(position);
+                    Toast.makeText(BookmarksActivity.this, R.string.post_delete_success, Toast.LENGTH_SHORT).show();
+                } else if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(BookmarksActivity.this, R.string.post_delete_failed, Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(
+                            BookmarksActivity.this,
+                            getString(R.string.msg_connection_error, valueOrEmpty(t.getMessage())),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
+            }
+        });
+    }
+
+    private String valueOrEmpty(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private void syncDeletedPosts() {
+        int currentVersion = DeletedPostRegistry.getVersion();
+        if (currentVersion == lastHandledDeletedPostVersion) {
+            return;
+        }
+
+        lastHandledDeletedPostVersion = currentVersion;
+        loadBookmarkedPosts();
     }
 }

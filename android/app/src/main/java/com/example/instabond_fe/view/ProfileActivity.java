@@ -27,6 +27,7 @@ import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.NotificationCountManager;
 import com.example.instabond_fe.utils.AvatarLoader;
+import com.example.instabond_fe.utils.DeletedPostRegistry;
 import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.google.gson.Gson;
@@ -78,6 +79,7 @@ public class ProfileActivity extends AppCompatActivity {
     private List<PostResponse> taggedPosts = new ArrayList<>();
     private boolean taggedPostsLoaded = false;
     private NotificationCountManager notificationCountManager;
+    private int lastHandledDeletedPostVersion = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -191,6 +193,7 @@ public class ProfileActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        syncDeletedPosts();
         // Fetch fresh unread notification count
         notificationCountManager.fetchUnreadCount();
     }
@@ -604,6 +607,20 @@ public class ProfileActivity extends AppCompatActivity {
             } else {
                 gridAdapter.setPosts(taggedPosts);
             }
+        }
+    }
+
+    private void syncDeletedPosts() {
+        int currentVersion = DeletedPostRegistry.getVersion();
+        if (currentVersion == lastHandledDeletedPostVersion) {
+            return;
+        }
+
+        lastHandledDeletedPostVersion = currentVersion;
+        if (isOwnProfileView) {
+            loadMyProfile();
+        } else if (currentUserId != null && !currentUserId.trim().isEmpty()) {
+            loadUserProfile(currentUserId);
         }
     }
 

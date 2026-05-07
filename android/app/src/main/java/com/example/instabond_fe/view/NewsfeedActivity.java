@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.widget.PopupMenu;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -25,8 +26,10 @@ import com.example.instabond_fe.network.ApiService;
 import com.example.instabond_fe.network.SessionManager;
 import com.example.instabond_fe.repository.ChatRepository;
 import com.example.instabond_fe.repository.NotificationCountManager;
+import com.example.instabond_fe.utils.DeletedPostRegistry;
 import com.example.instabond_fe.utils.LocaleManager;
 import com.example.instabond_fe.view.component.InstaBottomNavView;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 
@@ -81,6 +84,7 @@ public class NewsfeedActivity extends AppCompatActivity {
     private String currentFeedMode = FEED_MODE_FOR_YOU;
     private long forYouSeed;
     private NotificationCountManager notificationCountManager;
+    private int lastHandledDeletedPostVersion = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,6 +105,8 @@ public class NewsfeedActivity extends AppCompatActivity {
 
         topPostsAdapter = new PostAdapter(new ArrayList<>());
         bottomPostsAdapter = new PostAdapter(new ArrayList<>());
+        topPostsAdapter.setShowOverflowActions(true);
+        bottomPostsAdapter.setShowOverflowActions(true);
         storyAdapter = new StoryFeedAdapter();
         storySectionAdapter = new StorySectionAdapter(storyAdapter);
         feedModeHeaderAdapter = new FeedModeHeaderAdapter();
@@ -216,6 +222,11 @@ public class NewsfeedActivity extends AppCompatActivity {
                     apiService.bookmarkPost(post.getId()).enqueue(cb);
                 }
             }
+
+            @Override
+            public void onOptionsClicked(Post post, int position, android.view.View anchorView) {
+                showPostOptionsMenu(post, anchorView);
+            }
         };
 
         topPostsAdapter.setListener(postInteractionListener);
@@ -326,6 +337,7 @@ public class NewsfeedActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        syncDeletedPosts();
         loadStories();
         // Fetch fresh unread notification count
         notificationCountManager.fetchUnreadCount();
@@ -490,10 +502,65 @@ public class NewsfeedActivity extends AppCompatActivity {
             if (postResponse.getTaggedUsers() != null) {
                 uiPost.setTaggedUsers(postResponse.getTaggedUsers());
             }
+            uiPost.setOwnedByCurrentUser(authorId.equals(valueOrEmpty(sessionManager.getUserId())));
 
             result.add(uiPost);
         }
         return result;
+    }
+
+    private void showPostOptionsMenu(Post post, android.view.View anchorView) {
+        if (post == null || !post.isOwnedByCurrentUser()) {
+            return;
+        }
+
+        PopupMenu popupMenu = new PopupMenu(this, anchorView);
+        popupMenu.getMenu().add(0, 1, 0, R.string.post_delete_action);
+        popupMenu.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == 1) {
+                showDeletePostConfirmation(post);
+                return true;
+            }
+            return false;
+        });
+        popupMenu.show();
+    }
+
+    private void showDeletePostConfirmation(Post post) {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.post_delete_title)
+                .setMessage(R.string.post_delete_message)
+                .setPositiveButton(R.string.post_delete_confirm, (dialog, which) -> deletePost(post))
+                .setNegativeButton(R.string.post_delete_cancel, null)
+                .show();
+    }
+
+    private void deletePost(Post post) {
+        apiService.deletePost(post.getId()).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
+                if (response.isSuccessful()) {
+                    DeletedPostRegistry.markDeleted(post.getId());
+                    loadedPostIds.remove(post.getId());
+                    topPostsAdapter.removePostById(post.getId());
+                    bottomPostsAdapter.removePostById(post.getId());
+                    Toast.makeText(NewsfeedActivity.this, R.string.post_delete_success, Toast.LENGTH_SHORT).show();
+                } else if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(NewsfeedActivity.this, R.string.post_delete_failed, Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
+                if (sessionManager.isLoggedIn()) {
+                    Toast.makeText(
+                            NewsfeedActivity.this,
+                            getString(R.string.msg_connection_error, valueOrEmpty(t.getMessage())),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
+            }
+        });
     }
 
     private void notifyPostChanged(Post post) {
@@ -525,6 +592,25 @@ public class NewsfeedActivity extends AppCompatActivity {
         String prefix = rawUrl.startsWith("/") ? "" : "/";
         if (baseUrl.endsWith("/")) baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
         return baseUrl + prefix + rawUrl;
+    }
+
+    private String valueOrEmpty(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private void syncDeletedPosts() {
+        int currentVersion = DeletedPostRegistry.getVersion();
+        if (currentVersion == lastHandledDeletedPostVersion) {
+            return;
+        }
+
+        lastHandledDeletedPostVersion = currentVersion;
+        java.util.Set<String> deletedPostIds = DeletedPostRegistry.snapshotDeletedPostIds();
+        for (String postId : deletedPostIds) {
+            loadedPostIds.remove(postId);
+        }
+        topPostsAdapter.removePostsByIds(deletedPostIds);
+        bottomPostsAdapter.removePostsByIds(deletedPostIds);
     }
 
     private void loadCurrentUserProfile() {

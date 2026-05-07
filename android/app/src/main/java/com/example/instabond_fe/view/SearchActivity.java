@@ -21,8 +21,9 @@ import com.example.instabond_fe.R;
 import com.example.instabond_fe.databinding.ActivitySearchBinding;
 import com.example.instabond_fe.model.SearchHistoryDTO;
 import com.example.instabond_fe.repository.NotificationCountManager;
-import com.example.instabond_fe.view.component.InstaBottomNavView;
+import com.example.instabond_fe.utils.DeletedPostRegistry;
 import com.example.instabond_fe.utils.LocaleManager;
+import com.example.instabond_fe.view.component.InstaBottomNavView;
 import com.example.instabond_fe.viewmodel.SearchViewModel;
 
 import java.util.ArrayList;
@@ -42,6 +43,7 @@ public class SearchActivity extends AppCompatActivity {
     private String currentSearchQuery = "";
     private String currentTab = "POST";
     private NotificationCountManager notificationCountManager;
+    private int lastHandledDeletedPostVersion = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,8 +96,19 @@ public class SearchActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        syncDeletedPosts();
         // Fetch fresh unread notification count
         notificationCountManager.fetchUnreadCount();
+    }
+
+    private void syncDeletedPosts() {
+        int currentVersion = DeletedPostRegistry.getVersion();
+        if (currentVersion == lastHandledDeletedPostVersion) {
+            return;
+        }
+
+        lastHandledDeletedPostVersion = currentVersion;
+        searchPostAdapter.removePostsByIds(DeletedPostRegistry.snapshotDeletedPostIds());
     }
 
     private void setupRecyclerViews() {

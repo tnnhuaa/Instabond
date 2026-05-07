@@ -31,6 +31,13 @@
     <string name="cd_bookmark">Đánh dấu</string>
     <string name="cd_more_options">Tùy chọn khác</string>
     <string name="cd_share">Chia sẻ</string>
+    <string name="post_delete_action">Xóa bài viết</string>
+    <string name="post_delete_title">Xóa bài viết này?</string>
+    <string name="post_delete_message">Bài viết sẽ bị xóa vĩnh viễn và không thể khôi phục.</string>
+    <string name="post_delete_confirm">Xóa</string>
+    <string name="post_delete_cancel">Hủy</string>
+    <string name="post_delete_success">Đã xóa bài viết</string>
+    <string name="post_delete_failed">Không thể xóa bài viết</string>
 
     <!-- Bottom navigation -->
     <string name="nav_home">Trang chủ</string>

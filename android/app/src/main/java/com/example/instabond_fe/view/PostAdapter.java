@@ -31,6 +31,7 @@ import com.example.instabond_fe.utils.TimeUtils;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.lang.ref.WeakReference;
@@ -48,6 +49,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         void onShareClicked(Post post, int position);
         void onBookmarkClicked(Post post, int position);
         void onUserClicked(Post post, int position);
+        void onOptionsClicked(Post post, int position, View anchorView);
     }
 
     private static final int[] TIME_FALLBACKS = {
@@ -60,6 +62,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     private final List<Post> posts;
     private final NumberFormat numberFormat = NumberFormat.getIntegerInstance(Locale.US);
     private OnPostInteractionListener listener;
+    private boolean showOverflowActions;
 
     public PostAdapter(List<Post> posts) {
         this.posts = new ArrayList<>(posts);
@@ -67,6 +70,10 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
 
     public void setListener(OnPostInteractionListener listener) {
         this.listener = listener;
+    }
+
+    public void setShowOverflowActions(boolean showOverflowActions) {
+        this.showOverflowActions = showOverflowActions;
     }
 
     public void setPosts(List<Post> newPosts) {
@@ -85,6 +92,44 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         int start = posts.size();
         posts.addAll(morePosts);
         notifyItemRangeInserted(start, morePosts.size());
+    }
+
+    public void removePostAt(int position) {
+        if (position < 0 || position >= posts.size()) {
+            return;
+        }
+        posts.remove(position);
+        releaseAudioIfMissingFromAdapter();
+        notifyItemRemoved(position);
+    }
+
+    public boolean removePostById(String postId) {
+        if (postId == null || postId.trim().isEmpty()) {
+            return false;
+        }
+
+        for (int index = 0; index < posts.size(); index++) {
+            Post post = posts.get(index);
+            if (post != null && postId.equals(post.getId())) {
+                posts.remove(index);
+                releaseAudioIfMissingFromAdapter();
+                notifyItemRemoved(index);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean removePostsByIds(Collection<String> postIds) {
+        if (postIds == null || postIds.isEmpty()) {
+            return false;
+        }
+
+        boolean removed = false;
+        for (String postId : new ArrayList<>(postIds)) {
+            removed = removePostById(postId) || removed;
+        }
+        return removed;
     }
 
     public void notifyPostChanged(Post post) {
@@ -153,6 +198,11 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         holder.btnBookmark.setOnClickListener(v -> {
             if (listener != null) listener.onBookmarkClicked(post, position);
         });
+        boolean canShowOverflow = showOverflowActions && post.isOwnedByCurrentUser();
+        holder.btnOverflow.setVisibility(canShowOverflow ? View.VISIBLE : View.GONE);
+        holder.btnOverflow.setOnClickListener(canShowOverflow && listener != null
+                ? v -> listener.onOptionsClicked(post, position, v)
+                : null);
 
         if (post.getImageUrl() == null || post.getImageUrl().trim().isEmpty()) {
             holder.flPostImage.setVisibility(View.GONE);
@@ -465,6 +515,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         ImageButton btnComment;
         ImageButton btnShare;
         ImageButton btnBookmark;
+        ImageButton btnOverflow;
 
         PostViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -483,6 +534,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             btnComment = itemView.findViewById(R.id.btn_comment);
             btnShare = itemView.findViewById(R.id.btn_share);
             btnBookmark = itemView.findViewById(R.id.btn_bookmark);
+            btnOverflow = itemView.findViewById(R.id.btn_overflow);
         }
     }
 }

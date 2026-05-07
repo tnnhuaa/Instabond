@@ -31,6 +31,13 @@
     <string name="cd_bookmark">Bookmark</string>
     <string name="cd_more_options">More options</string>
     <string name="cd_share">Share</string>
+    <string name="post_delete_action">Delete post</string>
+    <string name="post_delete_title">Delete this post?</string>
+    <string name="post_delete_message">This post will be permanently deleted and cannot be restored.</string>
+    <string name="post_delete_confirm">Delete</string>
+    <string name="post_delete_cancel">Cancel</string>
+    <string name="post_delete_success">Post deleted</string>
+    <string name="post_delete_failed">Could not delete post</string>
 
     <!-- Bottom navigation -->
     <string name="nav_home">Home</string>

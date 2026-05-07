@@ -71,6 +71,9 @@ public interface ApiService {
     @GET("api/posts/{postId}")
     Call<PostResponse> getPost(@Path("postId") String postId);
 
+    @DELETE("api/posts/{postId}")
+    Call<Void> deletePost(@Path("postId") String postId);
+
     @GET("api/stories/feed")
     Call<List<StoryResponse>> getStoriesFeed();
 
