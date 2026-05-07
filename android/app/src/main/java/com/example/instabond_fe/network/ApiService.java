@@ -96,6 +96,9 @@ public interface ApiService {
     @GET("api/posts/user/{userId}")
     Call<JsonElement> getPostsByUserId(@Path("userId") String userId);
 
+    @GET("api/posts/tagged/{userId}")
+    Call<JsonElement> getTaggedPosts(@Path("userId") String userId);
+
     @GET("api/test")
     Call<ResponseBody> testConnection();
 

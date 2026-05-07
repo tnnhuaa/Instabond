@@ -27,6 +27,9 @@ public interface PostRepository extends MongoRepository<Post, String> {
 
     List<Post> findByIdIn(List<String> ids);
 
+    @Query(value = "{ 'tagged_users.user_id': ?0 }", sort = "{ 'created_at': -1 }")
+    List<Post> findByTaggedUsersUserIdOrderByCreatedAtDesc(String userId);
+
     interface PostIdProjection {
         String getId();
     }

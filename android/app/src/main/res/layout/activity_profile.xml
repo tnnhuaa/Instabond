@@ -532,10 +532,39 @@
                 </FrameLayout>
             </LinearLayout>
 
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/tab_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:background="@android:color/transparent"
+                app:tabIndicatorColor="@color/login_bg_start"
+                app:tabIndicatorHeight="2dp"
+                app:tabMode="fixed"
+                app:tabGravity="fill"
+                app:tabRippleColor="@null"
+                app:tabIconTint="@color/tab_icon_tint"
+                app:tabSelectedTextColor="@color/login_bg_start"
+                app:tabTextColor="@color/login_text_secondary">
+
+                <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:icon="@drawable/ic_tab_grid"
+                    android:contentDescription="@string/tab_grid" />
+
+                <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:icon="@drawable/ic_tab_tagged"
+                    android:contentDescription="@string/tab_tagged" />
+
+            </com.google.android.material.tabs.TabLayout>
+
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp">
+                android:layout_marginTop="12dp">
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rv_profile_grid"
@@ -584,20 +613,6 @@
                 </LinearLayout>
 
             </FrameLayout>
-
-            <LinearLayout
-                android:id="@+id/tab_grid"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:visibility="gone"
-                android:orientation="vertical" />
-
-            <LinearLayout
-                android:id="@+id/tab_tagged"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:visibility="gone"
-                android:orientation="vertical" />
 
         </LinearLayout>
 

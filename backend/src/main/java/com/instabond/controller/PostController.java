@@ -204,6 +204,31 @@ public class PostController {
         return ResponseEntity.ok(postService.getPostsByEmail(email, getUserId(userDetails), page, size));
     }
 
+    // Get posts where the user is tagged (Photos of You)
+
+    @Operation(
+            summary = "Get posts where user is tagged",
+            description = "Returns all posts where the given user appears in the tagged_users list, sorted by newest first."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "List of tagged posts",
+                    content = @Content(schema = @Schema(implementation = PostResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or expired access token"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @GetMapping("/tagged/{userId}")
+    public ResponseEntity<List<PostResponse>> getTaggedPosts(
+            @Parameter(description = "ID of the target user", example = "65b111111111111111111111")
+            @PathVariable String userId,
+            @Parameter(description = "Zero-based page index", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page", example = "20")
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(postService.getTaggedPostsForUser(userId, getUserId(userDetails), page, size));
+    }
+
     // Update a post
 
     @Operation(

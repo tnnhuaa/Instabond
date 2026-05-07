@@ -37,6 +37,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -73,6 +74,9 @@ public class ProfileActivity extends AppCompatActivity {
     private boolean isOwnProfileView;
     private boolean followRequestInFlight;
     private ProfileGridAdapter gridAdapter;
+    private List<PostResponse> userPosts = new ArrayList<>();
+    private List<PostResponse> taggedPosts = new ArrayList<>();
+    private boolean taggedPostsLoaded = false;
     private NotificationCountManager notificationCountManager;
 
     @Override
@@ -101,6 +105,21 @@ public class ProfileActivity extends AppCompatActivity {
             Intent intent = new Intent(this, CommentActivity.class);
             intent.putExtra("postId", selectedPost.getId());
             startActivity(intent);
+        });
+
+        binding.tabLayout.addOnTabSelectedListener(new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                switchTab(tab.getPosition());
+            }
+
+            @Override
+            public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) {
+            }
+
+            @Override
+            public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) {
+            }
         });
 
         faceRegistrationLauncher = registerForActivityResult(
@@ -435,7 +454,12 @@ public class ProfileActivity extends AppCompatActivity {
             binding.tvLikesCount.setOnClickListener(v -> openFollowList(profile.getId(), "following"));
 
             if (profile.getId() != null && !profile.getId().isEmpty()) {
+                userPosts.clear();
+                taggedPosts.clear();
+                taggedPostsLoaded = false;
+                binding.tabLayout.selectTab(binding.tabLayout.getTabAt(0));
                 loadUserPosts(profile.getId());
+                loadTaggedPosts(profile.getId());
             }
         } else {
             if (binding.layoutPrivateAccount != null) {
@@ -538,14 +562,49 @@ public class ProfileActivity extends AppCompatActivity {
                     return;
                 }
 
-                List<PostResponse> posts = ApiListParser.parsePostList(gson, response.body());
-                gridAdapter.setPosts(posts);
+                userPosts = ApiListParser.parsePostList(gson, response.body());
+                if (binding.tabLayout.getSelectedTabPosition() == 0) {
+                    gridAdapter.setPosts(userPosts);
+                }
             }
 
             @Override
             public void onFailure(Call<JsonElement> call, Throwable t) {
             }
         });
+    }
+
+    private void loadTaggedPosts(String userId) {
+        apiService.getTaggedPosts(userId).enqueue(new Callback<JsonElement>() {
+            @Override
+            public void onResponse(Call<JsonElement> call, Response<JsonElement> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    return;
+                }
+
+                taggedPosts = ApiListParser.parsePostList(gson, response.body());
+                taggedPostsLoaded = true;
+                if (binding.tabLayout.getSelectedTabPosition() == 1) {
+                    gridAdapter.setPosts(taggedPosts);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<JsonElement> call, Throwable t) {
+            }
+        });
+    }
+
+    private void switchTab(int position) {
+        if (position == 0) {
+            gridAdapter.setPosts(userPosts);
+        } else {
+            if (!taggedPostsLoaded && currentUserId != null) {
+                loadTaggedPosts(currentUserId);
+            } else {
+                gridAdapter.setPosts(taggedPosts);
+            }
+        }
     }
 
     private void applyIntimacyAvatarRing(UserProfileResponse profile) {

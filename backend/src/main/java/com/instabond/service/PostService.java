@@ -617,6 +617,71 @@ public class PostService {
         return toPostResponses(posts, caller);
     }
 
+    // Get posts where the user is tagged (Photos of You)
+    public List<PostResponse> getTaggedPostsForUser(String userId, String callerPrincipal) {
+        return getTaggedPostsForUser(userId, callerPrincipal, DEFAULT_PAGE, DEFAULT_SIZE);
+    }
+
+    public List<PostResponse> getTaggedPostsForUser(String userId, String callerPrincipal, int page, int size) {
+        User caller = resolveUserFromPrincipal(callerPrincipal);
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+
+        List<Post> posts = findPostsByTaggedUserId(userId, page, size);
+
+        // If the caller is the tagged user, they can see all posts they're tagged in.
+        // Otherwise, filter by each post author's privacy.
+        if (!caller.getId().equals(userId)) {
+            posts = filterTaggedPostsByAuthorPrivacy(posts, caller);
+        }
+
+        return toPostResponses(posts, caller);
+    }
+
+    private List<Post> findPostsByTaggedUserId(String userId, int page, int size) {
+        Query query = new Query(
+                Criteria.where("tagged_users.user_id").is(userId))
+                .with(Sort.by(Sort.Direction.DESC, "created_at"))
+                .with(org.springframework.data.domain.PageRequest.of(sanitizePage(page), sanitizeSize(size)));
+        return mongoTemplate.find(query, Post.class);
+    }
+
+    private List<Post> filterTaggedPostsByAuthorPrivacy(List<Post> posts, User caller) {
+        if (posts.isEmpty()) {
+            return posts;
+        }
+
+        // Batch-fetch all unique authors
+        Set<String> authorIds = posts.stream()
+                .map(Post::getAuthor_id)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<String, User> authorMap = userRepository.findAllById(authorIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        Set<String> acceptedFollowing = getAcceptedFollowingIds(caller.getId());
+
+        return posts.stream()
+                .filter(post -> {
+                    User author = authorMap.get(post.getAuthor_id());
+                    if (author == null) {
+                        return true; // Missing author — show post
+                    }
+
+                    boolean isPrivate = author.getSettings() != null
+                            && Boolean.TRUE.equals(author.getSettings().getIs_private());
+                    if (!isPrivate) {
+                        return true; // Public account — everyone can see
+                    }
+
+                    // Private account — only accepted followers and the author themselves
+                    return acceptedFollowing.contains(author.getId())
+                            || caller.getId().equals(author.getId());
+                })
+                .collect(Collectors.toList());
+    }
+
     // Update post fields (only the author is allowed)
     public PostResponse updatePost(String postId, String callerEmail, UpdatePostRequest request) {
         Post post = postRepository.findById(postId)
